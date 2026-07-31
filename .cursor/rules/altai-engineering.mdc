@@ -1,0 +1,29 @@
+---
+description: ALTAI VS Code architecture, execution, and verification rules
+globs:
+alwaysApply: true
+---
+
+# ALTAI VS Code engineering rules
+
+- Read `docs/ENGINEERING_PLAN.md` before planning or making code changes.
+- Treat `altaidevorg/altai-app` as the owner of shared UI, host contracts,
+  protocol packages, and the Rust agent service.
+- Treat this repository as a thin VS Code host and adapter.
+- Never copy ALTAI Desktop JSX, CSS, stores, or protocol definitions into this
+  repository. Consume versioned shared packages instead.
+- Never implement a second chat interface. The Webview must render
+  `@altai/agent-ui`.
+- Keep `vscode` imports in Extension Host adapter code. Webview code communicates
+  through typed, runtime-validated messages.
+- Keep provider credentials, IsanAgent, shell, MCP, and durable storage behind
+  the Rust host. Never expose secrets to the Webview.
+- Do not start the native host for an untrusted workspace.
+- Gate visible controls using negotiated host capabilities. Do not ship enabled
+  placeholders or dead buttons.
+- Keep changes small enough for one reviewable pull request and one acceptance
+  gate from the engineering plan.
+- Add or update tests with every behavior change.
+- Before finishing, run the relevant typecheck, lint, test, and build commands.
+- Report changed files, verification commands and results, compatibility impact,
+  and remaining risks.
