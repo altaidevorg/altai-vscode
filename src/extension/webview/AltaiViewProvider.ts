@@ -6,6 +6,7 @@ import {
   type WebviewEvent,
 } from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
+import { createSecureId } from "../../shared/secureRandom.js";
 import { parseWebviewMessage } from "../../shared/validation.js";
 import { COMPATIBILITY } from "../compatibility.js";
 import { getOutputChannel } from "../output.js";
@@ -73,7 +74,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     const event: WebviewEvent = {
       protocolVersion: WEBVIEW_PROTOCOL_VERSION,
       type: "event",
-      id: `evt-${Date.now()}`,
+      id: createSecureId("evt"),
       event: HOST_STATUS_EVENT,
       payload,
     };

@@ -5,6 +5,7 @@ import {
   type WebviewEvent,
   type WebviewRequest,
 } from "../shared/messages.js";
+import { createSecureId } from "../shared/secureRandom.js";
 import { parseWebviewMessage } from "../shared/validation.js";
 import "./main.css";
 
@@ -53,7 +54,7 @@ function requestStatus(): void {
   const request: WebviewRequest = {
     protocolVersion: WEBVIEW_PROTOCOL_VERSION,
     type: "request",
-    id: `req-${Date.now()}`,
+    id: createSecureId("req"),
     method: "host.getStatus",
   };
   vscodeApi.postMessage(request);
