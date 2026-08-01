@@ -53,6 +53,7 @@ type PendingRequest = {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
   timer: ReturnType<typeof setTimeout>;
+  settled: boolean;
 };
 
 export class MessageBridge {
@@ -137,24 +138,28 @@ export class MessageBridge {
     }
 
     return new Promise<unknown>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pending.delete(id);
-        reject(
-          new BridgeError({
-            code: "timeout",
-            message: `Request "${method}" timed out after ${timeoutMs}ms`,
-            details: { method, id, timeoutMs },
-          }),
-        );
-      }, timeoutMs);
+      const pending: PendingRequest = {
+        resolve,
+        reject,
+        settled: false,
+        timer: setTimeout(() => {
+          this.settlePending(
+            id,
+            "reject",
+            new BridgeError({
+              code: "timeout",
+              message: `Request "${method}" timed out after ${timeoutMs}ms`,
+              details: { method, id, timeoutMs },
+            }),
+          );
+        }, timeoutMs),
+      };
 
-      this.pending.set(id, { resolve, reject, timer });
+      this.pending.set(id, pending);
       try {
         this.transport.postMessage(envelope);
       } catch (error) {
-        clearTimeout(timer);
-        this.pending.delete(id);
-        reject(error);
+        this.settlePending(id, "reject", error);
       }
     });
   }
@@ -180,9 +185,11 @@ export class MessageBridge {
     this.handlers.clear();
     this.eventListeners.clear();
 
-    for (const [id, pending] of this.pending) {
-      clearTimeout(pending.timer);
-      pending.reject(
+    const pendingIds = [...this.pending.keys()];
+    for (const id of pendingIds) {
+      this.settlePending(
+        id,
+        "reject",
         new BridgeError({
           code: "disposed",
           message: "Bridge disposed before response",
@@ -190,7 +197,6 @@ export class MessageBridge {
         }),
       );
     }
-    this.pending.clear();
   }
 
   private onTransportMessage(raw: unknown): void {
@@ -254,29 +260,46 @@ export class MessageBridge {
       return;
     }
 
-    const pending = this.pending.get(message.id);
-    if (!pending) {
-      return;
-    }
-
-    clearTimeout(pending.timer);
-    this.pending.delete(message.id);
-
     if (message.type === "error") {
-      pending.reject(new BridgeError(message.error));
+      this.settlePending(message.id, "reject", new BridgeError(message.error));
       return;
     }
 
     if (message.error) {
-      pending.reject(new BridgeError(message.error));
+      this.settlePending(message.id, "reject", new BridgeError(message.error));
       return;
     }
 
-    pending.resolve(
+    this.settlePending(
+      message.id,
+      "resolve",
       Object.prototype.hasOwnProperty.call(message, "result")
         ? message.result
         : undefined,
     );
+  }
+
+  /**
+   * Atomically settle a pending request once. Clears the timer before map
+   * removal so a queued timeout cannot reject after a successful response.
+   */
+  private settlePending(
+    id: string,
+    kind: "resolve" | "reject",
+    value: unknown,
+  ): void {
+    const pending = this.pending.get(id);
+    if (!pending || pending.settled) {
+      return;
+    }
+    pending.settled = true;
+    clearTimeout(pending.timer);
+    this.pending.delete(id);
+    if (kind === "resolve") {
+      pending.resolve(value);
+      return;
+    }
+    pending.reject(value);
   }
 
   private dispatchEvent(message: WebviewEvent): void {
