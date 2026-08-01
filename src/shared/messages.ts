@@ -1,6 +1,6 @@
 /**
  * Typed envelopes for Extension Host ↔ Webview communication.
- * Runtime validation is expanded in TASK-003; schemas stay product-neutral.
+ * Runtime-validated by parseWebviewMessage; transport by MessageBridge.
  */
 
 export const WEBVIEW_PROTOCOL_VERSION = 1 as const;

@@ -10,10 +10,10 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   const provider = new AltaiViewProvider(context);
+  // Persist presentation state via vscodeApi getState/setState (TASK-003).
+  // Do not retain hidden Webview contexts.
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(AltaiViewProvider.viewType, provider, {
-      webviewOptions: { retainContextWhenHidden: true },
-    }),
+    vscode.window.registerWebviewViewProvider(AltaiViewProvider.viewType, provider),
   );
 
   registerCommands(context, provider);

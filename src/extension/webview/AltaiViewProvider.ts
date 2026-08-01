@@ -1,20 +1,19 @@
 import * as vscode from "vscode";
 import {
   HOST_STATUS_EVENT,
-  WEBVIEW_PROTOCOL_VERSION,
   type HostStatusPayload,
-  type WebviewEvent,
 } from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
-import { parseWebviewMessage } from "../../shared/validation.js";
 import { COMPATIBILITY } from "../compatibility.js";
 import { getOutputChannel } from "../output.js";
+import { WebviewBridge } from "./WebviewBridge.js";
 import { getWebviewHtml } from "./webviewHtml.js";
 
 export class AltaiViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "altai.sidePanel";
 
   private view: vscode.WebviewView | undefined;
+  private bridge: WebviewBridge | undefined;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -23,6 +22,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ): void {
+    this.disposeBridge();
     this.view = webviewView;
     const { webview } = webviewView;
 
@@ -41,43 +41,45 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       nonce,
     });
 
-    webview.onDidReceiveMessage((raw) => {
-      const message = parseWebviewMessage(raw);
-      if (!message) {
+    const bridge = new WebviewBridge(webview, {
+      onInvalidMessage: () => {
         getOutputChannel().appendLine(
           "[altai] ignored invalid webview message",
         );
-        return;
-      }
+      },
+      onUnhandledRequest: (method) => {
+        getOutputChannel().appendLine(
+          `[altai] unhandled webview request: ${method}`,
+        );
+      },
+    });
+    this.bridge = bridge;
 
-      if (message.type === "request" && message.method === "host.getStatus") {
-        this.postHostStatus();
+    bridge.registerHandler("host.getStatus", () => this.getHostStatus());
+
+    webviewView.onDidDispose(() => {
+      if (this.view === webviewView) {
+        this.view = undefined;
+      }
+      if (this.bridge === bridge) {
+        this.disposeBridge();
       }
     });
 
-    this.postHostStatus();
+    bridge.postEvent(HOST_STATUS_EVENT, this.getHostStatus());
     getOutputChannel().appendLine("[altai] webview resolved");
   }
 
-  private postHostStatus(): void {
-    if (!this.view) {
-      return;
-    }
-
-    const payload: HostStatusPayload = {
+  private getHostStatus(): HostStatusPayload {
+    return {
       status: "disconnected",
       message: "ALTAI host not connected",
       extensionVersion: COMPATIBILITY.extension,
     };
+  }
 
-    const event: WebviewEvent = {
-      protocolVersion: WEBVIEW_PROTOCOL_VERSION,
-      type: "event",
-      id: `evt-${Date.now()}`,
-      event: HOST_STATUS_EVENT,
-      payload,
-    };
-
-    void this.view.webview.postMessage(event);
+  private disposeBridge(): void {
+    this.bridge?.dispose();
+    this.bridge = undefined;
   }
 }
