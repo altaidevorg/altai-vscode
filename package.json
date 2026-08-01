@@ -1,0 +1,93 @@
+{
+  "name": "altai",
+  "displayName": "ALTAI",
+  "description": "The official ALTAI extension for Visual Studio Code, powered by the shared ALTAI UI and IsanAgent runtime.",
+  "version": "0.1.0",
+  "publisher": "altaidevorg",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "altai",
+    "ai",
+    "agent",
+    "isanagent",
+    "coding-assistant"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "altai",
+          "title": "ALTAI",
+          "icon": "media/altai-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "altai": [
+        {
+          "type": "webview",
+          "id": "altai.sidePanel",
+          "name": "ALTAI",
+          "icon": "media/altai-activity.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "altai.openSidePanel",
+        "title": "ALTAI: Open Side Panel",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.openLogs",
+        "title": "ALTAI: Open Logs",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.runDiagnostics",
+        "title": "ALTAI: Run Diagnostics",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.showVersionCompatibility",
+        "title": "ALTAI: Show Version Compatibility",
+        "category": "ALTAI"
+      }
+    ]
+  },
+  "scripts": {
+    "clean": "rm -rf dist out .vscode-test",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:extension": "node scripts/build-extension.mjs",
+    "build:webview": "node scripts/build-webview.mjs",
+    "build": "npm run build:extension && npm run build:webview",
+    "guard:architecture": "node scripts/guard-architecture.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run guard:architecture",
+    "package": "npm run verify && vsce package --no-dependencies",
+    "watch": "node scripts/build-extension.mjs --watch & node scripts/build-webview.mjs --watch",
+    "vscode:prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "@types/vscode": "^1.90.0",
+    "@typescript-eslint/eslint-plugin": "^8.32.1",
+    "@typescript-eslint/parser": "^8.32.1",
+    "@vscode/vsce": "^3.4.0",
+    "esbuild": "^0.25.4",
+    "eslint": "^9.27.0",
+    "typescript": "~5.8.3",
+    "vitest": "^3.1.4"
+  }
+}
