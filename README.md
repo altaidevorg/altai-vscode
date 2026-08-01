@@ -17,9 +17,11 @@ this repository.
 
 ## Status
 
-Phase 0 / TASK-001 foundation: Activity Bar Webview shell with a neutral
-**ALTAI host not connected** state, CSP, typed message envelopes, and quality
-scripts. Shared UI and the native host are not connected yet.
+Phase 0 / TASK-003: Activity Bar Webview shell with a typed, runtime-validated
+request/response/event bridge (timeouts, disposal, safe unknown handling),
+VS Code `getState`/`setState` persistence, CSP, and a neutral
+**ALTAI host not connected** development state. Shared UI and the native host
+are not connected yet.
 
 See the [engineering plan](docs/ENGINEERING_PLAN.md) and
 [protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md).

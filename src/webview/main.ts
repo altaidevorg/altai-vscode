@@ -1,12 +1,9 @@
 import {
   HOST_STATUS_EVENT,
-  WEBVIEW_PROTOCOL_VERSION,
   type HostStatusPayload,
-  type WebviewEvent,
-  type WebviewRequest,
 } from "../shared/messages.js";
-import { createSecureId } from "../shared/secureRandom.js";
-import { parseWebviewMessage } from "../shared/validation.js";
+import { parsePersistedWebviewState } from "../shared/webviewState.js";
+import { WebviewClient } from "./WebviewClient.js";
 import "./main.css";
 
 declare function acquireVsCodeApi(): {
@@ -15,9 +12,10 @@ declare function acquireVsCodeApi(): {
   setState(state: unknown): void;
 };
 
-type VsCodeApi = ReturnType<typeof acquireVsCodeApi>;
-
-const vscodeApi: VsCodeApi = acquireVsCodeApi();
+function isHostStatusPayload(value: unknown): value is HostStatusPayload {
+  const parsed = parsePersistedWebviewState({ hostStatus: value }).hostStatus;
+  return parsed !== undefined;
+}
 
 function render(status: HostStatusPayload): void {
   const root = document.getElementById("root");
@@ -46,47 +44,26 @@ function render(status: HostStatusPayload): void {
 
   panel.append(brand, title, detail);
   root.append(panel);
-
-  vscodeApi.setState({ hostStatus: status });
 }
 
-function requestStatus(): void {
-  const request: WebviewRequest = {
-    protocolVersion: WEBVIEW_PROTOCOL_VERSION,
-    type: "request",
-    id: createSecureId("req"),
-    method: "host.getStatus",
-  };
-  vscodeApi.postMessage(request);
-}
-
-window.addEventListener("message", (event: MessageEvent) => {
-  const message = parseWebviewMessage(event.data);
-  if (!message || message.type !== "event") {
-    return;
-  }
-
-  const webviewEvent = message as WebviewEvent;
-  if (webviewEvent.event !== HOST_STATUS_EVENT) {
-    return;
-  }
-
-  const payload = webviewEvent.payload as HostStatusPayload | undefined;
-  if (
-    !payload ||
-    typeof payload.message !== "string" ||
-    typeof payload.status !== "string" ||
-    typeof payload.extensionVersion !== "string"
-  ) {
-    return;
-  }
-
-  render(payload);
+const client = new WebviewClient({
+  vscodeApi: acquireVsCodeApi(),
 });
 
-const previous = vscodeApi.getState() as { hostStatus?: HostStatusPayload } | undefined;
-if (previous?.hostStatus) {
-  render(previous.hostStatus);
+function applyStatus(status: HostStatusPayload): void {
+  render(status);
+  client.setPersistedState({ hostStatus: status });
+}
+
+client.onEvent(HOST_STATUS_EVENT, (payload) => {
+  if (isHostStatusPayload(payload)) {
+    applyStatus(payload);
+  }
+});
+
+const previous = client.getPersistedState().hostStatus;
+if (isHostStatusPayload(previous)) {
+  render(previous);
 } else {
   render({
     status: "disconnected",
@@ -95,4 +72,13 @@ if (previous?.hostStatus) {
   });
 }
 
-requestStatus();
+void client
+  .request("host.getStatus")
+  .then((result) => {
+    if (isHostStatusPayload(result)) {
+      applyStatus(result);
+    }
+  })
+  .catch(() => {
+    // Extension Host may not be ready yet; host.status events still update UI.
+  });
