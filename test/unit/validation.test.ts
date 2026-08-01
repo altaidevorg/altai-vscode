@@ -45,6 +45,32 @@ describe("parseWebviewMessage", () => {
     expect(parseWebviewMessage(1)).toBeNull();
   });
 
+  it("rejects empty request ids", () => {
+    expect(
+      parseWebviewMessage({
+        protocolVersion: WEBVIEW_PROTOCOL_VERSION,
+        type: "request",
+        id: "",
+        method: "host.getStatus",
+      }),
+    ).toBeNull();
+  });
+
+  it("accepts a response with error body", () => {
+    const parsed = parseWebviewMessage({
+      protocolVersion: WEBVIEW_PROTOCOL_VERSION,
+      type: "response",
+      id: "1",
+      error: { code: "timeout", message: "timed out" },
+    });
+    expect(parsed).toEqual({
+      protocolVersion: 1,
+      type: "response",
+      id: "1",
+      error: { code: "timeout", message: "timed out" },
+    });
+  });
+
   it("accepts a host status event", () => {
     const parsed = parseWebviewMessage({
       protocolVersion: WEBVIEW_PROTOCOL_VERSION,

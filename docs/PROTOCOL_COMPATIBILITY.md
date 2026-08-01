@@ -5,7 +5,7 @@ Pinned versions for this repository. Update this file whenever
 
 | Extension | `@altai/agent-ui` | Protocol major | `altai-agent-host` | Notes |
 |---|---|---:|---|---|
-| 0.1.0 | pending | 1 | pending | TASK-001 foundation only; host/UI not wired |
+| 0.1.0 | pending | 1 | pending | TASK-003 Webview bridge; host/UI not wired |
 
 ## Policy
 
