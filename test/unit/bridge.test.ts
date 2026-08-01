@@ -67,6 +67,29 @@ describe("MessageBridge", () => {
     });
   });
 
+  it("does not reject with timeout after a late response is already settled", async () => {
+    vi.useFakeTimers();
+    try {
+      const [client, host] = pair({
+        a: { defaultTimeoutMs: 50 },
+      });
+      host.registerHandler("slow", async () => {
+        await vi.advanceTimersByTimeAsync(40);
+        return "ok";
+      });
+
+      const pending = client.request("slow");
+      await vi.advanceTimersByTimeAsync(40);
+      await expect(pending).resolves.toBe("ok");
+
+      // Fire any remaining timeout timers; settle must ignore them.
+      await vi.advanceTimersByTimeAsync(100);
+      await expect(pending).resolves.toBe("ok");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not invoke handlers for invalid messages", () => {
     const handler = vi.fn();
     const onInvalidMessage = vi.fn();
