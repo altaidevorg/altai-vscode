@@ -5,14 +5,36 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout altai-vscode
+        uses: actions/checkout@v4
+        with:
+          path: altai-vscode
+
+      # Shared packages are not on npm yet; local file: deps expect a sibling
+      # altai-app checkout (see package.json @altai/* file: paths).
+      - name: Checkout altai-app (shared packages)
+        uses: actions/checkout@v4
+        with:
+          repository: altaidevorg/altai-app
+          path: altai-app-main
+          token: ${{ github.token }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: npm
-      - run: npm ci
-      - run: npm run verify
+          cache-dependency-path: altai-vscode/package-lock.json
+
+      - name: Install and verify
+        working-directory: altai-vscode
+        run: |
+          npm ci
+          npm run verify

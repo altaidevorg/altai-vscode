@@ -5,7 +5,7 @@ Pinned versions for this repository. Update this file whenever
 
 | Extension | `@altai/agent-ui` | Protocol major | `altai-agent-host` | Notes |
 |---|---|---:|---|---|
-| 0.1.0 | pending | 1 | `stdio-via-altai-cli-serve` | TASK-006 host manager; packaged binary pin pending release packaging |
+| 0.1.0 | `0.1.0` (sibling `file:` until npm publish) | 1 | `stdio-via-altai-cli-serve` | TASK-008 renders shared UI shell; chat slice is TASK-009 |
 
 ## Policy
 
