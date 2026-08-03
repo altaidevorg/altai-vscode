@@ -35,6 +35,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     [extensionVersion],
   );
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
   const [hostStatus, setHostStatus] = useState<HostStatusPayload>(() => {
     const previous = client.getPersistedState().hostStatus;
     if (isHostStatusPayload(previous)) {
@@ -59,6 +60,15 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       .then((caps) => {
         if (!cancelled) {
           setCapabilities(caps);
+          setInitError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          const message =
+            error instanceof Error ? error.message : "Runtime initialize failed";
+          setInitError(message);
+          setCapabilities(null);
         }
       });
     return () => {
@@ -73,12 +83,23 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
         client.setPersistedState({ hostStatus: payload });
       }
     });
-    void client.request("host.getStatus").then((result) => {
-      if (isHostStatusPayload(result)) {
-        setHostStatus(result);
-        client.setPersistedState({ hostStatus: result });
-      }
-    });
+    void client
+      .request("host.getStatus")
+      .then((result) => {
+        if (isHostStatusPayload(result)) {
+          setHostStatus(result);
+          client.setPersistedState({ hostStatus: result });
+        }
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : "host.getStatus failed";
+        setHostStatus((prev) => ({
+          ...prev,
+          status: "error",
+          message: `Host status unavailable: ${message}`,
+        }));
+      });
     return off;
   }, [client]);
 
@@ -94,33 +115,39 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             </span>
           }
         />
-        <AgentUiShell hostStatus={hostStatus} />
+        <AgentUiShell hostStatus={hostStatus} initError={initError} />
       </div>
     </HostPortsProvider>
   );
 }
 
-function AgentUiShell({ hostStatus }: { hostStatus: HostStatusPayload }) {
+function AgentUiShell({
+  hostStatus,
+  initError,
+}: {
+  hostStatus: HostStatusPayload;
+  initError: string | null;
+}) {
   // Touch ports so missing provider fails loudly during mount.
   useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
   const canStartRun = useCapability("runtime.startRun");
   const canListSessions = useCapability("sessions.list");
 
+  const title = initError
+    ? "Shared UI failed to initialize"
+    : hostStatus.status === "ready"
+      ? "Shared UI connected"
+      : "Waiting for agent host";
+  const description = initError
+    ? initError
+    : hostStatus.status === "ready"
+      ? "VS Code is rendering @altai/agent-ui. Chat sessions and runs land in the next vertical slice."
+      : hostStatus.message;
+
   return (
     <main className="altai-shell-body">
-      <SurfaceEmptyState
-        title={
-          hostStatus.status === "ready"
-            ? "Shared UI connected"
-            : "Waiting for agent host"
-        }
-        description={
-          hostStatus.status === "ready"
-            ? "VS Code is rendering @altai/agent-ui. Chat sessions and runs land in the next vertical slice."
-            : hostStatus.message
-        }
-      />
+      <SurfaceEmptyState title={title} description={description} />
       <ul className="altai-capability-list" aria-label="Host capabilities">
         <CapabilityRow
           label="Initialize runtime"

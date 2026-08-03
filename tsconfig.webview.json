@@ -15,7 +15,10 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": ["react", "react-dom"]
+    "types": ["react", "react-dom"],
+    // file: deps symlink into ../altai-app-main; keep the symlink path so peer
+    // deps resolve from this package's node_modules (CI has no app node_modules).
+    "preserveSymlinks": true
   },
   "include": [
     "src/webview/**/*.ts",

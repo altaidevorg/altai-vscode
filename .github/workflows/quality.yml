@@ -25,6 +25,7 @@ jobs:
         with:
           repository: altaidevorg/altai-app
           path: altai-app-main
+          token: ${{ github.token }}
 
       - uses: actions/setup-node@v4
         with:
