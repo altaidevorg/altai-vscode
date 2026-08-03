@@ -17,11 +17,9 @@ this repository.
 
 ## Status
 
-Phase 0 / TASK-003: Activity Bar Webview shell with a typed, runtime-validated
-request/response/event bridge (timeouts, disposal, safe unknown handling),
-VS Code `getState`/`setState` persistence, CSP, and a neutral
-**ALTAI host not connected** development state. Shared UI and the native host
-are not connected yet.
+Phase 0 / TASK-006: Native host manager with trust-gated spawn of
+`altai-cli serve --stdio`, Content-Length JSON-RPC framing, and distinct
+lifecycle diagnostics. Shared `@altai/agent-ui` chat is not wired yet.
 
 See the [engineering plan](docs/ENGINEERING_PLAN.md) and
 [protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md).
@@ -35,6 +33,12 @@ npm run verify
 
 Then open this folder in VS Code / Cursor and launch **Run ALTAI Extension**
 (Extension Development Host).
+
+For a local agent host while the packaged binary is not in the VSIX yet:
+
+```bash
+export ALTAI_AGENT_HOST_PATH=/path/to/altai-cli
+```
 
 Useful scripts:
 
@@ -52,9 +56,9 @@ Useful scripts:
 ```text
 Webview (dist/webview)  --typed postMessage-->  Extension Host
                                                       |
-                                              (later) JSON-RPC stdio
+                                              JSON-RPC stdio (Content-Length)
                                                       |
-                                              altai-agent-host (Rust)
+                                              altai-cli serve / altai-agent-host
 ```
 
 The always-on [Cursor Project Rule](.cursor/rules/altai-engineering.mdc)

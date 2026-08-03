@@ -4,7 +4,7 @@ import {
   type HostStatusPayload,
 } from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
-import { COMPATIBILITY } from "../compatibility.js";
+import type { HostManager } from "../host/HostManager.js";
 import { getOutputChannel } from "../output.js";
 import { WebviewBridge } from "./WebviewBridge.js";
 import { getWebviewHtml } from "./webviewHtml.js";
@@ -15,7 +15,10 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | undefined;
   private bridge: WebviewBridge | undefined;
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    private readonly hostManager: HostManager,
+  ) {}
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -70,12 +73,12 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     getOutputChannel().appendLine("[altai] webview resolved");
   }
 
+  publishHostStatus(status: HostStatusPayload): void {
+    this.bridge?.postEvent(HOST_STATUS_EVENT, status);
+  }
+
   private getHostStatus(): HostStatusPayload {
-    return {
-      status: "disconnected",
-      message: "ALTAI host not connected",
-      extensionVersion: COMPATIBILITY.extension,
-    };
+    return this.hostManager.getStatus();
   }
 
   private disposeBridge(): void {
