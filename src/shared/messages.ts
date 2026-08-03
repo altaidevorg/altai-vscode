@@ -56,6 +56,8 @@ export type HostStatusPayload = {
   status: "disconnected" | "connecting" | "ready" | "error";
   message: string;
   extensionVersion: string;
+  /** Stable host diagnostic code when status is error (or trust-gated). */
+  diagnosticCode?: string;
 };
 
 export const HOST_STATUS_EVENT = "host.status" as const;

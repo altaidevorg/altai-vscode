@@ -21,6 +21,12 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "ALTAI does not start the native agent host until the workspace is trusted."
+    }
+  },
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -55,6 +61,11 @@
       {
         "command": "altai.runDiagnostics",
         "title": "ALTAI: Run Diagnostics",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.restartAgentHost",
+        "title": "ALTAI: Restart Agent Host",
         "category": "ALTAI"
       },
       {

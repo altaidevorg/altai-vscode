@@ -1,7 +1,15 @@
 import * as vscode from "vscode";
 import { registerCommands } from "./commands.js";
-import { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
+import { COMPATIBILITY } from "./compatibility.js";
+import { HostManager } from "./host/HostManager.js";
 import { getOutputChannel } from "./output.js";
+import { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
+import {
+  isWorkspaceTrusted,
+  onDidGrantWorkspaceTrust,
+} from "./workspaceTrust.js";
+
+let hostManager: HostManager | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   const output = getOutputChannel();
@@ -9,17 +17,45 @@ export function activate(context: vscode.ExtensionContext): void {
     `[altai] activating extension v${context.extension.packageJSON.version as string}`,
   );
 
-  const provider = new AltaiViewProvider(context);
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  let provider: AltaiViewProvider | undefined;
+
+  hostManager = new HostManager({
+    extensionPath: context.extensionUri.fsPath,
+    workspaceRoot,
+    isTrusted: () => isWorkspaceTrusted(),
+    onDidGrantTrust: (listener) => onDidGrantWorkspaceTrust(listener),
+    extensionVersion: COMPATIBILITY.extension,
+    log: (line) => output.appendLine(line),
+    onStatus: (status) => {
+      provider?.publishHostStatus(status);
+    },
+  });
+
+  provider = new AltaiViewProvider(context, hostManager);
   // Persist presentation state via vscodeApi getState/setState (TASK-003).
   // Do not retain hidden Webview contexts.
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(AltaiViewProvider.viewType, provider),
+    {
+      dispose: () => {
+        void hostManager?.shutdown();
+        hostManager?.dispose();
+        hostManager = undefined;
+      },
+    },
   );
 
-  registerCommands(context, provider);
+  registerCommands(context, provider, hostManager);
   output.appendLine("[altai] side panel provider registered");
+
+  void hostManager.start();
 }
 
-export function deactivate(): void {
-  // Host lifecycle shutdown lands in TASK-006.
+export async function deactivate(): Promise<void> {
+  if (hostManager) {
+    await hostManager.shutdown();
+    hostManager.dispose();
+    hostManager = undefined;
+  }
 }

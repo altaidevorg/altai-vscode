@@ -7,6 +7,7 @@ export type PersistedHostStatus = {
   status: string;
   message: string;
   extensionVersion: string;
+  diagnosticCode?: string;
 };
 
 export type PersistedWebviewState = {
@@ -34,9 +35,18 @@ function isPersistedHostStatus(value: unknown): value is PersistedHostStatus {
     return false;
   }
   const record = value as Record<string, unknown>;
-  return (
-    typeof record.status === "string" &&
-    typeof record.message === "string" &&
-    typeof record.extensionVersion === "string"
-  );
+  if (
+    typeof record.status !== "string" ||
+    typeof record.message !== "string" ||
+    typeof record.extensionVersion !== "string"
+  ) {
+    return false;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(record, "diagnosticCode") &&
+    typeof record.diagnosticCode !== "string"
+  ) {
+    return false;
+  }
+  return true;
 }
