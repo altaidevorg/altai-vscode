@@ -62,6 +62,8 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 
   const transport = useMemo<HostRpcTransport>(
     () => ({
+      // MessageBridge.request(method, { params }) — the inner object is the
+      // host.request payload ({ method, params? }), not a second wrapper.
       request: (method, params) =>
         client.request("host.request", {
           params:
