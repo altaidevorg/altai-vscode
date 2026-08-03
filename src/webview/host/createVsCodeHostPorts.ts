@@ -13,7 +13,7 @@ import {
   type HostPorts,
   type InitializeInput,
 } from "@altai/host-contract";
-import { withUnsupportedDefaults } from "@altai/agent-ui";
+import { withUnsupportedDefaults } from "./unsupported.js";
 
 const HOST_NAME = "altai-vscode";
 
