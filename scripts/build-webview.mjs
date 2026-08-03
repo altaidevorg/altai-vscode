@@ -21,12 +21,13 @@ const cssWritePlugin = {
 
 /** @type {import("esbuild").BuildOptions} */
 const options = {
-  entryPoints: ["src/webview/main.ts"],
+  entryPoints: ["src/webview/main.tsx"],
   bundle: true,
   outfile: "dist/webview/main.js",
   platform: "browser",
   format: "esm",
   target: "es2022",
+  jsx: "automatic",
   sourcemap: true,
   logLevel: "info",
   write: true,

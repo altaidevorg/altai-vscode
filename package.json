@@ -90,8 +90,18 @@
     "watch": "node scripts/build-extension.mjs --watch & node scripts/build-webview.mjs --watch",
     "vscode:prepublish": "npm run build"
   },
+  "dependencies": {
+    "@altai/agent-ui": "file:../altai-app-main/packages/agent-ui",
+    "@altai/host-contract": "file:../altai-app-main/packages/host-contract",
+    "@hugeicons/core-free-icons": "^4.1.1",
+    "@hugeicons/react": "^1.1.6",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
   "devDependencies": {
     "@types/node": "^22.15.21",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "@types/vscode": "^1.90.0",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",

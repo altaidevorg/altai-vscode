@@ -8,14 +8,14 @@
     "strict": true,
     "noImplicitOverride": true,
     "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "isolatedModules": true,
     "noEmit": true,
-    "types": []
+    "types": ["react", "react-dom"]
   },
   "include": [
     "src/webview/**/*.ts",

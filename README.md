@@ -17,14 +17,35 @@ this repository.
 
 ## Status
 
-Phase 0 / TASK-006: Native host manager with trust-gated spawn of
-`altai-cli serve --stdio`, Content-Length JSON-RPC framing, and distinct
-lifecycle diagnostics. Shared `@altai/agent-ui` chat is not wired yet.
+TASK-008 / V3: Webview renders `@altai/agent-ui` (HostPortsProvider + surface
+chrome) with capability gating. Full chat (sessions / runs / streaming) is
+TASK-009. Native host manager from TASK-006 remains trust-gated.
+
+Local installs expect a sibling checkout of `altai-app` at
+`../altai-app-main` so `file:` package links resolve (packages are not on npm
+yet).
 
 See the [engineering plan](docs/ENGINEERING_PLAN.md) and
 [protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md).
 
+## Documentation
+
+- [ALTAI architecture overview](docs/ALTAI_ARCHITECTURE_OVERVIEW.md) — component
+  responsibilities and the Desktop, VS Code, service, and IsanAgent data flow.
+- [Engineering plan](docs/ENGINEERING_PLAN.md) — implementation phases and
+  non-negotiable architecture rules.
+- [Protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md) — pinned extension,
+  protocol, shared-package, and native-host versions.
+
 ## Develop
+
+Layout (sibling packages):
+
+```text
+Desktop/
+  altai-vscode/       # this repo
+  altai-app-main/     # altaidevorg/altai-app checkout
+```
 
 ```bash
 npm install
@@ -32,7 +53,8 @@ npm run verify
 ```
 
 Then open this folder in VS Code / Cursor and launch **Run ALTAI Extension**
-(Extension Development Host).
+(Extension Development Host). The ALTAI Activity Bar view should show the
+shared UI shell (not a second chat implementation).
 
 For a local agent host while the packaged binary is not in the VSIX yet:
 

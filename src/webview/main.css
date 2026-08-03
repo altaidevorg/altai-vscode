@@ -1,8 +1,26 @@
 :root {
   color-scheme: light dark;
-  --altai-fg: var(--vscode-foreground, #cccccc);
-  --altai-muted: var(--vscode-descriptionForeground, #9d9d9d);
-  --altai-bg: var(--vscode-sideBar-background, transparent);
+  /* Map shared agent-ui token names onto VS Code theme variables. */
+  --foreground: var(--vscode-foreground, #cccccc);
+  --muted-foreground: var(--vscode-descriptionForeground, #9d9d9d);
+  --background: var(--vscode-sideBar-background, transparent);
+  --card: var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #252526));
+  --popover: var(--vscode-editorWidget-background, var(--card));
+  --popover-foreground: var(--vscode-foreground, #cccccc);
+  --border: var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+  --border-subtle: var(--vscode-sideBar-border, var(--border));
+  --muted: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
+  --accent: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+  --primary: var(--vscode-button-background, #0e639c);
+  --primary-foreground: var(--vscode-button-foreground, #ffffff);
+  --destructive: var(--vscode-errorForeground, #f48771);
+  --success: var(--vscode-testing-iconPassed, #73c991);
+  --warning: var(--vscode-editorWarning-foreground, #cca700);
+  --ring: var(--vscode-focusBorder, #007fd4);
+
+  --altai-fg: var(--foreground);
+  --altai-muted: var(--muted-foreground);
+  --altai-bg: var(--background);
   --altai-font: var(--vscode-font-family, system-ui, sans-serif);
   --altai-font-size: var(--vscode-font-size, 13px);
 }
@@ -27,32 +45,94 @@ body {
   min-height: 100%;
 }
 
-.altai-host-status {
+.altai-shell {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 0.5rem;
   min-height: 100%;
-  padding: 1.25rem;
 }
 
-.altai-brand {
-  margin: 0;
-  font-size: 0.75rem;
-  letter-spacing: 0.14em;
+.altai-shell-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.altai-host-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0.1rem 0.45rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  color: var(--altai-muted);
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
 }
 
-.altai-title {
+.altai-host-pill[data-status="ready"] {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.altai-host-pill[data-status="error"],
+.altai-host-pill[data-status="crashed"] {
+  color: var(--destructive);
+}
+
+.altai-capability-list {
   margin: 0;
-  font-size: 1.05rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.altai-capability {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  background: color-mix(in srgb, var(--card) 80%, transparent);
+}
+
+.altai-capability--off {
+  opacity: 0.72;
+}
+
+.altai-capability-label {
+  font-size: 0.75rem;
   font-weight: 600;
-  line-height: 1.35;
 }
 
-.altai-detail {
+.altai-capability-state {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.altai-capability-detail {
+  grid-column: 1 / -1;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+}
+
+.altai-shell-meta {
   margin: 0;
-  color: var(--altai-muted);
-  font-size: 0.85rem;
+  margin-top: auto;
+  font-size: 0.7rem;
+  color: var(--muted-foreground);
+}
+
+/* High-contrast: prefer VS Code contrast tokens when present. */
+@media (forced-colors: active) {
+  .altai-capability,
+  .altai-host-pill {
+    border: 1px solid CanvasText;
+  }
 }
