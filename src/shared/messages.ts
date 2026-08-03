@@ -61,3 +61,17 @@ export type HostStatusPayload = {
 };
 
 export const HOST_STATUS_EVENT = "host.status" as const;
+
+/** Native JSON-RPC notification forwarded from the agent host (e.g. run/event). */
+export const HOST_RPC_NOTIFICATION_EVENT = "host.rpc.notification" as const;
+
+export type HostRpcNotificationPayload = {
+  method: string;
+  params?: unknown;
+};
+
+/** Webview → Extension Host: proxy a JSON-RPC request to the native host. */
+export type HostRequestParams = {
+  method: string;
+  params?: unknown;
+};

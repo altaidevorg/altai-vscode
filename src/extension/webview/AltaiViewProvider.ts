@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import {
+  HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
+  type HostRequestParams,
   type HostStatusPayload,
 } from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
@@ -14,6 +16,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
 
   private view: vscode.WebviewView | undefined;
   private bridge: WebviewBridge | undefined;
+  private removeNotificationListener: (() => void) | undefined;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -59,6 +62,26 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     this.bridge = bridge;
 
     bridge.registerHandler("host.getStatus", () => this.getHostStatus());
+    bridge.registerHandler("host.request", (params) =>
+      this.proxyHostRequest(params),
+    );
+
+    const onNotification = (notification: {
+      method: string;
+      params?: unknown;
+    }): void => {
+      const payload: { method: string; params?: unknown } = {
+        method: notification.method,
+      };
+      if (notification.params !== undefined) {
+        payload.params = notification.params;
+      }
+      bridge.postEvent(HOST_RPC_NOTIFICATION_EVENT, payload);
+    };
+    this.hostManager.on("notification", onNotification);
+    this.removeNotificationListener = () => {
+      this.hostManager.off("notification", onNotification);
+    };
 
     webviewView.onDidDispose(() => {
       if (this.view === webviewView) {
@@ -77,12 +100,39 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     this.bridge?.postEvent(HOST_STATUS_EVENT, status);
   }
 
+  private async proxyHostRequest(params: unknown): Promise<unknown> {
+    const parsed = parseHostRequestParams(params);
+    if (!parsed) {
+      throw Object.assign(new Error("invalid_host_request_params"), {
+        code: "invalid_params",
+      });
+    }
+    return this.hostManager.request(parsed.method, parsed.params);
+  }
+
   private getHostStatus(): HostStatusPayload {
     return this.hostManager.getStatus();
   }
 
   private disposeBridge(): void {
+    this.removeNotificationListener?.();
+    this.removeNotificationListener = undefined;
     this.bridge?.dispose();
     this.bridge = undefined;
   }
+}
+
+function parseHostRequestParams(value: unknown): HostRequestParams | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.method !== "string" || record.method.trim() === "") {
+    return undefined;
+  }
+  const out: HostRequestParams = { method: record.method };
+  if (Object.prototype.hasOwnProperty.call(record, "params")) {
+    out.params = record.params;
+  }
+  return out;
 }
