@@ -52,6 +52,7 @@ export class FrameDecoder {
     for (;;) {
       const headerEnd = findHeaderEnd(this.buffer);
       if (headerEnd === undefined) {
+        // Match altai-protocol: incomplete header may equal the limit; only reject when it exceeds.
         if (this.buffer.length > this.limits.maxHeaderBytes) {
           throw new FrameError("header_too_large", "header exceeds configured limit");
         }
@@ -62,6 +63,9 @@ export class FrameDecoder {
       }
 
       const length = parseContentLength(this.buffer.subarray(0, headerEnd));
+      if (!Number.isSafeInteger(length) || length < 0) {
+        throw new FrameError("invalid_content_length", "invalid Content-Length header");
+      }
       if (length > this.limits.maxFrameBytes) {
         throw new FrameError(
           "frame_too_large",
@@ -70,6 +74,9 @@ export class FrameDecoder {
       }
 
       const bodyStart = headerEnd + 4;
+      if (!Number.isSafeInteger(bodyStart) || bodyStart <= headerEnd) {
+        throw new FrameError("invalid_content_length", "invalid Content-Length header");
+      }
       const total = bodyStart + length;
       if (!Number.isSafeInteger(total) || total < bodyStart) {
         throw new FrameError("invalid_content_length", "invalid Content-Length header");

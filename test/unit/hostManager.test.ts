@@ -80,6 +80,11 @@ function mockProcessFactory(options?: {
       },
       onExit: (listener) => {
         exitListener = listener;
+        return () => {
+          if (exitListener === listener) {
+            exitListener = undefined;
+          }
+        };
       },
     };
   };

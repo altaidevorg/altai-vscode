@@ -38,6 +38,7 @@ describe("resolveHostBinary", () => {
     mkdirSync(native, { recursive: true });
     const exe = path.join(native, "altai-agent-host");
     writeFileSync(exe, "binary-bytes");
+    chmodSync(exe, 0o755);
     writeFileSync(`${exe}.sha256`, "0".repeat(64));
 
     const result = resolveHostBinary({
@@ -60,5 +61,35 @@ describe("resolveHostBinary", () => {
       arch: "arm64",
     });
     expect(ok.ok).toBe(true);
+  });
+
+  it("rejects relative env override paths", () => {
+    const result = resolveHostBinary({
+      extensionPath: "/unused",
+      env: { [AGENT_HOST_PATH_ENV]: "relative/altai-host" },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostic.code).toBe(HostDiagnosticCode.Corrupt);
+    }
+  });
+
+  it("rejects non-executable env override on unix", () => {
+    if (process.platform === "win32") {
+      return;
+    }
+    const dir = mkdtempSync(path.join(tmpdir(), "altai-resolve-"));
+    const exe = path.join(dir, "host");
+    writeFileSync(exe, "ok");
+    chmodSync(exe, 0o644);
+
+    const result = resolveHostBinary({
+      extensionPath: "/unused",
+      env: { [AGENT_HOST_PATH_ENV]: exe },
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostic.code).toBe(HostDiagnosticCode.Corrupt);
+    }
   });
 });

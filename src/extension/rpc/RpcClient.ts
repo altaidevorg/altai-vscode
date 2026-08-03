@@ -39,6 +39,8 @@ export class RpcClient extends EventEmitter {
   private readonly onNotification: ((notification: RpcNotification) => void) | undefined;
   private readonly onFrameError: ((error: FrameError) => void) | undefined;
   private readonly onTransportError: ((error: Error) => void) | undefined;
+  private readonly onStdoutData: (chunk: Buffer) => void;
+  private readonly onStdoutError: (error: Error) => void;
 
   constructor(
     stdin: Writable,
@@ -52,12 +54,14 @@ export class RpcClient extends EventEmitter {
     this.onFrameError = options.onFrameError;
     this.onTransportError = options.onTransportError;
 
-    stdout.on("data", (chunk: Buffer) => {
+    this.onStdoutData = (chunk: Buffer) => {
       this.onData(chunk);
-    });
-    stdout.on("error", (error: Error) => {
+    };
+    this.onStdoutError = (error: Error) => {
       this.failTransport(error);
-    });
+    };
+    stdout.on("data", this.onStdoutData);
+    stdout.on("error", this.onStdoutError);
   }
 
   async request(method: string, params?: unknown): Promise<unknown> {
@@ -79,7 +83,16 @@ export class RpcClient extends EventEmitter {
     const response = new Promise<unknown>((resolve, reject) => {
       this.pending.set(key, { resolve, reject });
     });
-    this.writeMessage(message);
+    try {
+      this.writeMessage(message);
+    } catch (error) {
+      this.pending.delete(key);
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+    // dispose() during/after write rejects via the pending map; surface that path.
+    if (this.disposed && !this.pending.has(key)) {
+      return response;
+    }
     return response;
   }
 
@@ -107,7 +120,8 @@ export class RpcClient extends EventEmitter {
       pending.reject(error);
     }
     this.pending.clear();
-    this.stdout.removeAllListeners("data");
+    this.stdout.off("data", this.onStdoutData);
+    this.stdout.off("error", this.onStdoutError);
     this.emit("disposed", reason);
   }
 

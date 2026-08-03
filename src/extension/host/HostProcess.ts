@@ -12,7 +12,10 @@ export type HostProcessStreams = {
 export type HostProcessHandle = HostProcessStreams & {
   pid: number | undefined;
   kill: (signal?: NodeJS.Signals) => boolean;
-  onExit: (listener: (code: number | null, signal: NodeJS.Signals | null) => void) => void;
+  /** Register exit listener; returns disposer that removes it. */
+  onExit: (
+    listener: (code: number | null, signal: NodeJS.Signals | null) => void,
+  ) => () => void;
 };
 
 export type SpawnHostOptions = {
@@ -46,7 +49,10 @@ export function spawnHostProcess(options: SpawnHostOptions): HostProcessHandle {
     pid: child.pid,
     kill: (signal) => child.kill(signal),
     onExit: (listener) => {
-      child.once("exit", listener);
+      child.on("exit", listener);
+      return () => {
+        child.off("exit", listener);
+      };
     },
   };
 }

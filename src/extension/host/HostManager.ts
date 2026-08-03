@@ -1,6 +1,6 @@
 import type { HostStatusPayload } from "../../shared/messages.js";
 import { CapabilityStore } from "../rpc/capabilityStore.js";
-import type { FrameError } from "../rpc/frameCodec.js";
+import type { FrameError as RpcFrameError } from "../rpc/frameCodec.js";
 import { RpcClient } from "../rpc/RpcClient.js";
 import {
   formatDiagnostic,
@@ -10,6 +10,7 @@ import {
 import {
   crashDiagnostic,
   type HostProcessFactory,
+  type HostProcessHandle,
   spawnHostProcess,
 } from "./HostProcess.js";
 import { resolveHostBinary } from "./HostResolver.js";
@@ -38,6 +39,7 @@ export type HostManagerOptions = {
 type ActiveSession = {
   rpc: RpcClient;
   kill: () => void;
+  disposeListeners: () => void;
   pid: number | undefined;
   intentionalStop: boolean;
 };
@@ -136,7 +138,7 @@ export class HostManager {
     );
 
     const factory = this.options.processFactory ?? spawnHostProcess;
-    let handle;
+    let handle: HostProcessHandle;
     try {
       handle = factory({
         executablePath: resolved.binary.executablePath,
@@ -160,13 +162,24 @@ export class HostManager {
     }
 
     let exitedEarly = false;
-    handle.onExit((code, signal) => {
+    const onStderr = (chunk: string): void => {
+      for (const line of String(chunk).split(/\r?\n/)) {
+        if (line.length > 0) {
+          this.log(`[host:stderr] ${line}`);
+        }
+      }
+    };
+    handle.stderr.setEncoding("utf8");
+    handle.stderr.on("data", onStderr);
+
+    const removeExitListener = handle.onExit((code, signal) => {
       if (generation !== this.startGeneration) {
         return;
       }
       const session = this.session;
       if (
-        session?.intentionalStop ||
+        !session ||
+        session.intentionalStop ||
         this.state === "Stopping" ||
         this.state === "Restarting"
       ) {
@@ -177,23 +190,19 @@ export class HostManager {
       this.fail(crashDiagnostic(code, signal));
     });
 
-    handle.stderr.setEncoding("utf8");
-    handle.stderr.on("data", (chunk: string) => {
-      for (const line of String(chunk).split(/\r?\n/)) {
-        if (line.length > 0) {
-          this.log(`[host:stderr] ${line}`);
-        }
-      }
-    });
+    const disposeListeners = (): void => {
+      handle.stderr.off("data", onStderr);
+      removeExitListener();
+    };
 
     const rpc = new RpcClient(handle.stdin, handle.stdout, {
-      onFrameError: (error: FrameError) => {
+      onFrameError: (error: RpcFrameError) => {
         if (generation !== this.startGeneration) {
           return;
         }
         this.log(`[altai] frame error: ${error.code}`);
-        handle.kill("SIGTERM");
-        this.clearSession();
+        // Mark intentional before kill so the exit handler does not report crash.
+        this.stopSessionIntentional();
         this.fail({
           code: HostDiagnosticCode.FrameError,
           message: "Corrupt or invalid host frame",
@@ -207,7 +216,14 @@ export class HostManager {
 
     this.session = {
       rpc,
-      kill: () => handle.kill("SIGTERM"),
+      kill: () => {
+        try {
+          handle.kill("SIGTERM");
+        } catch {
+          // Process may already be gone.
+        }
+      },
+      disposeListeners,
       pid: handle.pid,
       intentionalStop: false,
     };
@@ -240,6 +256,10 @@ export class HostManager {
       this.log("[altai] host ready");
     } catch (error) {
       if (generation !== this.startGeneration) {
+        return;
+      }
+      // Frame errors are already failed via onFrameError; avoid double-report.
+      if (this.state === "Error" && this.hasFrameErrorDiagnostic()) {
         return;
       }
       this.stopSessionIntentional();
@@ -300,14 +320,7 @@ export class HostManager {
   }
 
   private async stopProcess(): Promise<void> {
-    const session = this.session;
-    this.session = undefined;
-    if (!session) {
-      return;
-    }
-    session.intentionalStop = true;
-    session.rpc.dispose("host_stopped");
-    session.kill();
+    this.stopSessionIntentional();
   }
 
   private stopSessionIntentional(): void {
@@ -317,6 +330,7 @@ export class HostManager {
       return;
     }
     session.intentionalStop = true;
+    session.disposeListeners();
     session.rpc.dispose("host_stopped");
     session.kill();
   }
@@ -324,7 +338,15 @@ export class HostManager {
   private clearSession(): void {
     const session = this.session;
     this.session = undefined;
-    session?.rpc.dispose("host_cleared");
+    if (!session) {
+      return;
+    }
+    session.disposeListeners();
+    session.rpc.dispose("host_cleared");
+  }
+
+  private hasFrameErrorDiagnostic(): boolean {
+    return this.lastDiagnostic?.code === HostDiagnosticCode.FrameError;
   }
 
   private fail(diagnostic: HostDiagnostic): void {
