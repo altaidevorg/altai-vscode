@@ -176,4 +176,26 @@ describe("MessageBridge", () => {
 
     await expect(client.request("ping")).resolves.toBe("pong");
   });
+
+  it("delivers host.request params as { method, params } (bridge options.params)", async () => {
+    const [client, host] = pair();
+    const seen: unknown[] = [];
+    host.registerHandler("host.request", (params) => {
+      seen.push(params);
+      return { ok: true };
+    });
+
+    // Same shape AltaiApp transport uses: options.params is the RPC payload.
+    await client.request("host.request", {
+      params: { method: "sessions/list", params: { limit: 10 } },
+    });
+    await client.request("host.request", {
+      params: { method: "models/list" },
+    });
+
+    expect(seen).toEqual([
+      { method: "sessions/list", params: { limit: 10 } },
+      { method: "models/list" },
+    ]);
+  });
 });

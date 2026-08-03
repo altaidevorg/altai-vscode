@@ -6,14 +6,19 @@ import {
   useHostPorts,
   type Capabilities,
 } from "@altai/agent-ui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
+  type HostRpcNotificationPayload,
   type HostStatusPayload,
 } from "../shared/messages.js";
 import { parsePersistedWebviewState } from "../shared/webviewState.js";
 import type { WebviewClient } from "./WebviewClient.js";
-import { createVsCodeHostPorts } from "./host/createVsCodeHostPorts.js";
+import {
+  createVsCodeHostPorts,
+  type HostRpcTransport,
+} from "./host/createVsCodeHostPorts.js";
 
 export type AltaiAppProps = {
   client: WebviewClient;
@@ -25,20 +30,26 @@ function isHostStatusPayload(value: unknown): value is HostStatusPayload {
   return parsed !== undefined;
 }
 
+function isHostRpcNotification(
+  value: unknown,
+): value is HostRpcNotificationPayload {
+  return (
+    !!value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as { method?: unknown }).method === "string"
+  );
+}
+
 /**
- * Shared-UI shell for TASK-008. Renders `@altai/agent-ui` chrome with
- * capability gating; full chat vertical slice is TASK-009.
+ * Shared-UI shell + TASK-009 chat vertical slice (HostPorts over native RPC).
  */
 export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
-  const ports = useMemo(
-    () => createVsCodeHostPorts({ hostVersion: extensionVersion }),
-    [extensionVersion],
-  );
-  const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
+  const hostReadyRef = useRef(false);
   const [hostStatus, setHostStatus] = useState<HostStatusPayload>(() => {
     const previous = client.getPersistedState().hostStatus;
     if (isHostStatusPayload(previous)) {
+      hostReadyRef.current = previous.status === "ready";
       return previous;
     }
     return {
@@ -47,6 +58,41 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       extensionVersion,
     };
   });
+  hostReadyRef.current = hostStatus.status === "ready";
+
+  const transport = useMemo<HostRpcTransport>(
+    () => ({
+      // MessageBridge.request(method, { params }) — the inner object is the
+      // host.request payload ({ method, params? }), not a second wrapper.
+      request: (method, params) =>
+        client.request("host.request", {
+          params:
+            params === undefined
+              ? { method }
+              : { method, params },
+        }),
+      onNotification: (listener) =>
+        client.onEvent(HOST_RPC_NOTIFICATION_EVENT, (payload) => {
+          if (isHostRpcNotification(payload)) {
+            listener(payload);
+          }
+        }),
+    }),
+    [client],
+  );
+
+  const ports = useMemo(
+    () =>
+      createVsCodeHostPorts({
+        hostVersion: extensionVersion,
+        isHostReady: () => hostReadyRef.current,
+        transport,
+      }),
+    [extensionVersion, transport],
+  );
+
+  const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
+  const [initError, setInitError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,7 +120,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     return () => {
       cancelled = true;
     };
-  }, [ports, extensionVersion]);
+  }, [ports, extensionVersion, hostStatus.status]);
 
   useEffect(() => {
     const off = client.onEvent(HOST_STATUS_EVENT, (payload) => {
@@ -128,47 +174,180 @@ function AgentUiShell({
   hostStatus: HostStatusPayload;
   initError: string | null;
 }) {
-  // Touch ports so missing provider fails loudly during mount.
-  useHostPorts();
+  const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
   const canStartRun = useCapability("runtime.startRun");
   const canListSessions = useCapability("sessions.list");
+  const [prompt, setPrompt] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lines, setLines] = useState<string[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
 
-  const title = initError
-    ? "Shared UI failed to initialize"
-    : hostStatus.status === "ready"
-      ? "Shared UI connected"
-      : "Waiting for agent host";
-  const description = initError
-    ? initError
-    : hostStatus.status === "ready"
-      ? "VS Code is rendering @altai/agent-ui. Chat sessions and runs land in the next vertical slice."
-      : hostStatus.message;
+  useEffect(() => {
+    return ports.events.subscribe((event) => {
+      const summary =
+        typeof event.payload === "object" &&
+        event.payload &&
+        "text" in (event.payload as object) &&
+        typeof (event.payload as { text?: unknown }).text === "string"
+          ? (event.payload as { text: string }).text
+          : `${event.type} · seq ${event.seq}`;
+      setLines((prev) => [...prev.slice(-200), summary]);
+    });
+  }, [ports]);
+
+  const onSubmit = async (): Promise<void> => {
+    const text = prompt.trim();
+    if (!text || busy || !canStartRun) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const ref = await ports.runtime.startRun({
+        prompt: text,
+        ...(activeChatId ? { chatId: activeChatId } : {}),
+      });
+      setActiveChatId(ref.chatId);
+      setActiveRunId(ref.runId);
+      setLines((prev) => [...prev, `You: ${text}`]);
+      setPrompt("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onCancel = async (): Promise<void> => {
+    if (!activeChatId || !activeRunId) {
+      return;
+    }
+    try {
+      await ports.runtime.cancelRun({
+        chatId: activeChatId,
+        runId: activeRunId,
+      });
+      setLines((prev) => [...prev, "Run cancelled"]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  if (initError || hostStatus.status !== "ready") {
+    return (
+      <main className="altai-shell-body">
+        <SurfaceEmptyState
+          title={
+            initError
+              ? "Shared UI failed to initialize"
+              : "Waiting for agent host"
+          }
+          description={initError ?? hostStatus.message}
+        />
+        <CapabilityList
+          canInitialize={canInitialize}
+          canStartRun={canStartRun}
+          canListSessions={canListSessions}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="altai-shell-body">
-      <SurfaceEmptyState title={title} description={description} />
-      <ul className="altai-capability-list" aria-label="Host capabilities">
-        <CapabilityRow
-          label="Initialize runtime"
-          enabled={canInitialize}
-          detail="HostPorts.runtime.initialize"
+      <div className="altai-chat-log" role="log" aria-live="polite">
+        {lines.length === 0 ? (
+          <p className="altai-shell-meta">
+            Host ready. Send a prompt to start a run (TASK-009 vertical slice).
+          </p>
+        ) : (
+          lines.map((line, index) => (
+            <p key={`${index}:${line.slice(0, 24)}`} className="altai-chat-line">
+              {line}
+            </p>
+          ))
+        )}
+      </div>
+      {error ? (
+        <p className="altai-chat-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <form
+        className="altai-chat-composer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void onSubmit();
+        }}
+      >
+        <textarea
+          className="altai-chat-input"
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder={
+            canStartRun ? "Ask ALTAI…" : "Start run capability unavailable"
+          }
+          disabled={!canStartRun || busy}
+          rows={3}
         />
-        <CapabilityRow
-          label="Start agent run"
-          enabled={canStartRun}
-          detail="Deferred until TASK-009"
-        />
-        <CapabilityRow
-          label="List sessions"
-          enabled={canListSessions}
-          detail="Deferred until TASK-009"
-        />
-      </ul>
+        <div className="altai-chat-actions">
+          <button type="submit" disabled={!canStartRun || busy || !prompt.trim()}>
+            {busy ? "Starting…" : "Send"}
+          </button>
+          <button
+            type="button"
+            disabled={!activeRunId || busy}
+            onClick={() => void onCancel()}
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+      <CapabilityList
+        canInitialize={canInitialize}
+        canStartRun={canStartRun}
+        canListSessions={canListSessions}
+      />
       <p className="altai-shell-meta">
         Extension {hostStatus.extensionVersion} · UI from @altai/agent-ui
+        {activeChatId ? ` · chat ${activeChatId}` : ""}
       </p>
     </main>
+  );
+}
+
+function CapabilityList({
+  canInitialize,
+  canStartRun,
+  canListSessions,
+}: {
+  canInitialize: boolean;
+  canStartRun: boolean;
+  canListSessions: boolean;
+}) {
+  return (
+    <ul className="altai-capability-list" aria-label="Host capabilities">
+      <CapabilityRow
+        label="Initialize runtime"
+        enabled={canInitialize}
+        detail="HostPorts.runtime.initialize"
+      />
+      <CapabilityRow
+        label="Start agent run"
+        enabled={canStartRun}
+        detail={canStartRun ? "Proxied to run/start" : "Waiting for host ready"}
+      />
+      <CapabilityRow
+        label="List sessions"
+        enabled={canListSessions}
+        detail={
+          canListSessions ? "Proxied to sessions/list" : "Waiting for host ready"
+        }
+      />
+    </ul>
   );
 }
 

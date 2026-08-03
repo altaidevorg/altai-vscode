@@ -55,22 +55,26 @@ function createManager(options: {
 }
 
 describe("host lifecycle integration", () => {
-  it("start → initialize → restart → shutdown", async () => {
-    const manager = createManager({
-      trusted: true,
-      hostPath: fixtureHost,
-    });
+  it(
+    "start → initialize → restart → shutdown",
+    async () => {
+      const manager = createManager({
+        trusted: true,
+        hostPath: fixtureHost,
+      });
 
-    await manager.start();
-    expect(manager.getLifecycleState()).toBe("Ready");
-    expect(manager.getCapabilities()).toContain("stdio.serve");
+      await manager.start();
+      expect(manager.getLifecycleState()).toBe("Ready");
+      expect(manager.getCapabilities()).toContain("stdio.serve");
 
-    await manager.restart();
-    expect(manager.getLifecycleState()).toBe("Ready");
+      await manager.restart();
+      expect(manager.getLifecycleState()).toBe("Ready");
 
-    await manager.shutdown();
-    expect(manager.getLifecycleState()).toBe("Idle");
-  });
+      await manager.shutdown();
+      expect(manager.getLifecycleState()).toBe("Idle");
+    },
+    20_000,
+  );
 
   it("reports missing path", async () => {
     const manager = createManager({

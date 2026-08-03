@@ -1,7 +1,8 @@
+import { EventEmitter } from "node:events";
 import type { HostStatusPayload } from "../../shared/messages.js";
 import { CapabilityStore } from "../rpc/capabilityStore.js";
 import type { FrameError as RpcFrameError } from "../rpc/frameCodec.js";
-import { RpcClient } from "../rpc/RpcClient.js";
+import { RpcClient, type RpcNotification } from "../rpc/RpcClient.js";
 import {
   formatDiagnostic,
   HostDiagnosticCode,
@@ -44,10 +45,14 @@ type ActiveSession = {
   intentionalStop: boolean;
 };
 
+type HostManagerEvents = {
+  notification: [RpcNotification];
+};
+
 /**
  * Lifecycle manager for one native agent host per extension host instance.
  */
-export class HostManager {
+export class HostManager extends EventEmitter<HostManagerEvents> {
   private state: HostLifecycleState = "Idle";
   private lastDiagnostic: HostDiagnostic | undefined;
   private resolvedPath: string | undefined;
@@ -58,11 +63,24 @@ export class HostManager {
   private disposed = false;
 
   constructor(private readonly options: HostManagerOptions) {
+    super();
     if (options.onDidGrantTrust) {
       this.trustDisposable = options.onDidGrantTrust(() => {
         void this.start();
       });
     }
+  }
+
+  /**
+   * Forward a JSON-RPC request to the ready native host.
+   * Rejects when the host is not Ready.
+   */
+  async request(method: string, params?: unknown): Promise<unknown> {
+    const rpc = this.session?.rpc;
+    if (!rpc || this.state !== "Ready") {
+      throw new Error("host_not_ready");
+    }
+    return rpc.request(method, params);
   }
 
   getLifecycleState(): HostLifecycleState {
@@ -196,6 +214,12 @@ export class HostManager {
     };
 
     const rpc = new RpcClient(handle.stdin, handle.stdout, {
+      onNotification: (notification) => {
+        if (generation !== this.startGeneration) {
+          return;
+        }
+        this.emit("notification", notification);
+      },
       onFrameError: (error: RpcFrameError) => {
         if (generation !== this.startGeneration) {
           return;

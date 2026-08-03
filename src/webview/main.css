@@ -129,6 +129,72 @@ body {
   color: var(--muted-foreground);
 }
 
+.altai-chat-log {
+  flex: 1;
+  min-height: 8rem;
+  max-height: 40vh;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.65rem;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
+
+.altai-chat-line {
+  margin: 0 0 0.35rem;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.altai-chat-error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--destructive);
+}
+
+.altai-chat-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.altai-chat-input {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+}
+
+.altai-chat-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.altai-chat-actions button {
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.altai-chat-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.altai-chat-actions button[type="button"] {
+  background: transparent;
+  color: var(--foreground);
+}
+
 /* High-contrast: prefer VS Code contrast tokens when present. */
 @media (forced-colors: active) {
   .altai-capability,
