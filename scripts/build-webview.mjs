@@ -1,10 +1,45 @@
 import * as esbuild from "esbuild";
 import { mkdir, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import path from "node:path";
 
 const watch = process.argv.includes("--watch");
+const require = createRequire(import.meta.url);
+const extensionRoot = process.cwd();
 
 await mkdir("dist/webview", { recursive: true });
+
+/**
+ * file: deps resolve into ../altai-app-main; esbuild then looks for peers next
+ * to that realpath. Force shared peers to the extension node_modules.
+ * @type {import("esbuild").Plugin}
+ */
+const peerAliasPlugin = {
+  name: "peer-alias-from-extension",
+  setup(build) {
+    const aliases = [
+      "react",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "react-dom",
+      "react-dom/client",
+      "@hugeicons/react",
+      "@hugeicons/core-free-icons",
+      "clsx",
+      "tailwind-merge",
+      "@altai/host-contract",
+    ];
+    for (const id of aliases) {
+      const filter = new RegExp(
+        `^${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+      );
+      build.onResolve({ filter }, () => ({
+        path: require.resolve(id),
+      }));
+    }
+  },
+};
 
 /** @type {import("esbuild").Plugin} */
 const cssWritePlugin = {
@@ -31,11 +66,14 @@ const options = {
   sourcemap: true,
   logLevel: "info",
   write: true,
+  absWorkingDir: extensionRoot,
+  nodePaths: [path.join(extensionRoot, "node_modules")],
   loader: {
     ".css": "css",
   },
   // Ensure no vscode sneaks into the webview graph via accidental imports.
   plugins: [
+    peerAliasPlugin,
     {
       name: "ban-vscode",
       setup(build) {
