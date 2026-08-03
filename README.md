@@ -56,11 +56,20 @@ Then open this folder in VS Code / Cursor and launch **Run ALTAI Extension**
 (Extension Development Host). The ALTAI Activity Bar view should show the
 shared UI shell (not a second chat implementation).
 
-For a local agent host while the packaged binary is not in the VSIX yet:
+For a local agent host while the packaged binary is not in the VSIX yet,
+**Run ALTAI Extension** sets:
+
+```text
+ALTAI_AGENT_HOST_PATH=${workspaceFolder}/../altai-app-main/src-tauri/target/debug/altai-cli
+```
+
+Build that binary once if missing:
 
 ```bash
-export ALTAI_AGENT_HOST_PATH=/path/to/altai-cli
+cd ../altai-app-main/src-tauri && cargo build -p altai-cli
 ```
+
+Or export any absolute `altai-cli` path yourself before launching.
 
 Useful scripts:
 
