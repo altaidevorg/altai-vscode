@@ -75,3 +75,9 @@ export type HostRequestParams = {
   method: string;
   params?: unknown;
 };
+
+/** Webview → Extension Host: invoke a capability-limited VS Code adapter. */
+export type WorkspaceRequestParams = {
+  method: string;
+  params?: unknown;
+};

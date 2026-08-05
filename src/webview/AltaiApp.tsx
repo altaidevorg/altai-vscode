@@ -71,6 +71,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               ? { method }
               : { method, params },
         }),
+      requestWorkspace: (method, params) =>
+        client.request("workspace.request", {
+          params:
+            params === undefined
+              ? { method }
+              : { method, params },
+        }),
       onNotification: (listener) =>
         client.onEvent(HOST_RPC_NOTIFICATION_EVENT, (payload) => {
           if (isHostRpcNotification(payload)) {
