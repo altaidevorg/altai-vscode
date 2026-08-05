@@ -160,7 +160,7 @@ export function createVsCodeHostPorts(
             prompt: input.prompt,
             ...(input.modelId ? { model: input.modelId } : {}),
             ...(input.permissionMode
-              ? { permission_mode: input.permissionMode }
+              ? { permission: input.permissionMode }
               : {}),
             ...(input.queue ? { queue: true } : {}),
           });
