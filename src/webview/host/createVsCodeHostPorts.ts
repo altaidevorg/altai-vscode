@@ -495,15 +495,19 @@ export function createVsCodeHostPorts(
         async createTaskRun(input): Promise<TaskRunInfo> {
           requireReady(isHostReady);
           const id = cryptoRandomId("task");
-          await transport.request("work/tasks/create", {
+          const result = await transport.request("work/tasks/create", {
             chat_id: id,
             task_title: input.title,
             prompt: input.prompt,
             ...(input.permissionMode ? { permission: input.permissionMode } : {}),
           });
+          const taskRunId = readStringField(result, "task_id");
+          if (!taskRunId) {
+            throw new Error("invalid_task_create_response");
+          }
           return findTaskRun(
             normalizeTaskRuns(await transport.request("work/tasks/list")),
-            id,
+            taskRunId,
           );
         },
         async cancelTaskRun(taskRunId) {

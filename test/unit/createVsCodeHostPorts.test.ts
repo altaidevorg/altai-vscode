@@ -22,7 +22,7 @@ describe("createVsCodeHostPorts", () => {
     const transport = mockTransport(async (method, params) => {
       if (method === "work/tasks/create") {
         taskId = (params as { chat_id: string }).chat_id;
-        return { accepted: true };
+        return { accepted: true, task_id: taskId };
       }
       if (method === "work/tasks/list") {
         return {
