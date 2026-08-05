@@ -5,6 +5,7 @@ import { HostManager } from "./host/HostManager.js";
 import { getOutputChannel } from "./output.js";
 import { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
 import { DiffContentProvider } from "./vscode/DiffContentProvider.js";
+import { GitDiffAdapter } from "./vscode/GitDiffAdapter.js";
 import { WorkspaceAdapter } from "./vscode/WorkspaceAdapter.js";
 import {
   isWorkspaceTrusted,
@@ -36,10 +37,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const diffContentProvider = new DiffContentProvider(vscode);
   diffContentProvider.register(context);
+  const gitDiffAdapter = new GitDiffAdapter(vscode);
   const workspaceAdapter = new WorkspaceAdapter(
     vscode,
     () => isWorkspaceTrusted(),
     (label, text) => diffContentProvider.createUri(label, text),
+    () => gitDiffAdapter.getDiffContext(),
   );
   provider = new AltaiViewProvider(context, hostManager, workspaceAdapter);
   // Persist presentation state via vscodeApi getState/setState (TASK-003).
