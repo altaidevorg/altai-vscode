@@ -89,6 +89,7 @@ export function createVsCodeHostPorts(
                   "runtime.steerRun": nativeAvailability(hasNativeMethod("run/steer")),
                   "runtime.replayRun": nativeAvailability(hasNativeMethod("run/replay")),
                   "runtime.compactContext": nativeAvailability(hasNativeMethod("context/compact")),
+                  "interactive.clarification": nativeAvailability(hasNativeMethod("clarification/respond")),
                   "runtime.events": "available",
                   "sessions.list": nativeAvailability(hasNativeMethod("sessions/list")),
                   "sessions.get": nativeAvailability(hasNativeMethod("sessions/get")),
@@ -129,6 +130,7 @@ export function createVsCodeHostPorts(
                   "settings.get": "deferred",
                   "settings.update": "deferred",
                   "interactive.permissionModes": "deferred",
+                  "interactive.clarification": "deferred",
                   "workspace.info": "deferred",
                   "workspace.activeFile": "deferred",
                   "workspace.selection": "deferred",
@@ -189,6 +191,14 @@ export function createVsCodeHostPorts(
         async compactContext(input) {
           requireReady(isHostReady);
           await transport.request("context/compact", { chat_id: input.chatId });
+        },
+        async respondToClarification(input) {
+          requireReady(isHostReady);
+          await transport.request("clarification/respond", {
+            chat_id: input.chatId,
+            action: input.action,
+            ...(input.action === "reply" ? { text: input.text ?? "" } : {}),
+          });
         },
         async shutdown() {
           // Native host lifecycle is owned by the Extension Host.
