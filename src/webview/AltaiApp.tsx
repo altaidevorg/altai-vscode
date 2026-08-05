@@ -46,6 +46,7 @@ function isHostRpcNotification(
  */
 export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const hostReadyRef = useRef(false);
+  const [nativeCapabilities, setNativeCapabilities] = useState<readonly string[] | null>(null);
   const [hostStatus, setHostStatus] = useState<HostStatusPayload>(() => {
     const previous = client.getPersistedState().hostStatus;
     if (isHostStatusPayload(previous)) {
@@ -93,9 +94,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       createVsCodeHostPorts({
         hostVersion: extensionVersion,
         isHostReady: () => hostReadyRef.current,
+        getNativeCapabilities: () => nativeCapabilities,
         transport,
       }),
-    [extensionVersion, transport],
+    [extensionVersion, nativeCapabilities, transport],
   );
 
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
@@ -152,6 +154,16 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
           status: "error",
           message: `Host status unavailable: ${message}`,
         }));
+      });
+    void client
+      .request("host.getCapabilities")
+      .then((result) => {
+        if (Array.isArray(result) && result.every((item) => typeof item === "string")) {
+          setNativeCapabilities(result);
+        }
+      })
+      .catch(() => {
+        setNativeCapabilities([]);
       });
     return off;
   }, [client]);

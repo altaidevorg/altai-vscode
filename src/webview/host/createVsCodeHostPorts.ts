@@ -42,6 +42,8 @@ export type VsCodeHostPortsOptions = {
   hostVersion?: string;
   /** True when HostManager lifecycle is Ready (native host accepting RPC). */
   isHostReady: () => boolean;
+  /** Native RPC methods advertised during the initialize handshake. */
+  getNativeCapabilities?: () => readonly string[] | null;
   transport: HostRpcTransport;
 };
 
@@ -53,6 +55,10 @@ export function createVsCodeHostPorts(
 ): HostPorts {
   const hostVersion = options.hostVersion ?? "0.1.0";
   const { transport, isHostReady } = options;
+  const hasNativeMethod = (method: string): boolean => {
+    const capabilities = options.getNativeCapabilities?.();
+    return capabilities === null || capabilities === undefined || capabilities.includes(method);
+  };
 
   return {
     runtime: withUnsupportedDefaults(
@@ -78,20 +84,20 @@ export function createVsCodeHostPorts(
             hostVersion,
             overrides: ready
               ? {
-                  "runtime.startRun": "available",
-                  "runtime.cancelRun": "available",
-                  "runtime.steerRun": "available",
-                  "runtime.replayRun": "available",
-                  "runtime.compactContext": "available",
+                  "runtime.startRun": nativeAvailability(hasNativeMethod("run/start")),
+                  "runtime.cancelRun": nativeAvailability(hasNativeMethod("run/cancel")),
+                  "runtime.steerRun": nativeAvailability(hasNativeMethod("run/steer")),
+                  "runtime.replayRun": nativeAvailability(hasNativeMethod("run/replay")),
+                  "runtime.compactContext": nativeAvailability(hasNativeMethod("context/compact")),
                   "runtime.events": "available",
-                  "sessions.list": "available",
-                  "sessions.get": "available",
-                  "sessions.create": "available",
+                  "sessions.list": nativeAvailability(hasNativeMethod("sessions/list")),
+                  "sessions.get": nativeAvailability(hasNativeMethod("sessions/get")),
+                  "sessions.create": nativeAvailability(hasNativeMethod("sessions/create")),
                   "sessions.messages": "available",
-                  "models.list": "available",
-                  "models.select": "available",
-                  "settings.get": "available",
-                  "settings.update": "available",
+                  "models.list": nativeAvailability(hasNativeMethod("models/list")),
+                  "models.select": nativeAvailability(hasNativeMethod("config/update")),
+                  "settings.get": nativeAvailability(hasNativeMethod("config/get")),
+                  "settings.update": nativeAvailability(hasNativeMethod("config/update")),
                   "interactive.permissionModes": "available",
                   "workspace.info": "available",
                   "workspace.activeFile": "available",
@@ -102,8 +108,8 @@ export function createVsCodeHostPorts(
                   "workspace.openDiff": "available",
                   "workspace.gitDiff": "available",
                   "workspace.terminalContext": "available",
-                  "review.checkpoints": "available",
-                  "review.restoreCheckpoint": "available",
+                  "review.checkpoints": nativeAvailability(hasNativeMethod("checkpoints/list")),
+                  "review.restoreCheckpoint": nativeAvailability(hasNativeMethod("checkpoints/restore")),
                 }
               : {
                   "runtime.startRun": "deferred",
@@ -430,6 +436,10 @@ function requireReady(isHostReady: () => boolean): void {
   if (!isHostReady()) {
     throw new Error("host_not_ready");
   }
+}
+
+function nativeAvailability(available: boolean): "available" | "deferred" {
+  return available ? "available" : "deferred";
 }
 
 function cryptoRandomId(prefix: string): string {

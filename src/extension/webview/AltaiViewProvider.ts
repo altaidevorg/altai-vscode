@@ -65,6 +65,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     this.bridge = bridge;
 
     bridge.registerHandler("host.getStatus", () => this.getHostStatus());
+    bridge.registerHandler("host.getCapabilities", () =>
+      this.hostManager.getCapabilities(),
+    );
     bridge.registerHandler("host.request", (params) =>
       this.proxyHostRequest(params),
     );
