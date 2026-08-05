@@ -97,7 +97,8 @@ export function createVsCodeHostPorts(
                   "sessions.list": nativeAvailability(hasNativeMethod("sessions/list")),
                   "sessions.get": nativeAvailability(hasNativeMethod("sessions/get")),
                   "sessions.create": nativeAvailability(hasNativeMethod("sessions/create")),
-                  "sessions.messages": "available",
+                  "sessions.messages": nativeAvailability(hasNativeMethod("sessions/messages")),
+                  "sessions.truncate": nativeAvailability(hasNativeMethod("sessions/truncate")),
                   "models.list": nativeAvailability(hasNativeMethod("models/list")),
                   "models.select": nativeAvailability(hasNativeMethod("config/update")),
                   "settings.get": nativeAvailability(hasNativeMethod("config/get")),
@@ -128,6 +129,7 @@ export function createVsCodeHostPorts(
                   "sessions.get": "deferred",
                   "sessions.create": "deferred",
                   "sessions.messages": "deferred",
+                  "sessions.truncate": "deferred",
                   "models.list": "deferred",
                   "models.select": "deferred",
                   "settings.get": "deferred",
@@ -274,10 +276,21 @@ export function createVsCodeHostPorts(
         },
         async listMessages(sessionId: string): Promise<SessionMessage[]> {
           requireReady(isHostReady);
-          const result = await transport.request("sessions/get", {
+          const result = await transport.request("sessions/messages", {
             chat_id: sessionId,
           });
           return normalizeMessages(result, sessionId);
+        },
+        async truncateSession(sessionId: string, afterMessageId: string): Promise<void> {
+          requireReady(isHostReady);
+          const keepUserMessages = userTurnFromMessageId(afterMessageId);
+          if (keepUserMessages === null) {
+            throw new Error("session_truncate_requires_user_message");
+          }
+          await transport.request("sessions/truncate", {
+            chat_id: sessionId,
+            keep_user_messages: keepUserMessages,
+          });
         },
       },
     ),
@@ -530,6 +543,8 @@ function normalizeSession(value: unknown): SessionInfo | null {
     updatedAt:
       typeof record.updated_at === "string"
         ? record.updated_at
+        : typeof record.updated_at_ms === "number"
+          ? new Date(record.updated_at_ms).toISOString()
         : new Date().toISOString(),
   };
 }
@@ -559,9 +574,10 @@ function normalizeMessages(
   value: unknown,
   sessionId: string,
 ): SessionMessage[] {
-  const events = extractEvents(value);
-  return events.map((event, index) => {
-    const record = isRecord(event) ? event : {};
+  const messages =
+    isRecord(value) && Array.isArray(value.messages) ? value.messages : [];
+  return messages.map((message, index) => {
+    const record = isRecord(message) ? message : {};
     const role =
       record.role === "user" ||
       record.role === "assistant" ||
@@ -574,7 +590,7 @@ function normalizeMessages(
         ? record.content
         : typeof record.text === "string"
           ? record.text
-          : JSON.stringify(event);
+          : JSON.stringify(message);
     return {
       id: typeof record.id === "string" ? record.id : `${sessionId}_${index}`,
       role,
@@ -585,6 +601,16 @@ function normalizeMessages(
           : new Date().toISOString(),
     };
   });
+}
+
+/** Native transcripts identify only user turns as valid rewind boundaries. */
+function userTurnFromMessageId(messageId: string): number | null {
+  const match = /^user:([1-9][0-9]*)$/.exec(messageId);
+  if (!match) {
+    return null;
+  }
+  const userTurn = Number(match[1]);
+  return Number.isSafeInteger(userTurn) ? userTurn : null;
 }
 
 function normalizeModels(value: unknown): ModelInfo[] {
