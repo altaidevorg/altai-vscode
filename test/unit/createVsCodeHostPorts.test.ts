@@ -100,6 +100,9 @@ describe("createVsCodeHostPorts", () => {
       if (method === "context/compact") {
         return { accepted: true };
       }
+      if (method === "clarification/respond") {
+        return { accepted: true };
+      }
       throw new Error(`unexpected native method ${method}`);
     });
     transport.requestWorkspace.mockImplementation(async (method, _params) => {
@@ -133,6 +136,8 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["review.checkpoints"]).toBe("available");
     expect(byId["settings.update"]).toBe("available");
     expect(byId["runtime.compactContext"]).toBe("available");
+    expect(byId["interactive.approval"]).toBe("available");
+    expect(byId["interactive.clarification"]).toBe("available");
     await expect(ports.workspace.getActiveFile()).resolves.toMatchObject({
       path: "/workspace/a.ts",
     });
@@ -162,6 +167,26 @@ describe("createVsCodeHostPorts", () => {
     await ports.runtime.compactContext({ chatId: "chat_1" });
     expect(transport.request).toHaveBeenCalledWith("context/compact", {
       chat_id: "chat_1",
+    });
+    await ports.runtime.respondToClarification({
+      chatId: "chat_1",
+      ticketId: "ticket_1",
+      action: "dismiss",
+    });
+    expect(transport.request).toHaveBeenCalledWith("clarification/respond", {
+      chat_id: "chat_1",
+      action: "dismiss",
+    });
+    await ports.runtime.respondToApproval({
+      chatId: "chat_1",
+      runId: "run_1",
+      approvalId: "approval_1",
+      decision: "approve",
+    });
+    expect(transport.request).toHaveBeenCalledWith("clarification/respond", {
+      chat_id: "chat_1",
+      action: "reply",
+      text: "approve",
     });
     expect(transport.requestWorkspace).toHaveBeenCalledWith("searchFiles", {
       query: "a.ts",
