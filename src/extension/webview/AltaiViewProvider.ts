@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import * as path from "node:path";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
@@ -12,6 +13,16 @@ import { getOutputChannel } from "../output.js";
 import { WebviewBridge } from "./WebviewBridge.js";
 import { getWebviewHtml } from "./webviewHtml.js";
 import type { WorkspaceAdapter } from "../vscode/WorkspaceAdapter.js";
+
+const MAX_RUN_ATTACHMENTS = 4;
+const MAX_RUN_ATTACHMENT_BYTES = 1_500_000;
+const MAX_RUN_ATTACHMENT_TOTAL_BYTES = 2_000_000;
+const IMAGE_MEDIA_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+]);
 
 export class AltaiViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "altai.sidePanel";
@@ -116,7 +127,10 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
         code: "invalid_params",
       });
     }
-    return this.hostManager.request(parsed.method, parsed.params);
+    const nativeParams = parsed.method === "run/start"
+      ? await materializeRunAttachments(parsed.params)
+      : parsed.params;
+    return this.hostManager.request(parsed.method, nativeParams);
   }
 
   private async proxyWorkspaceRequest(params: unknown): Promise<unknown> {
@@ -141,10 +155,136 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   }
 }
 
+/**
+ * Materialize only workspace-owned attachment URIs in the Extension Host.
+ * The Webview sends identifiers, never bytes or filesystem paths to Rust;
+ * the native protocol receives bounded base64 payloads after this validation.
+ */
+async function materializeRunAttachments(params: unknown): Promise<unknown> {
+  if (!isRecord(params) || params.attachments === undefined) {
+    return params;
+  }
+  if (!vscode.workspace.isTrusted) {
+    throw new Error("workspace_not_trusted");
+  }
+  if (!Array.isArray(params.attachments) || params.attachments.length > MAX_RUN_ATTACHMENTS) {
+    throw new Error("invalid_attachments");
+  }
+  if (params.attachments.length === 0) {
+    const withoutAttachments = { ...params };
+    delete withoutAttachments.attachments;
+    return withoutAttachments;
+  }
+  let totalBytes = 0;
+  const attachments = [];
+  for (const value of params.attachments) {
+    if (!isRecord(value) || typeof value.uri !== "string") {
+      throw new Error("invalid_attachment");
+    }
+    let uri: vscode.Uri;
+    try {
+      uri = vscode.Uri.parse(value.uri, true);
+    } catch {
+      throw new Error("invalid_attachment_uri");
+    }
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+    if (!workspaceFolder || !isWorkspaceDescendant(uri, workspaceFolder.uri)) {
+      throw new Error("attachment_outside_workspace");
+    }
+    const mediaType = attachmentMediaType(uri, value.mimeType);
+    if (!mediaType) {
+      throw new Error("unsupported_attachment_media_type");
+    }
+    const stat = await vscode.workspace.fs.stat(uri);
+    if (
+      stat.type !== vscode.FileType.File ||
+      (stat.type & vscode.FileType.SymbolicLink) !== 0 ||
+      stat.size > MAX_RUN_ATTACHMENT_BYTES
+    ) {
+      throw new Error("attachment_too_large");
+    }
+    totalBytes += stat.size;
+    if (totalBytes > MAX_RUN_ATTACHMENT_TOTAL_BYTES) {
+      throw new Error("attachments_too_large");
+    }
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    if (!hasExpectedSignature(bytes, mediaType)) {
+      throw new Error("invalid_attachment_content");
+    }
+    const data = Buffer.from(bytes).toString("base64");
+    const name = vscode.workspace.asRelativePath(uri, false) || uri.path.split("/").pop() || "attachment";
+    if (IMAGE_MEDIA_TYPES.has(mediaType)) {
+      attachments.push({
+        kind: "image",
+        media_type: mediaType,
+        data,
+        name,
+      });
+    } else {
+      attachments.push({
+        kind: "document",
+        media_type: mediaType,
+        data,
+        name,
+      });
+    }
+  }
+  return { ...params, attachments };
+}
+
+function isWorkspaceDescendant(uri: vscode.Uri, workspaceUri: vscode.Uri): boolean {
+  if (uri.scheme !== workspaceUri.scheme || uri.authority !== workspaceUri.authority) {
+    return false;
+  }
+  let root: string;
+  let candidate: string;
+  try {
+    root = path.posix.normalize(decodeURIComponent(workspaceUri.path));
+    candidate = path.posix.normalize(decodeURIComponent(uri.path));
+  } catch {
+    return false;
+  }
+  return candidate === root || candidate.startsWith(`${root.endsWith("/") ? root.slice(0, -1) : root}/`);
+}
+
+function hasExpectedSignature(bytes: Uint8Array, mediaType: string): boolean {
+  if (mediaType === "image/png") {
+    return matchesBytes(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  }
+  if (mediaType === "image/jpeg") {
+    return matchesBytes(bytes, [0xff, 0xd8, 0xff]);
+  }
+  if (mediaType === "image/gif") {
+    return matchesBytes(bytes, [0x47, 0x49, 0x46, 0x38, 0x37, 0x61]) || matchesBytes(bytes, [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]);
+  }
+  if (mediaType === "image/webp") {
+    return matchesBytes(bytes, [0x52, 0x49, 0x46, 0x46]) && matchesBytes(bytes, [0x57, 0x45, 0x42, 0x50], 8);
+  }
+  return mediaType === "application/pdf" && matchesBytes(bytes, [0x25, 0x50, 0x44, 0x46, 0x2d]);
+}
+
+function matchesBytes(bytes: Uint8Array, expected: number[], offset = 0): boolean {
+  return expected.every((value, index) => bytes[offset + index] === value);
+}
+
+function attachmentMediaType(uri: vscode.Uri, _requested: unknown): string | undefined {
+  const path = uri.path.toLowerCase();
+  if (path.endsWith(".png")) return "image/png";
+  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+  if (path.endsWith(".gif")) return "image/gif";
+  if (path.endsWith(".webp")) return "image/webp";
+  if (path.endsWith(".pdf")) return "application/pdf";
+  return undefined;
+}
+
 function parseWorkspaceRequestParams(
   value: unknown,
 ): WorkspaceRequestParams | undefined {
   return parseHostRequestParams(value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function parseHostRequestParams(value: unknown): HostRequestParams | undefined {

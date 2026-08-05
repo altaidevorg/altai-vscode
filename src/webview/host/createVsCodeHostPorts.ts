@@ -190,6 +190,9 @@ export function createVsCodeHostPorts(
             ...(input.permissionMode
               ? { permission: input.permissionMode }
               : {}),
+            ...(input.attachments && input.attachments.length > 0
+              ? { attachments: input.attachments }
+              : {}),
             ...(input.queue ? { queue: true } : {}),
           });
           const runId =

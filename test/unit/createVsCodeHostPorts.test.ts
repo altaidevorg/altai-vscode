@@ -238,6 +238,11 @@ describe("createVsCodeHostPorts", () => {
     const ref = await ports.runtime.startRun({
       prompt: "hello",
       permissionMode: "auto-edit",
+      attachments: [{
+        uri: "vscode-remote://ssh-remote+dev/workspace/diagram.png",
+        name: "diagram.png",
+        mimeType: "image/png",
+      }],
     });
     expect(ref.runId).toBe("run_1");
     expect(ref.chatId).toMatch(/^chat_/);
@@ -251,6 +256,11 @@ describe("createVsCodeHostPorts", () => {
         chat_id: ref.chatId,
         prompt: "hello",
         permission: "auto-edit",
+        attachments: [{
+          uri: "vscode-remote://ssh-remote+dev/workspace/diagram.png",
+          name: "diagram.png",
+          mimeType: "image/png",
+        }],
       }),
     );
 
