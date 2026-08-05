@@ -85,6 +85,7 @@ export function createVsCodeHostPorts(
             overrides: ready
               ? {
                   "runtime.startRun": nativeAvailability(hasNativeMethod("run/start")),
+                  "runtime.queueRun": nativeAvailability(hasNativeMethod("run/start")),
                   "runtime.cancelRun": nativeAvailability(hasNativeMethod("run/cancel")),
                   "runtime.steerRun": nativeAvailability(hasNativeMethod("run/steer")),
                   "runtime.replayRun": nativeAvailability(hasNativeMethod("run/replay")),
@@ -158,6 +159,7 @@ export function createVsCodeHostPorts(
             ...(input.permissionMode
               ? { permission_mode: input.permissionMode }
               : {}),
+            ...(input.queue ? { queue: true } : {}),
           });
           const runId =
             readStringField(result, "run_id") ?? cryptoRandomId("run");
