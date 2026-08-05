@@ -20,6 +20,7 @@ import {
   type InitializeInput,
   type ModelInfo,
   type NotificationInfo,
+  type ProviderStatus,
   type ReplayPage,
   type SessionInfo,
   type SessionMessage,
@@ -107,6 +108,7 @@ export function createVsCodeHostPorts(
                   "models.select": nativeAvailability(hasNativeMethod("config/update")),
                   "settings.get": nativeAvailability(hasNativeMethod("config/get")),
                   "settings.update": nativeAvailability(hasNativeMethod("config/update")),
+                  "settings.providerStatus": nativeAvailability(hasNativeMethod("providers/status")),
                   "interactive.permissionModes": "available",
                   "workspace.info": "available",
                   "workspace.activeFile": "available",
@@ -142,6 +144,7 @@ export function createVsCodeHostPorts(
                   "models.select": "deferred",
                   "settings.get": "deferred",
                   "settings.update": "deferred",
+                  "settings.providerStatus": "deferred",
                   "interactive.permissionModes": "deferred",
                   "interactive.approval": "deferred",
                   "interactive.clarification": "deferred",
@@ -421,6 +424,12 @@ export function createVsCodeHostPorts(
               ...(patch.defaultModelId !== undefined ? { model: patch.defaultModelId } : {}),
               ...(patch.permissionMode !== undefined ? { permission: patch.permissionMode } : {}),
             }),
+          );
+        },
+        async getProviderStatus(): Promise<ProviderStatus[]> {
+          requireReady(isHostReady);
+          return normalizeProviderStatus(
+            await transport.request("providers/status", {}),
           );
         },
         async listModels(): Promise<ModelInfo[]> {
@@ -703,6 +712,22 @@ function normalizeModels(value: unknown): ModelInfo[] {
       };
     })
     .filter((item): item is ModelInfo => item !== null);
+}
+
+function normalizeProviderStatus(value: unknown): ProviderStatus[] {
+  const providers =
+    isRecord(value) && Array.isArray(value.providers) ? value.providers : [];
+  return providers.flatMap((provider) => {
+    if (!isRecord(provider) || typeof provider.provider_id !== "string") {
+      return [];
+    }
+    return [{
+      providerId: provider.provider_id,
+      connected: provider.connected === true,
+      ...(typeof provider.label === "string" ? { label: provider.label } : {}),
+      ...(typeof provider.error === "string" ? { error: provider.error } : {}),
+    }];
+  });
 }
 
 function extractEvents(value: unknown): unknown[] {
