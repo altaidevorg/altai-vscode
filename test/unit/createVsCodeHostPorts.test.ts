@@ -307,4 +307,52 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["runtime.compactContext"]).toBe("deferred");
     expect(byId["settings.update"]).toBe("deferred");
   });
+
+  it("routes durable session metadata controls only when advertised", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "sessions/rename") {
+        return {
+          chat_id: "chat_1",
+          title: "Renamed",
+          archived: false,
+          updated_at_ms: 1_700_000_000_000,
+        };
+      }
+      if (method === "sessions/archive" || method === "sessions/delete") {
+        return { accepted: true };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "sessions/rename",
+        "sessions/archive",
+        "sessions/delete",
+      ],
+      transport,
+    });
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    const byId = Object.fromEntries(
+      caps.capabilities.map((capability) => [capability.id, capability.availability]),
+    );
+    expect(byId["sessions.rename"]).toBe("available");
+    expect(byId["sessions.archive"]).toBe("available");
+    expect(byId["sessions.delete"]).toBe("available");
+    await expect(ports.sessions.renameSession("chat_1", "Renamed")).resolves.toEqual({
+      id: "chat_1",
+      title: "Renamed",
+      updatedAt: "2023-11-14T22:13:20.000Z",
+      archived: false,
+    });
+    await ports.sessions.archiveSession("chat_1");
+    await ports.sessions.deleteSession("chat_1");
+    expect(transport.request).toHaveBeenCalledWith("sessions/archive", { chat_id: "chat_1" });
+    expect(transport.request).toHaveBeenCalledWith("sessions/delete", { chat_id: "chat_1" });
+  });
 });

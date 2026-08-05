@@ -98,6 +98,9 @@ export function createVsCodeHostPorts(
                   "sessions.list": nativeAvailability(hasNativeMethod("sessions/list")),
                   "sessions.get": nativeAvailability(hasNativeMethod("sessions/get")),
                   "sessions.create": nativeAvailability(hasNativeMethod("sessions/create")),
+                  "sessions.rename": nativeAvailability(hasNativeMethod("sessions/rename")),
+                  "sessions.archive": nativeAvailability(hasNativeMethod("sessions/archive")),
+                  "sessions.delete": nativeAvailability(hasNativeMethod("sessions/delete")),
                   "sessions.messages": nativeAvailability(hasNativeMethod("sessions/messages")),
                   "sessions.truncate": nativeAvailability(hasNativeMethod("sessions/truncate")),
                   "models.list": nativeAvailability(hasNativeMethod("models/list")),
@@ -130,6 +133,9 @@ export function createVsCodeHostPorts(
                   "sessions.list": "deferred",
                   "sessions.get": "deferred",
                   "sessions.create": "deferred",
+                  "sessions.rename": "deferred",
+                  "sessions.archive": "deferred",
+                  "sessions.delete": "deferred",
                   "sessions.messages": "deferred",
                   "sessions.truncate": "deferred",
                   "models.list": "deferred",
@@ -269,12 +275,33 @@ export function createVsCodeHostPorts(
         async createSession(title?: string): Promise<SessionInfo> {
           requireReady(isHostReady);
           const chatId = cryptoRandomId("chat");
-          await transport.request("sessions/create", { chat_id: chatId });
-          return {
+          const result = await transport.request("sessions/create", {
+            chat_id: chatId,
+            ...(title ? { title } : {}),
+          });
+          return normalizeSession(result) ?? {
             id: chatId,
             title: title ?? "New chat",
             updatedAt: new Date().toISOString(),
           };
+        },
+        async renameSession(sessionId: string, title: string): Promise<SessionInfo> {
+          requireReady(isHostReady);
+          const session = normalizeSession(
+            await transport.request("sessions/rename", { chat_id: sessionId, title }),
+          );
+          if (!session) {
+            throw new Error("invalid_session_response");
+          }
+          return session;
+        },
+        async archiveSession(sessionId: string): Promise<void> {
+          requireReady(isHostReady);
+          await transport.request("sessions/archive", { chat_id: sessionId });
+        },
+        async deleteSession(sessionId: string): Promise<void> {
+          requireReady(isHostReady);
+          await transport.request("sessions/delete", { chat_id: sessionId });
         },
         async listMessages(sessionId: string): Promise<SessionMessage[]> {
           requireReady(isHostReady);
@@ -568,6 +595,7 @@ function normalizeSession(value: unknown): SessionInfo | null {
         : typeof record.updated_at_ms === "number"
           ? new Date(record.updated_at_ms).toISOString()
         : new Date().toISOString(),
+    ...(typeof record.archived === "boolean" ? { archived: record.archived } : {}),
   };
 }
 
