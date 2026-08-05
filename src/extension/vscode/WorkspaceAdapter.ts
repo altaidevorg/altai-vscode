@@ -3,7 +3,9 @@ import type {
   FileContent,
   FileContext,
   FileMatch,
+  GitDiffContext,
   SelectionContext,
+  TerminalContext,
   TextRange,
   WorkspaceInfo,
 } from "@altai/host-contract" with { "resolution-mode": "import" };
@@ -21,7 +23,9 @@ export type WorkspaceRequestMethod =
   | "searchFiles"
   | "readFile"
   | "openFile"
-  | "openDiff";
+  | "openDiff"
+  | "getGitDiff"
+  | "getTerminalContext";
 
 export type ReviewUriFactory = (label: string, text: string) => vscode.Uri;
 
@@ -34,6 +38,7 @@ export class WorkspaceAdapter {
     private readonly api: typeof vscode,
     private readonly isTrusted: () => boolean,
     private readonly createReviewUri: ReviewUriFactory,
+    private readonly getGitDiffContext: () => Promise<GitDiffContext | null>,
   ) {}
 
   async request(method: string, params?: unknown): Promise<unknown> {
@@ -53,6 +58,10 @@ export class WorkspaceAdapter {
         return this.openFile(readUri(params), readRange(params));
       case "openDiff":
         return this.openDiff(readDiffInput(params));
+      case "getGitDiff":
+        return this.getGitDiffContext();
+      case "getTerminalContext":
+        return this.getTerminalContext();
       default:
         throw codedError("method_not_found", `Unknown workspace method: ${method}`);
     }
@@ -169,6 +178,23 @@ export class WorkspaceAdapter {
       );
     }
     await this.api.commands.executeCommand("vscode.diff", original, modified, title);
+  }
+
+  private getTerminalContext(): TerminalContext | null {
+    const terminal = this.api.window.activeTerminal;
+    if (!terminal) {
+      return null;
+    }
+    const creationOptions = terminal.creationOptions;
+    const configuredCwd =
+      "cwd" in creationOptions ? creationOptions.cwd : undefined;
+    const cwd = terminal.shellIntegration?.cwd ?? configuredCwd;
+    if (!cwd) {
+      return null;
+    }
+    return {
+      cwd: typeof cwd === "string" ? cwd : cwd.toString(),
+    };
   }
 
   private parseWorkspaceUri(value: string): vscode.Uri {

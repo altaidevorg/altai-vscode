@@ -87,6 +87,9 @@ describe("createVsCodeHostPorts", () => {
       if (method === "searchFiles") {
         return [{ uri: "file:///workspace/a.ts", path: "/workspace/a.ts" }];
       }
+      if (method === "getGitDiff") {
+        return { branch: "main", files: [] };
+      }
       throw new Error(`unexpected workspace method ${method}`);
     });
     const ports = createVsCodeHostPorts({
@@ -104,10 +107,15 @@ describe("createVsCodeHostPorts", () => {
     );
     expect(byId["workspace.activeFile"]).toBe("available");
     expect(byId["workspace.openDiff"]).toBe("available");
+    expect(byId["workspace.gitDiff"]).toBe("available");
     await expect(ports.workspace.getActiveFile()).resolves.toMatchObject({
       path: "/workspace/a.ts",
     });
     await expect(ports.workspace.searchFiles("a.ts")).resolves.toHaveLength(1);
+    await expect(ports.workspace.getGitDiff()).resolves.toEqual({
+      branch: "main",
+      files: [],
+    });
     expect(transport.requestWorkspace).toHaveBeenCalledWith("searchFiles", {
       query: "a.ts",
     });

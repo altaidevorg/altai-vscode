@@ -60,6 +60,7 @@ function createAdapter(isTrusted = true) {
       api as never,
       () => isTrusted,
       createReviewUri as never,
+      async () => ({ branch: "main", files: [{ path: "src/main.ts", status: "working-tree:1" }] }),
     ),
     api,
     createReviewUri,
@@ -115,5 +116,13 @@ describe("WorkspaceAdapter", () => {
       expect.objectContaining({ path: "/review/main.ts-modified" }),
       "main.ts",
     );
+  });
+
+  it("returns Git state through an injected Extension Host adapter", async () => {
+    const { adapter } = createAdapter();
+    await expect(adapter.request("getGitDiff")).resolves.toEqual({
+      branch: "main",
+      files: [{ path: "src/main.ts", status: "working-tree:1" }],
+    });
   });
 });

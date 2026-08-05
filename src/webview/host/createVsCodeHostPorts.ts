@@ -13,6 +13,7 @@ import {
   type FileContent,
   type FileContext,
   type FileMatch,
+  type GitDiffContext,
   type HostPorts,
   type InitializeInput,
   type ModelInfo,
@@ -20,6 +21,7 @@ import {
   type SessionInfo,
   type SessionMessage,
   type SelectionContext,
+  type TerminalContext,
   type WorkspaceInfo,
 } from "@altai/host-contract";
 import { withUnsupportedDefaults } from "./unsupported.js";
@@ -92,6 +94,8 @@ export function createVsCodeHostPorts(
                   "workspace.readFile": "available",
                   "workspace.openFile": "available",
                   "workspace.openDiff": "available",
+                  "workspace.gitDiff": "available",
+                  "workspace.terminalContext": "available",
                 }
               : {
                   "runtime.startRun": "deferred",
@@ -115,6 +119,8 @@ export function createVsCodeHostPorts(
                   "workspace.readFile": "deferred",
                   "workspace.openFile": "deferred",
                   "workspace.openDiff": "deferred",
+                  "workspace.gitDiff": "deferred",
+                  "workspace.terminalContext": "deferred",
                 },
           });
         },
@@ -269,6 +275,18 @@ export function createVsCodeHostPorts(
         async openDiff(input) {
           requireReady(isHostReady);
           await transport.requestWorkspace("openDiff", input);
+        },
+        async getGitDiff(): Promise<GitDiffContext | null> {
+          requireReady(isHostReady);
+          return normalizeGitDiffContext(
+            await transport.requestWorkspace("getGitDiff"),
+          );
+        },
+        async getTerminalContext(): Promise<TerminalContext | null> {
+          requireReady(isHostReady);
+          return normalizeTerminalContext(
+            await transport.requestWorkspace("getTerminalContext"),
+          );
         },
       },
     ),
@@ -683,5 +701,44 @@ function normalizeFileContent(value: unknown): FileContent {
     path: value.path,
     text: value.text,
     truncated: value.truncated,
+  };
+}
+
+function normalizeGitDiffContext(value: unknown): GitDiffContext | null {
+  if (value === null) {
+    return null;
+  }
+  if (!isRecord(value) || !Array.isArray(value.files)) {
+    throw new Error("invalid_workspace_response");
+  }
+  const files = value.files.map((item) => {
+    if (!isRecord(item) || typeof item.path !== "string" || typeof item.status !== "string") {
+      throw new Error("invalid_workspace_response");
+    }
+    return { path: item.path, status: item.status };
+  });
+  return {
+    files,
+    ...(typeof value.branch === "string" ? { branch: value.branch } : {}),
+    ...(typeof value.patch === "string" ? { patch: value.patch } : {}),
+  };
+}
+
+function normalizeTerminalContext(value: unknown): TerminalContext | null {
+  if (value === null) {
+    return null;
+  }
+  if (!isRecord(value)) {
+    throw new Error("invalid_workspace_response");
+  }
+  for (const key of ["cwd", "selectedText", "lastCommand"] as const) {
+    if (value[key] !== undefined && typeof value[key] !== "string") {
+      throw new Error("invalid_workspace_response");
+    }
+  }
+  return {
+    ...(typeof value.cwd === "string" ? { cwd: value.cwd } : {}),
+    ...(typeof value.selectedText === "string" ? { selectedText: value.selectedText } : {}),
+    ...(typeof value.lastCommand === "string" ? { lastCommand: value.lastCommand } : {}),
   };
 }
