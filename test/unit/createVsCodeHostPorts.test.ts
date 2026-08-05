@@ -17,6 +17,48 @@ function mockTransport(requestImpl?: (method: string, params?: unknown) => Promi
 }
 
 describe("createVsCodeHostPorts", () => {
+  it("proxies the complete native MCP lifecycle only when advertised", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "mcp/servers/list") {
+        return { servers: [{ id: "files", name: "Files", enabled: true, connected: true }] };
+      }
+      if (method === "mcp/servers/configure") {
+        return { id: "files", name: "Files", enabled: true, connected: false };
+      }
+      if (method === "mcp/servers/enable" || method === "mcp/servers/restart") {
+        return { ok: true };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "mcp/servers/list",
+        "mcp/servers/configure",
+        "mcp/servers/enable",
+        "mcp/servers/restart",
+      ],
+      transport,
+    });
+    await expect(ports.mcpSkills.listMcpServers()).resolves.toEqual([
+      { id: "files", name: "Files", enabled: true, connected: true },
+    ]);
+    await ports.mcpSkills.configureMcpServer("files", {
+      name: "Files",
+      command: "node",
+      args: ["server.js"],
+      enabled: true,
+    });
+    await ports.mcpSkills.setMcpServerEnabled("files", false);
+    await ports.mcpSkills.restartMcpServer("files");
+    expect(transport.request).toHaveBeenCalledWith("mcp/servers/configure", {
+      id: "files",
+      config: { name: "Files", command: "node", args: ["server.js"], enabled: true },
+    });
+    expect(transport.request).toHaveBeenCalledWith("mcp/servers/enable", { id: "files", enabled: false });
+    expect(transport.request).toHaveBeenCalledWith("mcp/servers/restart", { id: "files" });
+  });
+
   it("enables Work task runs only with the complete native lifecycle and proxies each action", async () => {
     let taskId = "";
     const transport = mockTransport(async (method, params) => {

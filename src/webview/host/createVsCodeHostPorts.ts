@@ -20,6 +20,7 @@ import {
   type HostPorts,
   type InitializeInput,
   type ModelInfo,
+  type McpServerStatus,
   type NotificationInfo,
   type ProviderStatus,
   type ReplayPage,
@@ -665,7 +666,33 @@ export function createVsCodeHostPorts(
         "installSkill",
         "setSkillEnabled",
       ],
-      {},
+      {
+        async listMcpServers(): Promise<McpServerStatus[]> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "mcp/servers/list");
+          return normalizeMcpServers(await transport.request("mcp/servers/list", {}));
+        },
+        async configureMcpServer(id, config): Promise<McpServerStatus> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "mcp/servers/configure");
+          if (!isRecord(config)) {
+            throw new Error("invalid_mcp_server_config");
+          }
+          return normalizeMcpServer(
+            await transport.request("mcp/servers/configure", { id, config }),
+          );
+        },
+        async setMcpServerEnabled(id, enabled): Promise<void> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "mcp/servers/enable");
+          await transport.request("mcp/servers/enable", { id, enabled });
+        },
+        async restartMcpServer(id): Promise<void> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "mcp/servers/restart");
+          await transport.request("mcp/servers/restart", { id });
+        },
+      },
     ),
     events: {
       subscribe(listener: (event: AgentEvent) => void): () => void {
@@ -1234,5 +1261,32 @@ function normalizeSettings(value: unknown): AltaiSettings {
         : "plan",
     bypassEnabled: false,
     ...(value.model !== "auto" ? { defaultModelId: value.model } : {}),
+  };
+}
+
+function normalizeMcpServers(value: unknown): McpServerStatus[] {
+  if (!isRecord(value) || !Array.isArray(value.servers)) {
+    throw new Error("invalid_mcp_servers_response");
+  }
+  return value.servers.map(normalizeMcpServer);
+}
+
+function normalizeMcpServer(value: unknown): McpServerStatus {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== "string" ||
+    typeof value.name !== "string" ||
+    typeof value.enabled !== "boolean" ||
+    typeof value.connected !== "boolean" ||
+    (value.error !== undefined && value.error !== null && typeof value.error !== "string")
+  ) {
+    throw new Error("invalid_mcp_server_response");
+  }
+  return {
+    id: value.id,
+    name: value.name,
+    enabled: value.enabled,
+    connected: value.connected,
+    ...(typeof value.error === "string" ? { error: value.error } : {}),
   };
 }
