@@ -95,6 +95,93 @@ describe("createVsCodeHostPorts", () => {
     expect(capabilities.capabilities.find((item) => item.id === "work.taskRuns")?.availability).toBe("deferred");
   });
 
+  it("enables Automations only with every native operation and maps the owner instruction", async () => {
+    const automationId = "altai:automation-1";
+    const transport = mockTransport(async (method, _params) => {
+      if (method === "work/automations/list") {
+        return { automations: [] };
+      }
+      if (method === "work/automations/create" || method === "work/automations/update") {
+        return {
+          automation: {
+            id: automationId,
+            chat_id: "chat-1",
+            title: "Nightly checks",
+            prompt: "Run the test suite",
+            schedule: { kind: "every", every_ms: 60_000 },
+            enabled: true,
+          },
+        };
+      }
+      if (["work/automations/trigger", "work/automations/pause", "work/automations/delete"].includes(method)) {
+        return { accepted: true };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "work/automations/list",
+        "work/automations/create",
+        "work/automations/update",
+        "work/automations/trigger",
+        "work/automations/pause",
+        "work/automations/delete",
+      ],
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(capabilities.capabilities.find((item) => item.id === "work.automations")?.availability).toBe("available");
+
+    const createAutomation = ports.work.createAutomation as (input: {
+      chatId: string;
+      title: string;
+      prompt: string;
+      schedule: { kind: "every"; everyMs: number };
+      enabled: boolean;
+    }) => Promise<unknown>;
+    await expect(createAutomation({
+      chatId: "chat-1",
+      title: "Nightly checks",
+      prompt: "Run the test suite",
+      schedule: { kind: "every", everyMs: 60_000 },
+      enabled: true,
+    })).resolves.toMatchObject({ id: automationId, chatId: "chat-1", prompt: "Run the test suite" });
+    expect(transport.request).toHaveBeenCalledWith("work/automations/create", {
+      chat_id: "chat-1",
+      title: "Nightly checks",
+      prompt: "Run the test suite",
+      schedule: { kind: "every", every_ms: 60_000 },
+    });
+
+    await ports.work.triggerAutomation(automationId);
+    await ports.work.pauseAutomation(automationId);
+    await ports.work.deleteAutomation(automationId);
+    expect(transport.request).toHaveBeenCalledWith("work/automations/trigger", { automation_id: automationId });
+    expect(transport.request).toHaveBeenCalledWith("work/automations/pause", { automation_id: automationId });
+    expect(transport.request).toHaveBeenCalledWith("work/automations/delete", { automation_id: automationId });
+  });
+
+  it("keeps Automations deferred when a native lifecycle method is absent", async () => {
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["work/automations/list", "work/automations/create"],
+      transport: mockTransport(),
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(capabilities.capabilities.find((item) => item.id === "work.automations")?.availability).toBe("deferred");
+  });
+
   it("defers chat capabilities while the host is not ready", async () => {
     const ports = createVsCodeHostPorts({
       hostVersion: "0.1.0",
