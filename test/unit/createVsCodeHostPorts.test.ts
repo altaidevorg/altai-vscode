@@ -46,6 +46,9 @@ describe("createVsCodeHostPorts", () => {
       if (method === "run/start") {
         return { run_id: "run_1" };
       }
+      if (method === "run/retry") {
+        return { run_id: "run_2" };
+      }
       throw new Error(`unexpected ${method}`);
     });
     const ports = createVsCodeHostPorts({
@@ -63,6 +66,7 @@ describe("createVsCodeHostPorts", () => {
       caps.capabilities.map((c) => [c.id, c.availability]),
     );
     expect(byId["runtime.startRun"]).toBe("available");
+    expect(byId["runtime.retryRun"]).toBe("available");
     expect(byId["runtime.queueRun"]).toBe("available");
     expect(byId["sessions.create"]).toBe("available");
 
@@ -83,6 +87,14 @@ describe("createVsCodeHostPorts", () => {
       "run/start",
       expect.objectContaining({ prompt: "queued", queue: true }),
     );
+
+    await expect(
+      ports.runtime.retryRun({ chatId: ref.chatId, runId: ref.runId }),
+    ).resolves.toEqual({ chatId: ref.chatId, runId: "run_2" });
+    expect(transport.request).toHaveBeenCalledWith("run/retry", {
+      chat_id: ref.chatId,
+      run_id: ref.runId,
+    });
   });
 
   it("enables and routes supported VS Code workspace ports only when ready", async () => {
