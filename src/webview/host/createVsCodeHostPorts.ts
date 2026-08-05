@@ -19,6 +19,7 @@ import {
   type HostPorts,
   type InitializeInput,
   type ModelInfo,
+  type NotificationInfo,
   type ReplayPage,
   type SessionInfo,
   type SessionMessage,
@@ -115,6 +116,7 @@ export function createVsCodeHostPorts(
                   "workspace.terminalContext": "available",
                   "review.checkpoints": nativeAvailability(hasNativeMethod("checkpoints/list")),
                   "review.restoreCheckpoint": nativeAvailability(hasNativeMethod("checkpoints/restore")),
+                  "inbox.notifications": hasNativeMethod("inbox/list") && hasNativeMethod("inbox/mark-seen") && hasNativeMethod("inbox/resolve") ? "available" : "deferred",
                 }
               : {
                   "runtime.startRun": "deferred",
@@ -454,7 +456,24 @@ export function createVsCodeHostPorts(
         "resolveNotification",
         "dismissNotification",
       ],
-      {},
+      {
+        async listNotifications(): Promise<NotificationInfo[]> {
+          requireReady(isHostReady);
+          const result = await transport.request("inbox/list", {});
+          const notifications = isRecord(result) && Array.isArray(result.notifications) ? result.notifications : [];
+          return notifications.filter(isRecord).map((item) => ({
+            id: typeof item.notification_id === "string" ? item.notification_id : "",
+            chatId: typeof item.chat_id === "string" ? item.chat_id : "",
+            title: typeof item.title === "string" ? item.title : "Notification",
+            body: typeof item.body === "string" ? item.body : "",
+            seen: typeof item.seen_at_ms === "number",
+            createdAt: typeof item.created_at_ms === "number" ? new Date(item.created_at_ms).toISOString() : new Date(0).toISOString(),
+          })).filter((item) => item.id.length > 0);
+        },
+        async markNotificationSeen(id) { requireReady(isHostReady); await transport.request("inbox/mark-seen", { notification_id: id }); },
+        async resolveNotification(id) { requireReady(isHostReady); await transport.request("inbox/resolve", { notification_id: id }); },
+        async dismissNotification(id) { requireReady(isHostReady); await transport.request("inbox/resolve", { notification_id: id }); },
+      },
     ),
     mcpSkills: withUnsupportedDefaults(
       "mcpSkills",
