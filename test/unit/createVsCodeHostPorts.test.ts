@@ -70,7 +70,10 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["runtime.queueRun"]).toBe("available");
     expect(byId["sessions.create"]).toBe("available");
 
-    const ref = await ports.runtime.startRun({ prompt: "hello" });
+    const ref = await ports.runtime.startRun({
+      prompt: "hello",
+      permissionMode: "auto-edit",
+    });
     expect(ref.runId).toBe("run_1");
     expect(ref.chatId).toMatch(/^chat_/);
     expect(transport.request).toHaveBeenCalledWith(
@@ -79,7 +82,11 @@ describe("createVsCodeHostPorts", () => {
     );
     expect(transport.request).toHaveBeenCalledWith(
       "run/start",
-      expect.objectContaining({ chat_id: ref.chatId, prompt: "hello" }),
+      expect.objectContaining({
+        chat_id: ref.chatId,
+        prompt: "hello",
+        permission: "auto-edit",
+      }),
     );
 
     await ports.runtime.startRun({ prompt: "queued", queue: true });
