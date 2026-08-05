@@ -9,6 +9,7 @@ import {
   createCapabilities,
   type AgentEvent,
   type AgentEventType,
+  type AutomationInfo,
   type Capabilities,
   type AltaiSettings,
   type CheckpointInfo,
@@ -125,6 +126,16 @@ export function createVsCodeHostPorts(
                   "work.taskRuns": nativeAvailability(
                     ["work/tasks/list", "work/tasks/create", "work/tasks/cancel", "work/tasks/retry", "work/tasks/remove"].every(hasNativeMethod),
                   ),
+                  "work.automations": nativeAvailability(
+                    [
+                      "work/automations/list",
+                      "work/automations/create",
+                      "work/automations/update",
+                      "work/automations/trigger",
+                      "work/automations/pause",
+                      "work/automations/delete",
+                    ].every(hasNativeMethod),
+                  ),
                   "inbox.notifications": hasNativeMethod("inbox/list") && hasNativeMethod("inbox/mark-seen") && hasNativeMethod("inbox/resolve") ? "available" : "deferred",
                 }
               : {
@@ -164,6 +175,7 @@ export function createVsCodeHostPorts(
                   "review.checkpoints": "deferred",
                   "review.restoreCheckpoint": "deferred",
                   "work.taskRuns": "deferred",
+                  "work.automations": "deferred",
                 },
           });
         },
@@ -525,6 +537,67 @@ export function createVsCodeHostPorts(
         async removeTaskRun(taskRunId) {
           requireReady(isHostReady);
           await transport.request("work/tasks/remove", { task_id: taskRunId });
+        },
+        async listAutomations(): Promise<AutomationInfo[]> {
+          requireReady(isHostReady);
+          return normalizeAutomations(
+            await transport.request("work/automations/list"),
+          );
+        },
+        async createAutomation(input): Promise<AutomationInfo> {
+          requireReady(isHostReady);
+          const { chatId, prompt } = automationInstruction(input);
+          const result = await transport.request("work/automations/create", {
+            chat_id: chatId,
+            title: input.title,
+            prompt,
+            schedule: automationScheduleRequest(input.schedule),
+          });
+          const automation = normalizeAutomation(
+            isRecord(result) ? result.automation : result,
+          );
+          if (!automation) {
+            throw new Error("invalid_automation_create_response");
+          }
+          return automation;
+        },
+        async updateAutomation(automationId, patch): Promise<AutomationInfo> {
+          requireReady(isHostReady);
+          const instruction = automationInstruction(patch, false);
+          const result = await transport.request("work/automations/update", {
+            automation_id: automationId,
+            ...(patch.title !== undefined ? { title: patch.title } : {}),
+            ...(instruction.prompt !== undefined ? { prompt: instruction.prompt } : {}),
+            ...(patch.schedule !== undefined
+              ? { schedule: automationScheduleRequest(patch.schedule) }
+              : {}),
+            ...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
+          });
+          const automation = normalizeAutomation(
+            isRecord(result) ? result.automation : result,
+          );
+          if (!automation) {
+            throw new Error("invalid_automation_update_response");
+          }
+          return automation;
+        },
+        async triggerAutomation(automationId) {
+          requireReady(isHostReady);
+          await transport.request("work/automations/trigger", {
+            automation_id: automationId,
+          });
+        },
+        async pauseAutomation(automationId) {
+          requireReady(isHostReady);
+          await transport.request("work/automations/pause", {
+            automation_id: automationId,
+          });
+        },
+        async deleteAutomation(automationId) {
+          requireReady(isHostReady);
+          await transport.request("work/automations/delete", {
+            automation_id: automationId,
+          });
         },
       },
     ),
@@ -1039,6 +1112,80 @@ function findTaskRun(taskRuns: TaskRunInfo[], id: string): TaskRunInfo {
     throw new Error("task_run_not_found");
   }
   return taskRun;
+}
+
+function normalizeAutomations(value: unknown): AutomationInfo[] {
+  if (!isRecord(value) || !Array.isArray(value.automations)) {
+    throw new Error("invalid_automations_response");
+  }
+  return value.automations.map((item) => {
+    const automation = normalizeAutomation(item);
+    if (!automation) {
+      throw new Error("invalid_automations_response");
+    }
+    return automation;
+  });
+}
+
+function normalizeAutomation(value: unknown): AutomationInfo | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const id = typeof value.id === "string" ? value.id : "";
+  const chatId = typeof value.chat_id === "string" ? value.chat_id : "";
+  const title = typeof value.title === "string" ? value.title : "";
+  const prompt = typeof value.prompt === "string" ? value.prompt : "";
+  const schedule = normalizeAutomationSchedule(value.schedule);
+  if (!id || !chatId || !title || !prompt || !schedule || typeof value.enabled !== "boolean") {
+    return null;
+  }
+  // The cast keeps this adapter source-compatible while the shared package is
+  // rolling out the chatId/prompt fields; runtime validation above guarantees
+  // the complete current protocol shape.
+  return Object.assign({ id, title, schedule, enabled: value.enabled }, { chatId, prompt }) as AutomationInfo;
+}
+
+function normalizeAutomationSchedule(
+  value: unknown,
+): AutomationInfo["schedule"] | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+  if (value.kind === "once" && typeof value.at === "string") {
+    return { kind: "once", at: value.at };
+  }
+  if (value.kind === "every" && typeof value.every_ms === "number" && Number.isFinite(value.every_ms)) {
+    return { kind: "every", everyMs: value.every_ms };
+  }
+  return null;
+}
+
+function automationScheduleRequest(schedule: unknown): Record<string, unknown> {
+  if (!isRecord(schedule)) {
+    throw new Error("invalid_automation_schedule");
+  }
+  if (schedule.kind === "once" && typeof schedule.at === "string") {
+    return { kind: "once", at: schedule.at };
+  }
+  if (schedule.kind === "every" && typeof schedule.everyMs === "number") {
+    return { kind: "every", every_ms: schedule.everyMs };
+  }
+  throw new Error("invalid_automation_schedule");
+}
+
+function automationInstruction(
+  value: unknown,
+  requireChatId = true,
+): { chatId?: string; prompt?: string } {
+  if (!isRecord(value)) {
+    throw new Error("invalid_automation_input");
+  }
+  const chatId = typeof value.chatId === "string" ? value.chatId : undefined;
+  const prompt = typeof value.prompt === "string" ? value.prompt : undefined;
+  if (requireChatId && (!chatId || !prompt)) {
+    throw new Error("automation_requires_chat_and_prompt");
+  }
+  return { chatId, prompt };
 }
 
 function normalizeSettings(value: unknown): AltaiSettings {
