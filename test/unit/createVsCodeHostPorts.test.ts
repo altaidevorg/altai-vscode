@@ -91,6 +91,12 @@ describe("createVsCodeHostPorts", () => {
       if (method === "checkpoints/restore") {
         return { restored: true };
       }
+      if (method === "config/get") {
+        return { model: "auto" };
+      }
+      if (method === "config/update") {
+        return { model: "openai/gpt-test" };
+      }
       throw new Error(`unexpected native method ${method}`);
     });
     transport.requestWorkspace.mockImplementation(async (method, _params) => {
@@ -122,6 +128,7 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["workspace.openDiff"]).toBe("available");
     expect(byId["workspace.gitDiff"]).toBe("available");
     expect(byId["review.checkpoints"]).toBe("available");
+    expect(byId["settings.update"]).toBe("available");
     await expect(ports.workspace.getActiveFile()).resolves.toMatchObject({
       path: "/workspace/a.ts",
     });
@@ -141,6 +148,12 @@ describe("createVsCodeHostPorts", () => {
     await ports.review.restoreCheckpoint("checkpoint_1");
     expect(transport.request).toHaveBeenCalledWith("checkpoints/restore", {
       id: "checkpoint_1",
+    });
+    await expect(
+      ports.settings.updateSettings({ defaultModelId: "openai/gpt-test" }),
+    ).resolves.toMatchObject({ defaultModelId: "openai/gpt-test" });
+    expect(transport.request).toHaveBeenCalledWith("config/update", {
+      model: "openai/gpt-test",
     });
     expect(transport.requestWorkspace).toHaveBeenCalledWith("searchFiles", {
       query: "a.ts",
