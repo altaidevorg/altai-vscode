@@ -4,6 +4,8 @@ import { COMPATIBILITY } from "./compatibility.js";
 import { HostManager } from "./host/HostManager.js";
 import { getOutputChannel } from "./output.js";
 import { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
+import { DiffContentProvider } from "./vscode/DiffContentProvider.js";
+import { WorkspaceAdapter } from "./vscode/WorkspaceAdapter.js";
 import {
   isWorkspaceTrusted,
   onDidGrantWorkspaceTrust,
@@ -32,7 +34,14 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   });
 
-  provider = new AltaiViewProvider(context, hostManager);
+  const diffContentProvider = new DiffContentProvider(vscode);
+  diffContentProvider.register(context);
+  const workspaceAdapter = new WorkspaceAdapter(
+    vscode,
+    () => isWorkspaceTrusted(),
+    (label, text) => diffContentProvider.createUri(label, text),
+  );
+  provider = new AltaiViewProvider(context, hostManager, workspaceAdapter);
   // Persist presentation state via vscodeApi getState/setState (TASK-003).
   // Do not retain hidden Webview contexts.
   context.subscriptions.push(

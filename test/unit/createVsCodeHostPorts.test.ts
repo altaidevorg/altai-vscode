@@ -9,6 +9,9 @@ function mockTransport(requestImpl?: (method: string, params?: unknown) => Promi
           throw new Error("unexpected");
         }),
     ),
+    requestWorkspace: vi.fn(async () => {
+      throw new Error("unexpected workspace request");
+    }),
     onNotification: vi.fn(() => () => {}),
   };
 }
@@ -73,6 +76,41 @@ describe("createVsCodeHostPorts", () => {
       "run/start",
       expect.objectContaining({ chat_id: ref.chatId, prompt: "hello" }),
     );
+  });
+
+  it("enables and routes supported VS Code workspace ports only when ready", async () => {
+    const transport = mockTransport();
+    transport.requestWorkspace.mockImplementation(async (method, _params) => {
+      if (method === "getActiveFile") {
+        return { uri: "file:///workspace/a.ts", path: "/workspace/a.ts" };
+      }
+      if (method === "searchFiles") {
+        return [{ uri: "file:///workspace/a.ts", path: "/workspace/a.ts" }];
+      }
+      throw new Error(`unexpected workspace method ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      transport,
+    });
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    const byId = Object.fromEntries(
+      caps.capabilities.map((capability) => [capability.id, capability.availability]),
+    );
+    expect(byId["workspace.activeFile"]).toBe("available");
+    expect(byId["workspace.openDiff"]).toBe("available");
+    await expect(ports.workspace.getActiveFile()).resolves.toMatchObject({
+      path: "/workspace/a.ts",
+    });
+    await expect(ports.workspace.searchFiles("a.ts")).resolves.toHaveLength(1);
+    expect(transport.requestWorkspace).toHaveBeenCalledWith("searchFiles", {
+      query: "a.ts",
+    });
   });
 
   it("rejects startRun while host is not ready", async () => {

@@ -4,12 +4,14 @@ import {
   HOST_STATUS_EVENT,
   type HostRequestParams,
   type HostStatusPayload,
+  type WorkspaceRequestParams,
 } from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
 import type { HostManager } from "../host/HostManager.js";
 import { getOutputChannel } from "../output.js";
 import { WebviewBridge } from "./WebviewBridge.js";
 import { getWebviewHtml } from "./webviewHtml.js";
+import type { WorkspaceAdapter } from "../vscode/WorkspaceAdapter.js";
 
 export class AltaiViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "altai.sidePanel";
@@ -21,6 +23,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly hostManager: HostManager,
+    private readonly workspaceAdapter: WorkspaceAdapter,
   ) {}
 
   resolveWebviewView(
@@ -64,6 +67,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     bridge.registerHandler("host.getStatus", () => this.getHostStatus());
     bridge.registerHandler("host.request", (params) =>
       this.proxyHostRequest(params),
+    );
+    bridge.registerHandler("workspace.request", (params) =>
+      this.proxyWorkspaceRequest(params),
     );
 
     const onNotification = (notification: {
@@ -110,6 +116,16 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     return this.hostManager.request(parsed.method, parsed.params);
   }
 
+  private async proxyWorkspaceRequest(params: unknown): Promise<unknown> {
+    const parsed = parseWorkspaceRequestParams(params);
+    if (!parsed) {
+      throw Object.assign(new Error("invalid_workspace_request_params"), {
+        code: "invalid_params",
+      });
+    }
+    return this.workspaceAdapter.request(parsed.method, parsed.params);
+  }
+
   private getHostStatus(): HostStatusPayload {
     return this.hostManager.getStatus();
   }
@@ -120,6 +136,12 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     this.bridge?.dispose();
     this.bridge = undefined;
   }
+}
+
+function parseWorkspaceRequestParams(
+  value: unknown,
+): WorkspaceRequestParams | undefined {
+  return parseHostRequestParams(value);
 }
 
 function parseHostRequestParams(value: unknown): HostRequestParams | undefined {

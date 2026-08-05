@@ -10,12 +10,17 @@ import {
   type AgentEvent,
   type AgentEventType,
   type Capabilities,
+  type FileContent,
+  type FileContext,
+  type FileMatch,
   type HostPorts,
   type InitializeInput,
   type ModelInfo,
   type ReplayPage,
   type SessionInfo,
   type SessionMessage,
+  type SelectionContext,
+  type WorkspaceInfo,
 } from "@altai/host-contract";
 import { withUnsupportedDefaults } from "./unsupported.js";
 
@@ -23,6 +28,7 @@ const HOST_NAME = "altai-vscode";
 
 export type HostRpcTransport = {
   request(method: string, params?: unknown): Promise<unknown>;
+  requestWorkspace(method: string, params?: unknown): Promise<unknown>;
   onNotification(
     listener: (notification: { method: string; params?: unknown }) => void,
   ): () => void;
@@ -79,6 +85,13 @@ export function createVsCodeHostPorts(
                   "sessions.messages": "available",
                   "models.list": "available",
                   "interactive.permissionModes": "available",
+                  "workspace.info": "available",
+                  "workspace.activeFile": "available",
+                  "workspace.selection": "available",
+                  "workspace.searchFiles": "available",
+                  "workspace.readFile": "available",
+                  "workspace.openFile": "available",
+                  "workspace.openDiff": "available",
                 }
               : {
                   "runtime.startRun": "deferred",
@@ -95,6 +108,13 @@ export function createVsCodeHostPorts(
                   "sessions.messages": "deferred",
                   "models.list": "deferred",
                   "interactive.permissionModes": "deferred",
+                  "workspace.info": "deferred",
+                  "workspace.activeFile": "deferred",
+                  "workspace.selection": "deferred",
+                  "workspace.searchFiles": "deferred",
+                  "workspace.readFile": "deferred",
+                  "workspace.openFile": "deferred",
+                  "workspace.openDiff": "deferred",
                 },
           });
         },
@@ -208,7 +228,49 @@ export function createVsCodeHostPorts(
         "getGitDiff",
         "getTerminalContext",
       ],
-      {},
+      {
+        async getWorkspace() {
+          requireReady(isHostReady);
+          return normalizeWorkspaceInfo(
+            await transport.requestWorkspace("getWorkspace"),
+          );
+        },
+        async getActiveFile() {
+          requireReady(isHostReady);
+          return normalizeFileContext(
+            await transport.requestWorkspace("getActiveFile"),
+          );
+        },
+        async getSelection() {
+          requireReady(isHostReady);
+          return normalizeSelectionContext(
+            await transport.requestWorkspace("getSelection"),
+          );
+        },
+        async searchFiles(query) {
+          requireReady(isHostReady);
+          return normalizeFileMatches(
+            await transport.requestWorkspace("searchFiles", { query }),
+          );
+        },
+        async readFile(uri) {
+          requireReady(isHostReady);
+          return normalizeFileContent(
+            await transport.requestWorkspace("readFile", { uri }),
+          );
+        },
+        async openFile(uri, range) {
+          requireReady(isHostReady);
+          await transport.requestWorkspace("openFile", {
+            uri,
+            ...(range ? { range } : {}),
+          });
+        },
+        async openDiff(input) {
+          requireReady(isHostReady);
+          await transport.requestWorkspace("openDiff", input);
+        },
+      },
     ),
     settings: withUnsupportedDefaults(
       "settings",
@@ -528,4 +590,98 @@ function mapRunEvent(value: unknown): AgentEvent | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function normalizeWorkspaceInfo(value: unknown): WorkspaceInfo {
+  if (!isRecord(value) || !Array.isArray(value.roots) || typeof value.trusted !== "boolean") {
+    throw new Error("invalid_workspace_response");
+  }
+  const roots = value.roots.filter((root): root is string => typeof root === "string");
+  if (roots.length !== value.roots.length) {
+    throw new Error("invalid_workspace_response");
+  }
+  return {
+    roots,
+    trusted: value.trusted,
+    ...(typeof value.currentDir === "string" ? { currentDir: value.currentDir } : {}),
+  };
+}
+
+function normalizeFileContext(value: unknown): FileContext | null {
+  if (value === null) {
+    return null;
+  }
+  if (!isRecord(value) || typeof value.uri !== "string" || typeof value.path !== "string") {
+    throw new Error("invalid_workspace_response");
+  }
+  return {
+    uri: value.uri,
+    path: value.path,
+    ...(typeof value.languageId === "string" ? { languageId: value.languageId } : {}),
+  };
+}
+
+function normalizeSelectionContext(value: unknown): SelectionContext | null {
+  if (value === null) {
+    return null;
+  }
+  if (
+    !isRecord(value) ||
+    typeof value.uri !== "string" ||
+    typeof value.path !== "string" ||
+    typeof value.text !== "string" ||
+    !isRecord(value.range)
+  ) {
+    throw new Error("invalid_workspace_response");
+  }
+  const range = value.range;
+  const keys = ["startLine", "startCharacter", "endLine", "endCharacter"] as const;
+  if (!keys.every((key) => typeof range[key] === "number")) {
+    throw new Error("invalid_workspace_response");
+  }
+  return {
+    uri: value.uri,
+    path: value.path,
+    text: value.text,
+    range: {
+      startLine: range.startLine as number,
+      startCharacter: range.startCharacter as number,
+      endLine: range.endLine as number,
+      endCharacter: range.endCharacter as number,
+    },
+  };
+}
+
+function normalizeFileMatches(value: unknown): FileMatch[] {
+  if (!Array.isArray(value)) {
+    throw new Error("invalid_workspace_response");
+  }
+  return value.map((item) => {
+    if (!isRecord(item) || typeof item.uri !== "string" || typeof item.path !== "string") {
+      throw new Error("invalid_workspace_response");
+    }
+    return {
+      uri: item.uri,
+      path: item.path,
+      ...(typeof item.score === "number" ? { score: item.score } : {}),
+    };
+  });
+}
+
+function normalizeFileContent(value: unknown): FileContent {
+  if (
+    !isRecord(value) ||
+    typeof value.uri !== "string" ||
+    typeof value.path !== "string" ||
+    typeof value.text !== "string" ||
+    typeof value.truncated !== "boolean"
+  ) {
+    throw new Error("invalid_workspace_response");
+  }
+  return {
+    uri: value.uri,
+    path: value.path,
+    text: value.text,
+    truncated: value.truncated,
+  };
 }
