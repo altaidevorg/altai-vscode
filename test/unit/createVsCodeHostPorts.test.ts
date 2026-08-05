@@ -80,6 +80,19 @@ describe("createVsCodeHostPorts", () => {
 
   it("enables and routes supported VS Code workspace ports only when ready", async () => {
     const transport = mockTransport();
+    transport.request.mockImplementation(async (method) => {
+      if (method === "checkpoints/list") {
+        return {
+          checkpoints: [
+            { id: "checkpoint_1", label: "Before edit", created_ms: 1_700_000_000_000 },
+          ],
+        };
+      }
+      if (method === "checkpoints/restore") {
+        return { restored: true };
+      }
+      throw new Error(`unexpected native method ${method}`);
+    });
     transport.requestWorkspace.mockImplementation(async (method, _params) => {
       if (method === "getActiveFile") {
         return { uri: "file:///workspace/a.ts", path: "/workspace/a.ts" };
@@ -108,6 +121,7 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["workspace.activeFile"]).toBe("available");
     expect(byId["workspace.openDiff"]).toBe("available");
     expect(byId["workspace.gitDiff"]).toBe("available");
+    expect(byId["review.checkpoints"]).toBe("available");
     await expect(ports.workspace.getActiveFile()).resolves.toMatchObject({
       path: "/workspace/a.ts",
     });
@@ -115,6 +129,18 @@ describe("createVsCodeHostPorts", () => {
     await expect(ports.workspace.getGitDiff()).resolves.toEqual({
       branch: "main",
       files: [],
+    });
+    await expect(ports.review.listCheckpoints("chat_1")).resolves.toEqual([
+      {
+        id: "checkpoint_1",
+        chatId: "chat_1",
+        label: "Before edit",
+        createdAt: "2023-11-14T22:13:20.000Z",
+      },
+    ]);
+    await ports.review.restoreCheckpoint("checkpoint_1");
+    expect(transport.request).toHaveBeenCalledWith("checkpoints/restore", {
+      id: "checkpoint_1",
     });
     expect(transport.requestWorkspace).toHaveBeenCalledWith("searchFiles", {
       query: "a.ts",

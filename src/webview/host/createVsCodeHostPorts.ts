@@ -10,6 +10,7 @@ import {
   type AgentEvent,
   type AgentEventType,
   type Capabilities,
+  type CheckpointInfo,
   type FileContent,
   type FileContext,
   type FileMatch,
@@ -96,6 +97,8 @@ export function createVsCodeHostPorts(
                   "workspace.openDiff": "available",
                   "workspace.gitDiff": "available",
                   "workspace.terminalContext": "available",
+                  "review.checkpoints": "available",
+                  "review.restoreCheckpoint": "available",
                 }
               : {
                   "runtime.startRun": "deferred",
@@ -121,6 +124,8 @@ export function createVsCodeHostPorts(
                   "workspace.openDiff": "deferred",
                   "workspace.gitDiff": "deferred",
                   "workspace.terminalContext": "deferred",
+                  "review.checkpoints": "deferred",
+                  "review.restoreCheckpoint": "deferred",
                 },
           });
         },
@@ -321,7 +326,19 @@ export function createVsCodeHostPorts(
         "applyEditProposal",
         "denyEditProposal",
       ],
-      {},
+      {
+        async listCheckpoints(chatId): Promise<CheckpointInfo[]> {
+          requireReady(isHostReady);
+          return normalizeCheckpoints(
+            await transport.request("checkpoints/list", { chat_id: chatId }),
+            chatId,
+          );
+        },
+        async restoreCheckpoint(checkpointId) {
+          requireReady(isHostReady);
+          await transport.request("checkpoints/restore", { id: checkpointId });
+        },
+      },
     ),
     work: withUnsupportedDefaults(
       "work",
@@ -741,4 +758,25 @@ function normalizeTerminalContext(value: unknown): TerminalContext | null {
     ...(typeof value.selectedText === "string" ? { selectedText: value.selectedText } : {}),
     ...(typeof value.lastCommand === "string" ? { lastCommand: value.lastCommand } : {}),
   };
+}
+
+function normalizeCheckpoints(value: unknown, chatId: string): CheckpointInfo[] {
+  if (!isRecord(value) || !Array.isArray(value.checkpoints)) {
+    throw new Error("invalid_checkpoint_response");
+  }
+  return value.checkpoints.map((item) => {
+    if (!isRecord(item) || typeof item.id !== "string") {
+      throw new Error("invalid_checkpoint_response");
+    }
+    const createdAt =
+      typeof item.created_ms === "number" && Number.isFinite(item.created_ms)
+        ? new Date(item.created_ms).toISOString()
+        : new Date(0).toISOString();
+    return {
+      id: item.id,
+      chatId,
+      createdAt,
+      ...(typeof item.label === "string" ? { label: item.label } : {}),
+    };
+  });
 }
