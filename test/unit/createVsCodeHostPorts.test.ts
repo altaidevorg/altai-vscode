@@ -97,6 +97,9 @@ describe("createVsCodeHostPorts", () => {
       if (method === "config/update") {
         return { model: "openai/gpt-test" };
       }
+      if (method === "context/compact") {
+        return { accepted: true };
+      }
       throw new Error(`unexpected native method ${method}`);
     });
     transport.requestWorkspace.mockImplementation(async (method, _params) => {
@@ -129,6 +132,7 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["workspace.gitDiff"]).toBe("available");
     expect(byId["review.checkpoints"]).toBe("available");
     expect(byId["settings.update"]).toBe("available");
+    expect(byId["runtime.compactContext"]).toBe("available");
     await expect(ports.workspace.getActiveFile()).resolves.toMatchObject({
       path: "/workspace/a.ts",
     });
@@ -154,6 +158,10 @@ describe("createVsCodeHostPorts", () => {
     ).resolves.toMatchObject({ defaultModelId: "openai/gpt-test" });
     expect(transport.request).toHaveBeenCalledWith("config/update", {
       model: "openai/gpt-test",
+    });
+    await ports.runtime.compactContext({ chatId: "chat_1" });
+    expect(transport.request).toHaveBeenCalledWith("context/compact", {
+      chat_id: "chat_1",
     });
     expect(transport.requestWorkspace).toHaveBeenCalledWith("searchFiles", {
       query: "a.ts",
