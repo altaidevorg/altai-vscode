@@ -85,6 +85,7 @@ export function createVsCodeHostPorts(
             overrides: ready
               ? {
                   "runtime.startRun": nativeAvailability(hasNativeMethod("run/start")),
+                  "runtime.retryRun": nativeAvailability(hasNativeMethod("run/retry")),
                   "runtime.queueRun": nativeAvailability(hasNativeMethod("run/start")),
                   "runtime.cancelRun": nativeAvailability(hasNativeMethod("run/cancel")),
                   "runtime.steerRun": nativeAvailability(hasNativeMethod("run/steer")),
@@ -179,6 +180,20 @@ export function createVsCodeHostPorts(
             run_id: input.runId,
             content: input.prompt,
           });
+        },
+        async retryRun(input) {
+          requireReady(isHostReady);
+          const result = await transport.request("run/retry", {
+            chat_id: input.chatId,
+            ...(input.runId ? { run_id: input.runId } : {}),
+            ...(input.editUserMessage
+              ? { edit_user_message: input.editUserMessage }
+              : {}),
+          });
+          return {
+            chatId: input.chatId,
+            runId: readStringField(result, "run_id") ?? cryptoRandomId("run"),
+          };
         },
         async replayRun(input): Promise<ReplayPage> {
           requireReady(isHostReady);
