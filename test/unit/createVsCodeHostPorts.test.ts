@@ -212,6 +212,56 @@ describe("createVsCodeHostPorts", () => {
     });
   });
 
+  it("loads native transcripts and truncates only at a user-turn boundary", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "sessions/messages") {
+        return {
+          messages: [
+            { id: "user:1", role: "user", content: "Keep this" },
+            { id: "message:2", role: "assistant", content: "Discard this" },
+          ],
+        };
+      }
+      if (method === "sessions/truncate") {
+        return { deleted_messages: 1 };
+      }
+      throw new Error(`unexpected native method ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "sessions/messages",
+        "sessions/truncate",
+      ],
+      transport,
+    });
+
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    const byId = Object.fromEntries(
+      caps.capabilities.map((capability) => [capability.id, capability.availability]),
+    );
+    expect(byId["sessions.messages"]).toBe("available");
+    expect(byId["sessions.truncate"]).toBe("available");
+
+    await expect(ports.sessions.listMessages("chat_1")).resolves.toEqual([
+      expect.objectContaining({ id: "user:1", role: "user", content: "Keep this" }),
+      expect.objectContaining({ id: "message:2", role: "assistant", content: "Discard this" }),
+    ]);
+    await ports.sessions.truncateSession("chat_1", "user:1");
+    expect(transport.request).toHaveBeenCalledWith("sessions/truncate", {
+      chat_id: "chat_1",
+      keep_user_messages: 1,
+    });
+    await expect(
+      ports.sessions.truncateSession("chat_1", "message:2"),
+    ).rejects.toThrow(/session_truncate_requires_user_message/);
+  });
+
   it("rejects startRun while host is not ready", async () => {
     const ports = createVsCodeHostPorts({
       isHostReady: () => false,
