@@ -121,7 +121,7 @@ describe("createVsCodeHostPorts", () => {
         return { model: "auto" };
       }
       if (method === "config/update") {
-        return { model: "openai/gpt-test" };
+        return { model: "openai/gpt-test", permission: "auto-edit" };
       }
       if (method === "context/compact") {
         return { accepted: true };
@@ -190,6 +190,13 @@ describe("createVsCodeHostPorts", () => {
     expect(transport.request).toHaveBeenCalledWith("config/update", {
       model: "openai/gpt-test",
     });
+    await expect(ports.settings.setPermissionMode("auto-edit")).resolves.toBe("auto-edit");
+    expect(transport.request).toHaveBeenCalledWith("config/update", {
+      permission: "auto-edit",
+    });
+    await expect(ports.settings.setPermissionMode("bypass")).rejects.toThrow(
+      /permission_bypass_requires_confirmation/,
+    );
     await ports.runtime.compactContext({ chatId: "chat_1" });
     expect(transport.request).toHaveBeenCalledWith("context/compact", {
       chat_id: "chat_1",

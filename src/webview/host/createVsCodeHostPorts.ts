@@ -381,15 +381,16 @@ export function createVsCodeHostPorts(
         },
         async updateSettings(patch) {
           requireReady(isHostReady);
-          if (Object.keys(patch).some((key) => key !== "defaultModelId")) {
+          if (Object.keys(patch).some((key) => key !== "defaultModelId" && key !== "permissionMode")) {
             throw new Error("unsupported_settings_patch");
           }
-          if (patch.defaultModelId === undefined) {
+          if (patch.defaultModelId === undefined && patch.permissionMode === undefined) {
             return normalizeSettings(await transport.request("config/get", {}));
           }
           return normalizeSettings(
             await transport.request("config/update", {
-              model: patch.defaultModelId,
+              ...(patch.defaultModelId !== undefined ? { model: patch.defaultModelId } : {}),
+              ...(patch.permissionMode !== undefined ? { permission: patch.permissionMode } : {}),
             }),
           );
         },
@@ -400,7 +401,9 @@ export function createVsCodeHostPorts(
         },
         async setPermissionMode(mode) {
           requireReady(isHostReady);
-          return mode;
+          if (mode === "bypass") throw new Error("permission_bypass_requires_confirmation");
+          const settings = await transport.request("config/update", { permission: mode });
+          return normalizeSettings(settings).permissionMode;
         },
       },
     ),
@@ -889,7 +892,10 @@ function normalizeSettings(value: unknown): AltaiSettings {
     throw new Error("invalid_settings_response");
   }
   return {
-    permissionMode: "plan",
+    permissionMode:
+      value.permission === "ask" || value.permission === "auto-edit" || value.permission === "plan"
+        ? value.permission
+        : "plan",
     bypassEnabled: false,
     ...(value.model !== "auto" ? { defaultModelId: value.model } : {}),
   };
