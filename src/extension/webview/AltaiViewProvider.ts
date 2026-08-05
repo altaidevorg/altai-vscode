@@ -128,7 +128,13 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       });
     }
     if (parsed.method === "providers/connect") {
-      return this.connectProvider(parsed.params);
+      const connection = parseProviderConnectionParams(parsed.params);
+      if (!connection) {
+        throw Object.assign(new Error("invalid_provider_connection"), {
+          code: "invalid_params",
+        });
+      }
+      return this.connectProvider(connection.providerId, connection.baseUrl);
     }
     const nativeParams = parsed.method === "run/start"
       ? await materializeRunAttachments(parsed.params)
@@ -136,15 +142,13 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     return this.hostManager.request(parsed.method, nativeParams);
   }
 
-  private async connectProvider(params: unknown): Promise<unknown> {
-    const connection = parseProviderConnectionParams(params);
-    if (!connection) {
-      throw Object.assign(new Error("invalid_provider_connection"), {
-        code: "invalid_params",
-      });
-    }
+  /** Open the native VS Code password prompt and send the result only to Rust. */
+  public async connectProvider(
+    providerId: string,
+    baseUrl?: string,
+  ): Promise<unknown> {
     const credential = await vscode.window.showInputBox({
-      prompt: `Enter the API key for ${connection.providerId}`,
+      prompt: `Enter the API key for ${providerId}`,
       password: true,
       ignoreFocusOut: true,
     });
@@ -156,10 +160,14 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     // The password input belongs to the Extension Host, never the Webview.
     // The native response contains only configured state, never the key.
     return this.hostManager.request("providers/connect", {
-      provider_id: connection.providerId,
+      provider_id: providerId,
       credential: credential.trim(),
-      ...(connection.baseUrl ? { base_url: connection.baseUrl } : {}),
+      ...(baseUrl ? { base_url: baseUrl } : {}),
     });
+  }
+
+  public async clearProviderCredential(providerId: string): Promise<unknown> {
+    return this.hostManager.request("providers/clear", { provider_id: providerId });
   }
 
   private async proxyWorkspaceRequest(params: unknown): Promise<unknown> {
