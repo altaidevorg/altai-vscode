@@ -10,6 +10,7 @@ import {
   type AgentEvent,
   type AgentEventType,
   type Capabilities,
+  type AltaiSettings,
   type CheckpointInfo,
   type FileContent,
   type FileContext,
@@ -87,6 +88,9 @@ export function createVsCodeHostPorts(
                   "sessions.create": "available",
                   "sessions.messages": "available",
                   "models.list": "available",
+                  "models.select": "available",
+                  "settings.get": "available",
+                  "settings.update": "available",
                   "interactive.permissionModes": "available",
                   "workspace.info": "available",
                   "workspace.activeFile": "available",
@@ -114,6 +118,9 @@ export function createVsCodeHostPorts(
                   "sessions.create": "deferred",
                   "sessions.messages": "deferred",
                   "models.list": "deferred",
+                  "models.select": "deferred",
+                  "settings.get": "deferred",
+                  "settings.update": "deferred",
                   "interactive.permissionModes": "deferred",
                   "workspace.info": "deferred",
                   "workspace.activeFile": "deferred",
@@ -307,6 +314,24 @@ export function createVsCodeHostPorts(
         "setPermissionMode",
       ],
       {
+        async getSettings(): Promise<AltaiSettings> {
+          requireReady(isHostReady);
+          return normalizeSettings(await transport.request("config/get", {}));
+        },
+        async updateSettings(patch) {
+          requireReady(isHostReady);
+          if (Object.keys(patch).some((key) => key !== "defaultModelId")) {
+            throw new Error("unsupported_settings_patch");
+          }
+          if (patch.defaultModelId === undefined) {
+            return normalizeSettings(await transport.request("config/get", {}));
+          }
+          return normalizeSettings(
+            await transport.request("config/update", {
+              model: patch.defaultModelId,
+            }),
+          );
+        },
         async listModels(): Promise<ModelInfo[]> {
           requireReady(isHostReady);
           const result = await transport.request("models/list", {});
@@ -779,4 +804,15 @@ function normalizeCheckpoints(value: unknown, chatId: string): CheckpointInfo[] 
       ...(typeof item.label === "string" ? { label: item.label } : {}),
     };
   });
+}
+
+function normalizeSettings(value: unknown): AltaiSettings {
+  if (!isRecord(value) || typeof value.model !== "string") {
+    throw new Error("invalid_settings_response");
+  }
+  return {
+    permissionMode: "plan",
+    bypassEnabled: false,
+    ...(value.model !== "auto" ? { defaultModelId: value.model } : {}),
+  };
 }
