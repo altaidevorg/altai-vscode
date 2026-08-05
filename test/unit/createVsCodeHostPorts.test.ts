@@ -17,6 +17,84 @@ function mockTransport(requestImpl?: (method: string, params?: unknown) => Promi
 }
 
 describe("createVsCodeHostPorts", () => {
+  it("enables Work task runs only with the complete native lifecycle and proxies each action", async () => {
+    let taskId = "";
+    const transport = mockTransport(async (method, params) => {
+      if (method === "work/tasks/create") {
+        taskId = (params as { chat_id: string }).chat_id;
+        return { accepted: true };
+      }
+      if (method === "work/tasks/list") {
+        return {
+          task_runs: [{
+            id: taskId || "task-existing",
+            chat_id: taskId || "task-existing",
+            title: "Review pull request",
+            status: "running",
+            created_at_ms: 1_700_000_000_000,
+          }],
+        };
+      }
+      if (["work/tasks/cancel", "work/tasks/retry", "work/tasks/remove"].includes(method)) {
+        return { accepted: true };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "work/tasks/list",
+        "work/tasks/create",
+        "work/tasks/cancel",
+        "work/tasks/retry",
+        "work/tasks/remove",
+      ],
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(capabilities.capabilities.find((item) => item.id === "work.taskRuns")?.availability).toBe("available");
+
+    const created = await ports.work.createTaskRun({
+      title: "Review pull request",
+      prompt: "Review this change",
+      permissionMode: "plan",
+    });
+    expect(created).toMatchObject({ id: taskId, title: "Review pull request", status: "running" });
+    expect(created.createdAt).toBe("2023-11-14T22:13:20.000Z");
+    expect(transport.request).toHaveBeenCalledWith("work/tasks/create", {
+      chat_id: taskId,
+      task_title: "Review pull request",
+      prompt: "Review this change",
+      permission: "plan",
+    });
+    await ports.work.cancelTaskRun(taskId);
+    await expect(ports.work.retryTaskRun(taskId)).resolves.toMatchObject({ id: taskId });
+    await ports.work.removeTaskRun(taskId);
+    expect(transport.request).toHaveBeenCalledWith("work/tasks/cancel", { task_id: taskId });
+    expect(transport.request).toHaveBeenCalledWith("work/tasks/retry", { task_id: taskId });
+    expect(transport.request).toHaveBeenCalledWith("work/tasks/remove", { task_id: taskId });
+  });
+
+  it("keeps Work task runs deferred when any required native RPC is absent", async () => {
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["work/tasks/list", "work/tasks/create"],
+      transport: mockTransport(),
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(capabilities.capabilities.find((item) => item.id === "work.taskRuns")?.availability).toBe("deferred");
+  });
+
   it("defers chat capabilities while the host is not ready", async () => {
     const ports = createVsCodeHostPorts({
       hostVersion: "0.1.0",

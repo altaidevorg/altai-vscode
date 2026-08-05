@@ -26,6 +26,7 @@ import {
   type SessionMessage,
   type SelectionContext,
   type TerminalContext,
+  type TaskRunInfo,
   type WorkspaceInfo,
 } from "@altai/host-contract";
 import { withUnsupportedDefaults } from "./unsupported.js";
@@ -121,6 +122,9 @@ export function createVsCodeHostPorts(
                   "workspace.terminalContext": "available",
                   "review.checkpoints": nativeAvailability(hasNativeMethod("checkpoints/list")),
                   "review.restoreCheckpoint": nativeAvailability(hasNativeMethod("checkpoints/restore")),
+                  "work.taskRuns": nativeAvailability(
+                    ["work/tasks/list", "work/tasks/create", "work/tasks/cancel", "work/tasks/retry", "work/tasks/remove"].every(hasNativeMethod),
+                  ),
                   "inbox.notifications": hasNativeMethod("inbox/list") && hasNativeMethod("inbox/mark-seen") && hasNativeMethod("inbox/resolve") ? "available" : "deferred",
                 }
               : {
@@ -159,6 +163,7 @@ export function createVsCodeHostPorts(
                   "workspace.terminalContext": "deferred",
                   "review.checkpoints": "deferred",
                   "review.restoreCheckpoint": "deferred",
+                  "work.taskRuns": "deferred",
                 },
           });
         },
@@ -482,7 +487,42 @@ export function createVsCodeHostPorts(
         "pauseAutomation",
         "deleteAutomation",
       ],
-      {},
+      {
+        async listTaskRuns(): Promise<TaskRunInfo[]> {
+          requireReady(isHostReady);
+          return normalizeTaskRuns(await transport.request("work/tasks/list"));
+        },
+        async createTaskRun(input): Promise<TaskRunInfo> {
+          requireReady(isHostReady);
+          const id = cryptoRandomId("task");
+          await transport.request("work/tasks/create", {
+            chat_id: id,
+            task_title: input.title,
+            prompt: input.prompt,
+            ...(input.permissionMode ? { permission: input.permissionMode } : {}),
+          });
+          return findTaskRun(
+            normalizeTaskRuns(await transport.request("work/tasks/list")),
+            id,
+          );
+        },
+        async cancelTaskRun(taskRunId) {
+          requireReady(isHostReady);
+          await transport.request("work/tasks/cancel", { task_id: taskRunId });
+        },
+        async retryTaskRun(taskRunId): Promise<TaskRunInfo> {
+          requireReady(isHostReady);
+          await transport.request("work/tasks/retry", { task_id: taskRunId });
+          return findTaskRun(
+            normalizeTaskRuns(await transport.request("work/tasks/list")),
+            taskRunId,
+          );
+        },
+        async removeTaskRun(taskRunId) {
+          requireReady(isHostReady);
+          await transport.request("work/tasks/remove", { task_id: taskRunId });
+        },
+      },
     ),
     inbox: withUnsupportedDefaults(
       "inbox",
@@ -957,6 +997,44 @@ function normalizeCheckpoints(value: unknown, chatId: string): CheckpointInfo[] 
       ...(typeof item.label === "string" ? { label: item.label } : {}),
     };
   });
+}
+
+function normalizeTaskRuns(value: unknown): TaskRunInfo[] {
+  if (!isRecord(value) || !Array.isArray(value.task_runs)) {
+    throw new Error("invalid_task_runs_response");
+  }
+  return value.task_runs.map((item) => {
+    if (
+      !isRecord(item) ||
+      typeof item.id !== "string" ||
+      typeof item.title !== "string" ||
+      !isTaskRunStatus(item.status)
+    ) {
+      throw new Error("invalid_task_runs_response");
+    }
+    return {
+      id: item.id,
+      ...(typeof item.chat_id === "string" ? { chatId: item.chat_id } : {}),
+      title: item.title,
+      status: item.status,
+      createdAt:
+        typeof item.created_at_ms === "number" && Number.isFinite(item.created_at_ms)
+          ? new Date(item.created_at_ms).toISOString()
+          : new Date(0).toISOString(),
+    };
+  });
+}
+
+function isTaskRunStatus(value: unknown): value is TaskRunInfo["status"] {
+  return value === "queued" || value === "running" || value === "succeeded" || value === "failed" || value === "cancelled";
+}
+
+function findTaskRun(taskRuns: TaskRunInfo[], id: string): TaskRunInfo {
+  const taskRun = taskRuns.find((item) => item.id === id);
+  if (!taskRun) {
+    throw new Error("task_run_not_found");
+  }
+  return taskRun;
 }
 
 function normalizeSettings(value: unknown): AltaiSettings {
