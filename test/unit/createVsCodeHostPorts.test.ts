@@ -308,6 +308,37 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["settings.update"]).toBe("deferred");
   });
 
+  it("exposes provider status without credential material", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "providers/status") {
+        return {
+          providers: [
+            { provider_id: "openai", label: "Configured provider", connected: true },
+          ],
+        };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["providers/status"],
+      transport,
+    });
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(
+      caps.capabilities.find((capability) => capability.id === "settings.providerStatus")
+        ?.availability,
+    ).toBe("available");
+    await expect(ports.settings.getProviderStatus()).resolves.toEqual([
+      { providerId: "openai", label: "Configured provider", connected: true },
+    ]);
+  });
+
   it("routes durable session metadata controls only when advertised", async () => {
     const transport = mockTransport(async (method) => {
       if (method === "sessions/rename") {
