@@ -483,8 +483,8 @@ describe("createVsCodeHostPorts", () => {
     expect(byId["settings.update"]).toBe("deferred");
   });
 
-  it("exposes provider status without credential material", async () => {
-    const transport = mockTransport(async (method) => {
+  it("routes provider connection actions without forwarding a credential reference", async () => {
+    const transport = mockTransport(async (method, params) => {
       if (method === "providers/status") {
         return {
           providers: [
@@ -492,11 +492,26 @@ describe("createVsCodeHostPorts", () => {
           ],
         };
       }
+      if (method === "providers/connect") {
+        expect(params).toEqual({
+          provider_id: "openai",
+          base_url: "https://relay.example/v1",
+        });
+        return { provider_id: "openai", connected: true };
+      }
+      if (method === "providers/clear") {
+        expect(params).toEqual({ provider_id: "openai" });
+        return { provider_id: "openai", cleared: true };
+      }
       throw new Error(`unexpected ${method}`);
     });
     const ports = createVsCodeHostPorts({
       isHostReady: () => true,
-      getNativeCapabilities: () => ["providers/status"],
+      getNativeCapabilities: () => [
+        "providers/status",
+        "providers/connect",
+        "providers/clear",
+      ],
       transport,
     });
     const caps = await ports.runtime.initialize({
@@ -512,6 +527,12 @@ describe("createVsCodeHostPorts", () => {
     await expect(ports.settings.getProviderStatus()).resolves.toEqual([
       { providerId: "openai", label: "Configured provider", connected: true },
     ]);
+    await ports.settings.beginProviderConnection({
+      providerId: "openai",
+      secretRef: "never-forwarded-to-native",
+      baseUrl: "https://relay.example/v1",
+    });
+    await ports.settings.clearProviderCredential("openai");
   });
 
   it("routes durable session metadata controls only when advertised", async () => {

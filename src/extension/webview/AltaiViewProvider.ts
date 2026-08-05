@@ -127,10 +127,47 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
         code: "invalid_params",
       });
     }
+    if (parsed.method === "providers/connect") {
+      const connection = parseProviderConnectionParams(parsed.params);
+      if (!connection) {
+        throw Object.assign(new Error("invalid_provider_connection"), {
+          code: "invalid_params",
+        });
+      }
+      return this.connectProvider(connection.providerId, connection.baseUrl);
+    }
     const nativeParams = parsed.method === "run/start"
       ? await materializeRunAttachments(parsed.params)
       : parsed.params;
     return this.hostManager.request(parsed.method, nativeParams);
+  }
+
+  /** Open the native VS Code password prompt and send the result only to Rust. */
+  public async connectProvider(
+    providerId: string,
+    baseUrl?: string,
+  ): Promise<unknown> {
+    const credential = await vscode.window.showInputBox({
+      prompt: `Enter the API key for ${providerId}`,
+      password: true,
+      ignoreFocusOut: true,
+    });
+    if (!credential || credential.trim().length === 0) {
+      throw Object.assign(new Error("provider_connection_cancelled"), {
+        code: "cancelled",
+      });
+    }
+    // The password input belongs to the Extension Host, never the Webview.
+    // The native response contains only configured state, never the key.
+    return this.hostManager.request("providers/connect", {
+      provider_id: providerId,
+      credential: credential.trim(),
+      ...(baseUrl ? { base_url: baseUrl } : {}),
+    });
+  }
+
+  public async clearProviderCredential(providerId: string): Promise<unknown> {
+    return this.hostManager.request("providers/clear", { provider_id: providerId });
   }
 
   private async proxyWorkspaceRequest(params: unknown): Promise<unknown> {
@@ -300,4 +337,41 @@ function parseHostRequestParams(value: unknown): HostRequestParams | undefined {
     out.params = record.params;
   }
   return out;
+}
+
+export type ProviderConnectionParams = {
+  providerId: string;
+  baseUrl?: string;
+};
+
+/**
+ * A Webview can request the native connection flow, but cannot submit its own
+ * credential. Exact-field validation rejects secret-bearing payloads before
+ * the Extension Host opens its password input.
+ */
+export function parseProviderConnectionParams(
+  value: unknown,
+): ProviderConnectionParams | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  if (!Object.keys(value).every((key) => key === "provider_id" || key === "base_url")) {
+    return undefined;
+  }
+  const providerId = typeof value.provider_id === "string" ? value.provider_id.trim() : "";
+  if (!/^[a-z0-9-]{1,64}$/.test(providerId)) {
+    return undefined;
+  }
+  if (value.base_url === undefined) {
+    return { providerId };
+  }
+  const baseUrl = typeof value.base_url === "string" ? value.base_url.trim() : "";
+  if (
+    baseUrl.length === 0
+    || baseUrl.length > 2048
+    || (!baseUrl.startsWith("https://") && !baseUrl.startsWith("http://"))
+  ) {
+    return undefined;
+  }
+  return { providerId, baseUrl };
 }

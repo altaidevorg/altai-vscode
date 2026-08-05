@@ -72,6 +72,16 @@
         "command": "altai.showVersionCompatibility",
         "title": "ALTAI: Show Version Compatibility",
         "category": "ALTAI"
+      },
+      {
+        "command": "altai.connectProvider",
+        "title": "ALTAI: Connect AI Provider",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.clearProviderCredential",
+        "title": "ALTAI: Remove AI Provider Credential",
+        "category": "ALTAI"
       }
     ]
   },
