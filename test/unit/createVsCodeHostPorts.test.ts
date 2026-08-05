@@ -179,4 +179,24 @@ describe("createVsCodeHostPorts", () => {
       }),
     ).rejects.toThrow(/host_not_ready/);
   });
+
+  it("defers native controls the host did not advertise", async () => {
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["run/start", "sessions/create"],
+      transport: mockTransport(),
+    });
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    const byId = Object.fromEntries(
+      caps.capabilities.map((capability) => [capability.id, capability.availability]),
+    );
+    expect(byId["runtime.startRun"]).toBe("available");
+    expect(byId["runtime.compactContext"]).toBe("deferred");
+    expect(byId["settings.update"]).toBe("deferred");
+  });
 });
