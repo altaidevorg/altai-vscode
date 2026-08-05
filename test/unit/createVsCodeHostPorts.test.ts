@@ -63,6 +63,7 @@ describe("createVsCodeHostPorts", () => {
       caps.capabilities.map((c) => [c.id, c.availability]),
     );
     expect(byId["runtime.startRun"]).toBe("available");
+    expect(byId["runtime.queueRun"]).toBe("available");
     expect(byId["sessions.create"]).toBe("available");
 
     const ref = await ports.runtime.startRun({ prompt: "hello" });
@@ -75,6 +76,12 @@ describe("createVsCodeHostPorts", () => {
     expect(transport.request).toHaveBeenCalledWith(
       "run/start",
       expect.objectContaining({ chat_id: ref.chatId, prompt: "hello" }),
+    );
+
+    await ports.runtime.startRun({ prompt: "queued", queue: true });
+    expect(transport.request).toHaveBeenCalledWith(
+      "run/start",
+      expect.objectContaining({ prompt: "queued", queue: true }),
     );
   });
 
