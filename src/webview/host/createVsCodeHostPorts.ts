@@ -82,6 +82,7 @@ export function createVsCodeHostPorts(
                   "runtime.cancelRun": "available",
                   "runtime.steerRun": "available",
                   "runtime.replayRun": "available",
+                  "runtime.compactContext": "available",
                   "runtime.events": "available",
                   "sessions.list": "available",
                   "sessions.get": "available",
@@ -178,6 +179,10 @@ export function createVsCodeHostPorts(
             ...(input.limit !== undefined ? { limit: input.limit } : {}),
           });
           return normalizeReplayPage(result, input.chatId, input.runId);
+        },
+        async compactContext(input) {
+          requireReady(isHostReady);
+          await transport.request("context/compact", { chat_id: input.chatId });
         },
         async shutdown() {
           // Native host lifecycle is owned by the Extension Host.
