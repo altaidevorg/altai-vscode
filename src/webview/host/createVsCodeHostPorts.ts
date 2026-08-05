@@ -110,7 +110,11 @@ export function createVsCodeHostPorts(
                   "models.select": nativeAvailability(hasNativeMethod("config/update")),
                   "settings.get": nativeAvailability(hasNativeMethod("config/get")),
                   "settings.update": nativeAvailability(hasNativeMethod("config/update")),
-                  "settings.providerStatus": nativeAvailability(hasNativeMethod("providers/status")),
+                  "settings.providerStatus": nativeAvailability(
+                    ["providers/status", "providers/connect", "providers/clear"].every(
+                      hasNativeMethod,
+                    ),
+                  ),
                   "interactive.permissionModes": "available",
                   "workspace.info": "available",
                   "workspace.activeFile": "available",
@@ -452,6 +456,25 @@ export function createVsCodeHostPorts(
             await transport.request("providers/status", {}),
           );
         },
+        async beginProviderConnection(input) {
+          requireReady(isHostReady);
+          requireNativeCapability(
+            hasNativeMethod,
+            "providers/connect",
+          );
+          // `secretRef` is deliberately not forwarded. The Extension Host
+          // collects the credential through a password input and sends it only
+          // to the native Rust host over its private stdio channel.
+          await transport.request("providers/connect", {
+            provider_id: input.providerId,
+            ...(input.baseUrl ? { base_url: input.baseUrl } : {}),
+          });
+        },
+        async clearProviderCredential(providerId) {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "providers/clear");
+          await transport.request("providers/clear", { provider_id: providerId });
+        },
         async listModels(): Promise<ModelInfo[]> {
           requireReady(isHostReady);
           const result = await transport.request("models/list", {});
@@ -668,6 +691,15 @@ function requireReady(isHostReady: () => boolean): void {
 
 function nativeAvailability(available: boolean): "available" | "deferred" {
   return available ? "available" : "deferred";
+}
+
+function requireNativeCapability(
+  hasNativeMethod: (method: string) => boolean,
+  method: string,
+): void {
+  if (!hasNativeMethod(method)) {
+    throw new Error("capability_unavailable");
+  }
 }
 
 function cryptoRandomId(prefix: string): string {
