@@ -94,6 +94,17 @@ describe("tryRunSlashCommand", () => {
       tail: "Nightly",
     });
   });
+
+  it("shows version compatibility", () => {
+    expect(tryRunSlashCommand("/version")).toMatchObject({
+      kind: "handled",
+      action: "version",
+    });
+    expect(tryRunSlashCommand("/compat")).toMatchObject({
+      kind: "handled",
+      action: "version",
+    });
+  });
 });
 
 describe("formatSlashHelpDigest", () => {
