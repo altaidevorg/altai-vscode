@@ -134,6 +134,25 @@ describe("tryRunSlashCommand", () => {
       action: "disconnect",
     });
   });
+
+  it("attaches working tree and terminal context", () => {
+    expect(tryRunSlashCommand("/attach-diff")).toMatchObject({
+      kind: "handled",
+      action: "attach-diff",
+    });
+    expect(tryRunSlashCommand("/wt")).toMatchObject({
+      kind: "handled",
+      action: "attach-diff",
+    });
+    expect(tryRunSlashCommand("/attach-terminal")).toMatchObject({
+      kind: "handled",
+      action: "attach-terminal",
+    });
+    expect(tryRunSlashCommand("/terminal")).toMatchObject({
+      kind: "handled",
+      action: "attach-terminal",
+    });
+  });
 });
 
 describe("formatSlashHelpDigest", () => {

@@ -28,8 +28,8 @@ import {
   type ComposerContextItem,
 } from "./composerContext.js";
 import {
-  formatGitDiffSummary,
-  formatTerminalAttachText,
+  buildDiffContextItem,
+  buildTerminalContextItem,
 } from "./composerAttachChrome.js";
 import { type Snippet } from "./composerSnippets.js";
 
@@ -134,27 +134,12 @@ export function ChatComposerContext({
     setError(null);
     try {
       const diff = await ports.workspace.getGitDiff();
-      const patch =
-        diff?.patch?.trim() ||
-        formatGitDiffSummary({
-          ...(diff?.branch ? { branch: diff.branch } : {}),
-          files: diff?.files ?? [],
-        }) ||
-        "";
-      if (!patch) {
+      const item = buildDiffContextItem(diff);
+      if (!item) {
         setError("No git diff available");
         return;
       }
-      const name = diff?.branch ? `diff · ${diff.branch}` : "Working tree diff";
-      onChange(
-        addContextItem(items, {
-          id: newContextItemId("diff"),
-          kind: "diff",
-          name,
-          text: patch,
-          lines: countLines(patch),
-        }),
-      );
+      onChange(addContextItem(items, item));
       setMenuOpen(false);
     } catch (err) {
       pushError(err);
@@ -171,24 +156,12 @@ export function ChatComposerContext({
     setError(null);
     try {
       const terminal = await ports.workspace.getTerminalContext();
-      const text = formatTerminalAttachText({
-        selectedText: terminal?.selectedText,
-        lastCommand: terminal?.lastCommand,
-        cwd: terminal?.cwd,
-      });
-      if (!text) {
+      const item = buildTerminalContextItem(terminal);
+      if (!item) {
         setError("No terminal context");
         return;
       }
-      onChange(
-        addContextItem(items, {
-          id: newContextItemId("terminal"),
-          kind: "terminal",
-          name: terminal?.cwd ? basenamePath(terminal.cwd) : "Terminal",
-          text,
-          lines: countLines(text),
-        }),
-      );
+      onChange(addContextItem(items, item));
       setMenuOpen(false);
     } catch (err) {
       pushError(err);

@@ -172,6 +172,8 @@ sibling `file:` packages until public npm publish.
   Cmd/Ctrl+Alt+, keybinding.
 - Command palette **Ask About Terminal** (Cmd/Ctrl+Alt+T while terminal
   focused) attaches terminal context via the selection deep-link.
+- Composer slash `/attach-diff` (`/wt`) and `/attach-terminal` (`/terminal`)
+  add the same context chips as the attach menu.
 
 ### Security
 

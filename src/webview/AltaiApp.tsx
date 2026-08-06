@@ -141,6 +141,10 @@ import {
   toContextChips,
   type ComposerContextItem,
 } from "./composerContext.js";
+import {
+  buildDiffContextItem,
+  buildTerminalContextItem,
+} from "./composerAttachChrome.js";
 import { pathToFileUri } from "./chatHref.js";
 import {
   resolveComposerSubmitMode,
@@ -784,6 +788,8 @@ function AgentUiShell({
   const canSetPermission = useCapability("interactive.permissionModes");
   const canWorkspaceInfo = useCapability("workspace.info");
   const canReadWorkspaceFile = useCapability("workspace.readFile");
+  const canGitDiff = useCapability("workspace.gitDiff");
+  const canTerminal = useCapability("workspace.terminalContext");
   const canModelConfigRow = canMountModelPicker({
     list: canListModels,
     select: canSelectModel,
@@ -1381,6 +1387,70 @@ function AgentUiShell({
           command: "altai.clearProviderCredential",
         });
         break;
+      case "attach-diff": {
+        if (!canGitDiff) {
+          setMessages((prev) =>
+            appendMetaMessage(
+              prev,
+              "Working-tree attach is unavailable on this host.",
+            ),
+          );
+          return;
+        }
+        try {
+          const diff = await ports.workspace.getGitDiff();
+          const item = buildDiffContextItem(diff);
+          if (!item) {
+            setMessages((prev) =>
+              appendMetaMessage(prev, "No git working-tree changes to attach."),
+            );
+            return;
+          }
+          setContextItems((prev) => addContextItem(prev, item));
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Attached working-tree context"),
+          );
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "attach_diff_failed";
+          setMessages((prev) =>
+            appendMetaMessage(prev, `Could not attach working tree: ${message}`),
+          );
+        }
+        return;
+      }
+      case "attach-terminal": {
+        if (!canTerminal) {
+          setMessages((prev) =>
+            appendMetaMessage(
+              prev,
+              "Terminal attach is unavailable on this host.",
+            ),
+          );
+          return;
+        }
+        try {
+          const terminal = await ports.workspace.getTerminalContext();
+          const item = buildTerminalContextItem(terminal);
+          if (!item) {
+            setMessages((prev) =>
+              appendMetaMessage(prev, "No terminal context to attach."),
+            );
+            return;
+          }
+          setContextItems((prev) => addContextItem(prev, item));
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Attached terminal context"),
+          );
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "attach_terminal_failed";
+          setMessages((prev) =>
+            appendMetaMessage(prev, `Could not attach terminal: ${message}`),
+          );
+        }
+        return;
+      }
       default:
         break;
     }
