@@ -27,6 +27,10 @@ import {
   toComposerAttachFiles,
   type ComposerContextItem,
 } from "./composerContext.js";
+import {
+  formatGitDiffSummary,
+  formatTerminalAttachText,
+} from "./composerAttachChrome.js";
 import { type Snippet } from "./composerSnippets.js";
 
 export type ChatComposerContextProps = {
@@ -130,7 +134,13 @@ export function ChatComposerContext({
     setError(null);
     try {
       const diff = await ports.workspace.getGitDiff();
-      const patch = diff?.patch?.trim() ?? "";
+      const patch =
+        diff?.patch?.trim() ||
+        formatGitDiffSummary({
+          ...(diff?.branch ? { branch: diff.branch } : {}),
+          files: diff?.files ?? [],
+        }) ||
+        "";
       if (!patch) {
         setError("No git diff available");
         return;
@@ -161,10 +171,11 @@ export function ChatComposerContext({
     setError(null);
     try {
       const terminal = await ports.workspace.getTerminalContext();
-      const text =
-        terminal?.selectedText?.trim() ||
-        terminal?.lastCommand?.trim() ||
-        "";
+      const text = formatTerminalAttachText({
+        selectedText: terminal?.selectedText,
+        lastCommand: terminal?.lastCommand,
+        cwd: terminal?.cwd,
+      });
       if (!text) {
         setError("No terminal context");
         return;
