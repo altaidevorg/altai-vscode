@@ -479,6 +479,21 @@ body {
   color: var(--foreground);
 }
 
+.altai-plan-todo-chrome {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.altai-todo-summary-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.25rem 0.65rem 0.35rem;
+  background: color-mix(in srgb, var(--background) 88%, var(--card));
+}
+
 .altai-run-status-chrome {
   display: flex;
   flex-direction: column;
