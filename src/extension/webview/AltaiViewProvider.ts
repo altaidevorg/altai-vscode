@@ -291,6 +291,62 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     this.pendingFileAttach = payload;
   }
 
+  /**
+   * Attach a presentation-only working-tree summary (path/status list) as
+   * composer context using the selection deep-link path.
+   */
+  public async openChatWithWorkingTree(): Promise<void> {
+    let diff: {
+      branch?: string;
+      patch?: string;
+      files?: readonly { path: string; status: string }[];
+    } | null;
+    try {
+      diff = (await this.workspaceAdapter.request("getGitDiff")) as {
+        branch?: string;
+        patch?: string;
+        files?: readonly { path: string; status: string }[];
+      } | null;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "git_diff_unavailable";
+      await vscode.window.showErrorMessage(
+        `ALTAI could not read working-tree changes: ${message}`,
+      );
+      return;
+    }
+    const text = diff?.patch?.trim() ?? "";
+    if (!text) {
+      await vscode.window.showInformationMessage(
+        "No git working-tree changes in this workspace, or the Git extension is unavailable.",
+      );
+      return;
+    }
+    const root =
+      vscode.workspace.workspaceFolders?.[0]?.uri.toString() ??
+      "file:///workspace";
+    const pathLabel = diff?.branch
+      ? `working-tree (${diff.branch})`
+      : "working-tree";
+    const payload = buildOpenChatWithSelectionPayload({
+      uri: root,
+      path: pathLabel,
+      text,
+    });
+    if (!payload) {
+      await vscode.window.showInformationMessage(
+        "No git working-tree changes in this workspace.",
+      );
+      return;
+    }
+    await vscode.commands.executeCommand("altai.sidePanel.focus");
+    if (this.bridge && !this.bridge.isDisposed) {
+      this.bridge.postEvent(OPEN_CHAT_WITH_SELECTION_EVENT, payload);
+      return;
+    }
+    this.pendingSelectionAttach = payload;
+  }
+
   private async proxyHostRequest(params: unknown): Promise<unknown> {
     const parsed = parseHostRequestParams(params);
     if (!parsed) {
