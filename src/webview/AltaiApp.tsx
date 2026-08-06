@@ -69,6 +69,7 @@ import {
   withStableUserTurnIds,
 } from "./chatMessageEdit.js";
 import { ChatMessageList } from "./ChatMessageList.js";
+import { formatTranscriptForCopy } from "./transcriptCopyChrome.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
@@ -683,6 +684,7 @@ function AgentUiShell({
   const [busy, setBusy] = useState(false);
   const [editingBusy, setEditingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedTranscript, setCopiedTranscript] = useState(false);
   const [runBlockedMessage, setRunBlockedMessage] = useState<string | null>(
     null,
   );
@@ -1523,22 +1525,59 @@ function AgentUiShell({
                 />
               </>
             ) : (
-              <ChatMessageList
-                messages={messages}
-                canEditUserMessages={allowUserEdit}
-                onEditUserMessage={(messageId, next) => {
-                  void onEditUserMessage(messageId, next);
-                }}
-                canRetry={canRetry && Boolean(activeChatId)}
-                onRetry={() => {
-                  void onRetry();
-                }}
-                editingBusy={editingBusy || busy}
-                onOpenFileError={(message) => {
-                  setError(message);
-                }}
-                requestWorkspace={requestWorkspace}
-              />
+              <>
+                <div
+                  className="altai-chat-export"
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    padding: "0.25rem 0.75rem 0",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="altai-composer-stop"
+                    title="Copy the full transcript as plain text"
+                    onClick={() => {
+                      const text = formatTranscriptForCopy(messages);
+                      if (!text) {
+                        return;
+                      }
+                      void (async () => {
+                        try {
+                          await navigator.clipboard.writeText(text);
+                          setCopiedTranscript(true);
+                          window.setTimeout(() => {
+                            setCopiedTranscript(false);
+                          }, 1500);
+                        } catch (err: unknown) {
+                          setError(
+                            err instanceof Error ? err.message : String(err),
+                          );
+                        }
+                      })();
+                    }}
+                  >
+                    {copiedTranscript ? "Copied chat" : "Copy chat"}
+                  </button>
+                </div>
+                <ChatMessageList
+                  messages={messages}
+                  canEditUserMessages={allowUserEdit}
+                  onEditUserMessage={(messageId, next) => {
+                    void onEditUserMessage(messageId, next);
+                  }}
+                  canRetry={canRetry && Boolean(activeChatId)}
+                  onRetry={() => {
+                    void onRetry();
+                  }}
+                  editingBusy={editingBusy || busy}
+                  onOpenFileError={(message) => {
+                    setError(message);
+                  }}
+                  requestWorkspace={requestWorkspace}
+                />
+              </>
             )}
             {error ? (
               <p className="altai-chat-error" role="alert">
