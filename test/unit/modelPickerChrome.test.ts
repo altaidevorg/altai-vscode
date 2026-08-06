@@ -3,6 +3,7 @@ import {
   AUTO_MODEL_ID,
   canMountModelPicker,
   filterModels,
+  modelIdForStartRun,
   modelTriggerLabel,
   resolveSelectedModelId,
 } from "../../src/webview/modelPickerChrome.js";
@@ -47,5 +48,14 @@ describe("modelTriggerLabel", () => {
       ]),
     ).toBe("Alpha");
     expect(modelTriggerLabel(AUTO_MODEL_ID, [])).toBe("Auto");
+  });
+});
+
+describe("modelIdForStartRun", () => {
+  it("omits auto and empty", () => {
+    expect(modelIdForStartRun(null)).toBeUndefined();
+    expect(modelIdForStartRun(AUTO_MODEL_ID)).toBeUndefined();
+    expect(modelIdForStartRun("  ")).toBeUndefined();
+    expect(modelIdForStartRun("openai/gpt")).toBe("openai/gpt");
   });
 });

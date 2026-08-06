@@ -103,6 +103,10 @@ sibling `file:` packages until public npm publish.
   `#testplan`, `#explain`, `#reproduce`, `#commitmsg`, plus optional workspace
   `.altai/snippets.json`). Tokens expand to `<snippet>` blocks on send;
   removable chips track picks.
+- Session history soft-archives when `sessions.archive` is available (falls
+  back to hard-delete only when archive is not advertised).
+- Chat `startRun` / edit-resend pass the selected model id (omit `auto` for
+  host-side routing).
 
 ### Security
 

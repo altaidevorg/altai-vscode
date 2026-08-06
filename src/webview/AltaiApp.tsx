@@ -70,7 +70,10 @@ import { ChatMessageList } from "./ChatMessageList.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
-import { canMountModelPicker } from "./modelPickerChrome.js";
+import {
+  canMountModelPicker,
+  modelIdForStartRun,
+} from "./modelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
 import { ChatShellTopbar } from "./ChatShellTopbar.js";
@@ -678,6 +681,7 @@ function AgentUiShell({
   const [permissionMode, setPermissionMode] = useState<PermissionMode | null>(
     null,
   );
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
   const [contextItems, setContextItems] = useState<ComposerContextItem[]>([]);
   const [snippetCatalog, setSnippetCatalog] = useState<Snippet[]>(() => [
     ...DEFAULT_SNIPPETS,
@@ -1191,10 +1195,12 @@ function AgentUiShell({
         contextItems,
       );
       const chips = toContextChips(contextItems);
+      const runModelId = modelIdForStartRun(selectedModelId);
       const ref = await ports.runtime.startRun({
         prompt: composed.prompt,
         ...(activeChatId ? { chatId: activeChatId } : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(runModelId ? { modelId: runModelId } : {}),
         ...(mode === "queue" ? { queue: true } : {}),
         ...(composed.attachments.length > 0
           ? { attachments: composed.attachments }
@@ -1284,10 +1290,12 @@ function AgentUiShell({
       setMessages((prev) =>
         withStableUserTurnIds(truncateDisplayAfterUserTurn(prev, turn)),
       );
+      const editModelId = modelIdForStartRun(selectedModelId);
       const ref = await ports.runtime.startRun({
         prompt: text,
         chatId: activeChatId,
         ...(permissionMode ? { permissionMode } : {}),
+        ...(editModelId ? { modelId: editModelId } : {}),
       });
       setActiveChatId(ref.chatId);
       setActiveRunId(ref.runId);
@@ -1682,7 +1690,13 @@ function AgentUiShell({
                   onQueue={() => void onSubmit(false)}
                 />
                 {canModelConfigRow ? (
-                  <ComposerConfigRow modelSlot={<ChatModelPickerChrome />} />
+                  <ComposerConfigRow
+                    modelSlot={
+                      <ChatModelPickerChrome
+                        onModelChange={setSelectedModelId}
+                      />
+                    }
+                  />
                 ) : null}
                 <ComposerPrimaryRow
                   tools={
