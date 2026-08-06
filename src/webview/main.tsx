@@ -1,7 +1,8 @@
 import { createRoot } from "react-dom/client";
 import { AltaiApp } from "./AltaiApp.js";
 import { WebviewClient } from "./WebviewClient.js";
-import "./main.css";
+// Styles are built by Tailwind CLI into dist/webview/main.css and loaded
+// from the Webview HTML shell (not bundled into the JS entry).
 
 declare function acquireVsCodeApi(): {
   postMessage(message: unknown): void;

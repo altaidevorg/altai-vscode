@@ -29,6 +29,9 @@ sibling `file:` packages until public npm publish.
   summary docs for the internal channel.
 - Native host pin `0.1.0-cli-stdio`, stage/build-host scripts, multi-OS
   `release.yml` real-host packaging, integration smoke + a11y shell checks.
+- Chat mounts shared `@altai/agent-ui` chrome: `EmptyState`, `ComposerShell` /
+  text area / primary row, and `ChatHistoryPanel`, with Tailwind token mapping
+  onto VS Code theme variables so agent-ui classes render in the webview.
 
 ### Security
 
