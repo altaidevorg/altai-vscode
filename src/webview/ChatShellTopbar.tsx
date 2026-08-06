@@ -13,7 +13,7 @@ import {
 } from "./chatWorkspaceTopbar.js";
 
 export type ChatShellTopbarProps = {
-  surface: "chat" | "operations";
+  surface: "chat" | "operations" | "settings";
   operationsView: string;
   attentionCount: number;
   inspectorAvailable?: boolean;

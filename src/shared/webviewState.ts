@@ -10,10 +10,9 @@ export type PersistedHostStatus = {
   diagnosticCode?: string;
 };
 
-/** Top-level Chat vs Operations surface. */
-export type PersistedAltaiSurface = "chat" | "operations";
+/** Top-level Chat / Operations / Settings surface. */
+export type PersistedAltaiSurface = "chat" | "operations" | "settings";
 
-/** Capability-gated Operations secondary route (agents/governance stay deferred). */
 export type PersistedOperationsView =
   | "overview"
   | "work"
@@ -31,7 +30,11 @@ export type PersistedWebviewState = {
   activeChatId?: string;
 };
 
-const SURFACES = new Set<PersistedAltaiSurface>(["chat", "operations"]);
+const SURFACES = new Set<PersistedAltaiSurface>([
+  "chat",
+  "operations",
+  "settings",
+]);
 const OPS_VIEWS = new Set<PersistedOperationsView>([
   "overview",
   "work",

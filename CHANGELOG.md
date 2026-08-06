@@ -114,6 +114,8 @@ sibling `file:` packages until public npm publish.
 - MCP status: Enable/Disable when `mcp.configure` is available (alongside Restart).
 - Operations new-task form: optional skill chips when `skills.list` is available
   (selected skills append `<skills>` blocks to the instruction).
+- Settings surface tab collates provider / model / permission / MCP / skills
+  chrome (capability-gated, no new secrets path).
 
 ### Security
 
