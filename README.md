@@ -24,8 +24,9 @@ Operations (V7): Chat/Operations surface tabs mount shared
 `OperationsNavigationShell`. Overview aggregates Work/Inbox ports; Work /
 Runs / Inbox domain lists enable only when the host advertises the matching
 capabilities. Command palette deep-links (`ALTAI: Open Operations …`) focus
-the panel and select the route. Canonical CP-17 projections and full Tailwind
-visual parity are follow-on work.
+the panel and select the route. Overview attention/progress rows open the
+matching Work/Runs/Inbox domain when that capability is available. Canonical
+CP-17 projections and full Tailwind visual parity are follow-on work.
 
 Local installs expect a sibling checkout of `altai-app` at
 `../altai-app-main` so `file:` package links resolve (packages are not on npm
