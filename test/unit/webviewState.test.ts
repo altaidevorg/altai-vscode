@@ -79,6 +79,20 @@ describe("parsePersistedWebviewState", () => {
       surface: "settings",
     });
   });
+
+  it("accepts capped composerDraft and drops empties/control chars", () => {
+    expect(
+      parsePersistedWebviewState({ composerDraft: "  draft text  " }),
+    ).toEqual({ composerDraft: "  draft text  " });
+    expect(parsePersistedWebviewState({ composerDraft: "" })).toEqual({});
+    expect(
+      parsePersistedWebviewState({ composerDraft: "bad\u0000text" }),
+    ).toEqual({});
+    const long = "x".repeat(9_000);
+    expect(
+      parsePersistedWebviewState({ composerDraft: long }).composerDraft,
+    ).toHaveLength(8_000);
+  });
 });
 
 describe("mergePersistedWebviewState", () => {
@@ -105,5 +119,14 @@ describe("mergePersistedWebviewState", () => {
         extensionVersion: "0.1.0",
       },
     });
+  });
+
+  it("clears composerDraft when patch sets empty", () => {
+    expect(
+      mergePersistedWebviewState(
+        { composerDraft: "hello", surface: "chat" },
+        { composerDraft: "" },
+      ),
+    ).toEqual({ surface: "chat" });
   });
 });

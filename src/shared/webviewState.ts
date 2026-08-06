@@ -28,7 +28,38 @@ export type PersistedWebviewState = {
   workHubView?: PersistedWorkHubView;
   /** Last Chat conversation focused from Operations or a run. */
   activeChatId?: string;
+  /**
+   * Unsent Chat composer text. Presentation-only; never secrets.
+   * Capped on parse/write so getState stays small.
+   */
+  composerDraft?: string;
 };
+
+/** Max characters retained for the reloadable composer draft. */
+export const MAX_COMPOSER_DRAFT_CHARS = 8_000;
+
+/**
+ * Normalize unsent composer text for Webview persistence (trim right only so
+ * intentional leading whitespace survives; empty becomes undefined).
+ */
+export function normalizeComposerDraft(
+  value: unknown,
+  maxChars: number = MAX_COMPOSER_DRAFT_CHARS,
+): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  // Keep trailing newlines the user may still be editing; drop pure empty.
+  const capped = value.length > maxChars ? value.slice(0, maxChars) : value;
+  if (capped.length === 0) {
+    return undefined;
+  }
+  // Reject control-heavy garbage (except common whitespace).
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(capped)) {
+    return undefined;
+  }
+  return capped;
+}
 
 const SURFACES = new Set<PersistedAltaiSurface>([
   "chat",
@@ -85,6 +116,10 @@ export function parsePersistedWebviewState(
   ) {
     next.activeChatId = record.activeChatId;
   }
+  const draft = normalizeComposerDraft(record.composerDraft);
+  if (draft !== undefined) {
+    next.composerDraft = draft;
+  }
 
   return next;
 }
@@ -94,7 +129,16 @@ export function mergePersistedWebviewState(
   current: PersistedWebviewState,
   patch: PersistedWebviewState,
 ): PersistedWebviewState {
-  return { ...current, ...patch };
+  const next: PersistedWebviewState = { ...current, ...patch };
+  if (Object.prototype.hasOwnProperty.call(patch, "composerDraft")) {
+    const draft = normalizeComposerDraft(patch.composerDraft);
+    if (draft === undefined) {
+      delete next.composerDraft;
+    } else {
+      next.composerDraft = draft;
+    }
+  }
+  return next;
 }
 
 function isPersistedHostStatus(value: unknown): value is PersistedHostStatus {
