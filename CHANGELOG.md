@@ -148,6 +148,7 @@ sibling `file:` packages until public npm publish.
   instead of leaving an empty string.
 - Chat error banner is dismissible without clearing the draft or transcript.
 - Slash `/version` (`/compat`) shows ALTAI version / protocol pin summary.
+- Recovery action rows also include a Version button for the same command.
 
 ### Security
 
