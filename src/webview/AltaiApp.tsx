@@ -59,6 +59,12 @@ import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
+import { ChatComposerContext } from "./ChatComposerContext.js";
+import {
+  composeRunPrompt,
+  toContextChips,
+  type ComposerContextItem,
+} from "./composerContext.js";
 import {
   resolveComposerSubmitMode,
 } from "./composerFollowupChrome.js";
@@ -434,6 +440,7 @@ function AgentUiShell({
   const [permissionMode, setPermissionMode] = useState<PermissionMode | null>(
     null,
   );
+  const [contextItems, setContextItems] = useState<ComposerContextItem[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<
     PendingToolApproval[]
   >([]);
@@ -590,7 +597,7 @@ function AgentUiShell({
 
   const onSubmit = async (preferSteer = false): Promise<void> => {
     const text = prompt.trim();
-    if (!text || busy) {
+    if ((!text && contextItems.length === 0) || busy) {
       return;
     }
     const mode = resolveComposerSubmitMode({
@@ -598,7 +605,7 @@ function AgentUiShell({
       canStartRun,
       canSteer,
       canQueue,
-      hasPrompt: true,
+      hasPrompt: Boolean(text || contextItems.length > 0),
       preferSteer,
     });
 
@@ -609,6 +616,11 @@ function AgentUiShell({
       return;
     }
     if (mode === "queue" && !canQueue) {
+      return;
+    }
+
+    // Steer has no attachment protocol in this slice — require a text prompt.
+    if (mode === "steer" && !text) {
       return;
     }
 
@@ -627,22 +639,35 @@ function AgentUiShell({
         return;
       }
 
+      const composed = composeRunPrompt(
+        text || "Please review the attached context.",
+        contextItems,
+      );
+      const chips = toContextChips(contextItems);
       const ref = await ports.runtime.startRun({
-        prompt: text,
+        prompt: composed.prompt,
         ...(activeChatId ? { chatId: activeChatId } : {}),
         ...(permissionMode ? { permissionMode } : {}),
         ...(mode === "queue" ? { queue: true } : {}),
+        ...(composed.attachments.length > 0
+          ? { attachments: composed.attachments }
+          : {}),
       });
       setActiveChatId(ref.chatId);
       if (mode !== "queue") {
         setActiveRunId(ref.runId);
       }
       rememberTab(ref.chatId);
-      setMessages((prev) => appendUserMessage(prev, text));
+      setMessages((prev) =>
+        appendUserMessage(prev, text || "Please review the attached context.", {
+          chips,
+        }),
+      );
       if (mode === "queue") {
         setMessages((prev) => appendMetaMessage(prev, "Queued next run"));
       }
       setPrompt("");
+      setContextItems([]);
       setSessionListKey((key) => key + 1);
       if (ref.chatId !== activeChatId) {
         onFocusChat({ chatId: ref.chatId });
@@ -852,6 +877,11 @@ function AgentUiShell({
             >
               <ComposerShell busy={busy}>
                 <div className="px-2.5 pt-2">
+                  <ChatComposerContext
+                    items={contextItems}
+                    onChange={setContextItems}
+                    disabled={busy}
+                  />
                   <ComposerTextArea
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
@@ -861,7 +891,7 @@ function AgentUiShell({
                           ? "Follow up — Enter queues · ⌘/Ctrl+Enter steers"
                           : "Describe what should change…"
                         : canStartRun
-                          ? "Describe what should change…"
+                          ? "Describe what should change… Attach files or selection"
                           : "Start run capability unavailable"
                     }
                     disabled={
@@ -884,7 +914,7 @@ function AgentUiShell({
                 </div>
                 <ChatComposerFollowup
                   hasActiveRun={Boolean(activeRunId && activeChatId)}
-                  hasPrompt={Boolean(prompt.trim())}
+                  hasPrompt={Boolean(prompt.trim() || contextItems.length > 0)}
                   onSteer={() => void onSubmit(true)}
                   onQueue={() => void onSubmit(false)}
                 />
@@ -914,7 +944,7 @@ function AgentUiShell({
                         className="altai-composer-submit"
                         disabled={
                           busy ||
-                          !prompt.trim() ||
+                          (!prompt.trim() && contextItems.length === 0) ||
                           (!canStartRun &&
                             !(activeRunId && (canSteer || canQueue)))
                         }

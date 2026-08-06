@@ -3,7 +3,7 @@
  * User bubbles support inline edit + resend when the host allows truncate.
  */
 
-import { HoverActionButton } from "@altai/agent-ui";
+import { ContextChips, HoverActionButton } from "@altai/agent-ui";
 import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 
@@ -145,14 +145,19 @@ export function ChatMessageList({
                 </div>
               </div>
             ) : (
-              <p className="altai-chat-bubble-body">
-                {message.content}
-                {message.streaming ? (
-                  <span className="altai-chat-streaming" aria-hidden="true">
-                    ▍
-                  </span>
+              <>
+                {message.chips && message.chips.length > 0 ? (
+                  <ContextChips chips={message.chips} />
                 ) : null}
-              </p>
+                <p className="altai-chat-bubble-body">
+                  {message.content}
+                  {message.streaming ? (
+                    <span className="altai-chat-streaming" aria-hidden="true">
+                      ▍
+                    </span>
+                  ) : null}
+                </p>
+              </>
             )}
             {(showEdit || showRetry) && !isEditing ? (
               <footer className="altai-chat-bubble-actions">
