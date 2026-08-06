@@ -1,5 +1,6 @@
 import {
   ChatTabStrip,
+  ComposerConfigRow,
   ComposerPrimaryRow,
   ComposerShell,
   ComposerTextArea,
@@ -56,7 +57,9 @@ import { ChatMessageList } from "./ChatMessageList.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
+import { canMountModelPicker } from "./modelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
+import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
@@ -445,6 +448,14 @@ function AgentUiShell({
   const canTruncate = useCapability("sessions.truncate");
   const canListSessions = useCapability("sessions.list");
   const canMessages = useCapability("sessions.messages");
+  const canListModels = useCapability("models.list");
+  const canSelectModel = useCapability("models.select");
+  const canGetSettings = useCapability("settings.get");
+  const canModelConfigRow = canMountModelPicker({
+    list: canListModels,
+    select: canSelectModel,
+    settingsGet: canGetSettings,
+  });
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [editingBusy, setEditingBusy] = useState(false);
@@ -963,6 +974,7 @@ function AgentUiShell({
             />
           </div>
           <div className="altai-chat-composer-dock">
+            <ChatProviderConnectBanner />
             <form
               className="altai-chat-composer-form"
               onSubmit={(event) => {
@@ -1051,6 +1063,9 @@ function AgentUiShell({
                   onSteer={() => void onSubmit(true)}
                   onQueue={() => void onSubmit(false)}
                 />
+                {canModelConfigRow ? (
+                  <ComposerConfigRow modelSlot={<ChatModelPickerChrome />} />
+                ) : null}
                 <ComposerPrimaryRow
                   tools={
                     <>
@@ -1083,7 +1098,6 @@ function AgentUiShell({
                           setError(message);
                         }}
                       />
-                      <ChatModelPickerChrome />
                     </>
                   }
                   permission={
