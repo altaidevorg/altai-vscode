@@ -5,7 +5,7 @@ Pinned versions for this repository. Update this file whenever
 
 | Extension | `@altai/agent-ui` | Protocol major | `altai-agent-host` | Notes |
 |---|---|---:|---|---|
-| 0.1.0 | `0.1.0` (sibling `file:` until npm publish) | 1 | `stdio-via-altai-cli-serve` | TASK-008 renders shared UI shell; chat slice is TASK-009 |
+| 0.1.0 | `0.1.0` (sibling `file:` until npm publish) | 1 | `stdio-via-altai-cli-serve` | Internal channel; capability-gated Chat + Operations; packaged host pin pending release binaries |
 
 ## Policy
 
@@ -15,3 +15,6 @@ Pinned versions for this repository. Update this file whenever
    committed to release manifests. For local debug, point
    `ALTAI_AGENT_HOST_PATH` at an `altai-cli` (or fixture) binary that
    implements `serve --stdio`.
+4. Before cutting alpha+, follow [RELEASE.md](RELEASE.md) and keep
+   `CHANGELOG.md` in sync with `package.json` version
+   (`npm run verify:release-docs`).
