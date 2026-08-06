@@ -941,31 +941,56 @@ function mapRunEvent(value: unknown): AgentEvent | null {
   if (!isRecord(value)) {
     return null;
   }
+  // Stdio envelopes may nest the crate event: { chatId, runId, seq, event: { type, ... } }
+  const nested = isRecord(value.event) ? value.event : null;
   const rawType =
     typeof value.type === "string"
       ? value.type
-      : typeof value.event === "string"
-        ? value.event
-        : "lifecycle";
-  // Keep Desktop/crate aliases (approval_request) aligned with host-contract.
+      : nested && typeof nested.type === "string"
+        ? nested.type
+        : typeof value.event === "string"
+          ? value.event
+          : "lifecycle";
+  // Map crate/Desktop aliases onto host-contract AgentEventType values.
   const type: AgentEventType =
     rawType === "approval_request"
       ? "approval"
-      : EVENT_TYPES.has(rawType as AgentEventType)
-        ? (rawType as AgentEventType)
-        : "lifecycle";
+      : rawType === "agent_message"
+        ? "message"
+        : rawType === "thinking"
+          ? "reasoning"
+          : rawType === "tool_call_start" ||
+              rawType === "tool_call_end" ||
+              rawType === "edit_diff"
+            ? "tool"
+            : rawType === "run_started" ||
+                rawType === "run_terminated" ||
+                rawType === "run_warning" ||
+                rawType === "run_warning_cleared"
+              ? "lifecycle"
+              : EVENT_TYPES.has(rawType as AgentEventType)
+                ? (rawType as AgentEventType)
+                : "lifecycle";
   const chatId =
     typeof value.chat_id === "string"
       ? value.chat_id
       : typeof value.chatId === "string"
         ? value.chatId
-        : "";
+        : nested && typeof nested.chat_id === "string"
+          ? nested.chat_id
+          : nested && typeof nested.chatId === "string"
+            ? nested.chatId
+            : "";
   const runId =
     typeof value.run_id === "string"
       ? value.run_id
       : typeof value.runId === "string"
         ? value.runId
-        : "";
+        : nested && typeof nested.run_id === "string"
+          ? nested.run_id
+          : nested && typeof nested.runId === "string"
+            ? nested.runId
+            : "";
   const seq =
     typeof value.seq === "number"
       ? value.seq
@@ -975,12 +1000,18 @@ function mapRunEvent(value: unknown): AgentEvent | null {
   if (!chatId || !runId) {
     return null;
   }
+  const payload =
+    value.payload !== undefined
+      ? value.payload
+      : nested !== null
+        ? nested
+        : value;
   return {
     type,
     chatId,
     runId,
     seq,
-    payload: value.payload !== undefined ? value.payload : value,
+    payload,
   };
 }
 

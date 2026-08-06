@@ -32,6 +32,8 @@ sibling `file:` packages until public npm publish.
 - Chat mounts shared `@altai/agent-ui` chrome: `EmptyState`, `ComposerShell` /
   text area / primary row, and `ChatHistoryPanel`, with Tailwind token mapping
   onto VS Code theme variables so agent-ui classes render in the webview.
+- Structured Chat message cards and shared `ChatTabStrip`, with run/event
+  mapping fixed for nested `agent_message` envelopes (stream coalescing).
 
 ### Security
 
