@@ -47,6 +47,7 @@ import {
 } from "../shared/webviewState.js";
 import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
+import { formatDiagnosticClipboardText } from "./waitShellChrome.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { ChatSettingsHub } from "./ChatSettingsHub.js";
@@ -1486,6 +1487,11 @@ function AgentUiShell({
     ]
       .filter(Boolean)
       .join("\n\n");
+    const clipboardText = formatDiagnosticClipboardText({
+      diagnosticCode: hostStatus.diagnosticCode,
+      message: initError ?? hostStatus.message,
+      recoveryHint: recovery,
+    });
     return (
       <main className="altai-shell-body">
         <SurfaceEmptyState
@@ -1509,6 +1515,18 @@ function AgentUiShell({
           className="altai-ops-create-bar"
           style={{ padding: "0 1rem 0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
         >
+          {clipboardText ? (
+            <SurfaceSecondaryAction
+              type="button"
+              onClick={() => {
+                void navigator.clipboard?.writeText(clipboardText).catch(() => {
+                  /* clipboard may be denied in some hosts */
+                });
+              }}
+            >
+              Copy diagnostic
+            </SurfaceSecondaryAction>
+          ) : null}
           {listRecoveryActions({
             diagnosticCode: hostStatus.diagnosticCode,
           }).map((action) => (

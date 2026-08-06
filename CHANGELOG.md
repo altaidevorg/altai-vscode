@@ -143,6 +143,7 @@ sibling `file:` packages until public npm publish.
   workspace trust (allowlisted VS Code command).
 - Slash `/new-task` and `/new-automation` open Operations compose forms
   (optional title from the command tail).
+- Wait shell Copy diagnostic button builds a plain-text host recovery report.
 
 ### Security
 
