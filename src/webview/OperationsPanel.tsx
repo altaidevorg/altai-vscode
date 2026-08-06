@@ -67,6 +67,13 @@ export type OperationsPanelProps = {
   }) => void;
   /** Push attention count to the Extension Host status bar. */
   onAttentionCountChange?: (count: number) => void;
+  /**
+   * Open the Chat surface, optionally focusing a known owner conversation
+   * (task run / inbox notification).
+   */
+  onOpenChat?: (input: { chatId?: string; label?: string }) => void;
+  /** Currently focused chat id for TaskRunCard isOpenNow. */
+  focusedChatId?: string | null;
 };
 
 export function OperationsPanel({
@@ -75,6 +82,8 @@ export function OperationsPanel({
   initialWorkHubView = "runs",
   onPresentationChange,
   onAttentionCountChange,
+  onOpenChat,
+  focusedChatId = null,
 }: OperationsPanelProps) {
   const ports = useHostPorts();
   const { capabilities } = useHostPortsContext();
@@ -357,6 +366,8 @@ export function OperationsPanel({
     onCreateClose: closeCreate,
     onCreateSubmit: submitCreate,
     onReuse: (title: string) => openCreate(title),
+    onOpenChat,
+    focusedChatId,
   };
 
   useEffect(() => {
@@ -578,6 +589,7 @@ export function OperationsPanel({
               loading: false,
               error: state.status === "error" ? state.message : null,
               markingAllRead,
+              onOpenChat,
               onRefresh: () => {
                 void load();
               },

@@ -27,6 +27,8 @@ export type PersistedWebviewState = {
   surface?: PersistedAltaiSurface;
   operationsView?: PersistedOperationsView;
   workHubView?: PersistedWorkHubView;
+  /** Last Chat conversation focused from Operations or a run. */
+  activeChatId?: string;
 };
 
 const SURFACES = new Set<PersistedAltaiSurface>(["chat", "operations"]);
@@ -72,6 +74,13 @@ export function parsePersistedWebviewState(
     WORK_HUB.has(record.workHubView as PersistedWorkHubView)
   ) {
     next.workHubView = record.workHubView as PersistedWorkHubView;
+  }
+  if (
+    typeof record.activeChatId === "string" &&
+    record.activeChatId.length > 0 &&
+    record.activeChatId.length <= 512
+  ) {
+    next.activeChatId = record.activeChatId;
   }
 
   return next;

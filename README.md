@@ -27,9 +27,12 @@ capabilities. Command palette deep-links (`ALTAI: Open Operations …`) focus
 the panel and select the route. Overview attention/progress rows open the
 matching Work/Runs/Inbox domain when that capability is available. Metric
 tiles on Overview also navigate to the matching domain (host-wrapped
-`InspectorMetric` until shared metric `onOpen` lands). Presentation
-(Chat vs Operations, secondary route, Work hub strip) survives Webview reload
-via getState/setState, including Runs/Scheduled toggles on the Work hub. Active
+`InspectorMetric` until shared metric `onOpen` lands). Task runs and inbox
+items can open Chat and focus a known owner conversation when `chatId` is
+present. Presentation
+(Chat vs Operations, secondary route, Work hub strip, active chat id) survives
+Webview reload via getState/setState, including Runs/Scheduled toggles on the
+Work hub. Active
 overview runs expose a Cancel action; failed
 runs Retry and unread inbox Mark read. Attention count drives a status-bar
 badge that opens Operations; the badge also refreshes while Chat is open

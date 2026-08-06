@@ -27,6 +27,11 @@ import {
 } from "../shared/webviewState.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
+import {
+  buildOpenChatFocus,
+  chatFocusStatusLine,
+  type OpenChatFocus,
+} from "./openChatDeepLink.js";
 import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
@@ -138,6 +143,12 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const [operationsNav, setOperationsNav] = useState<
     OpenOperationsPayload | undefined
   >(undefined);
+  const [chatFocus, setChatFocus] = useState<OpenChatFocus | undefined>(
+    () =>
+      persisted.activeChatId
+        ? buildOpenChatFocus({ chatId: persisted.activeChatId }, 0)
+        : undefined,
+  );
 
   const selectSurface = useCallback(
     (next: PersistedAltaiSurface) => {
@@ -145,6 +156,18 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       patchPersistedState(client, { surface: next });
     },
     [client],
+  );
+
+  const openChatFromOperations = useCallback(
+    (input: { chatId?: string; label?: string }) => {
+      const focus = buildOpenChatFocus(input);
+      setChatFocus(focus);
+      selectSurface("chat");
+      if (focus.chatId) {
+        patchPersistedState(client, { activeChatId: focus.chatId });
+      }
+    },
+    [client, selectSurface],
   );
 
   const onOperationsPresentationChange = useCallback(
@@ -309,15 +332,25 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               initialWorkHubView={workHubView}
               onPresentationChange={onOperationsPresentationChange}
               onAttentionCountChange={reportAttentionCount}
+              onOpenChat={openChatFromOperations}
+              focusedChatId={chatFocus?.chatId ?? null}
             />
           ) : (
             <>
               <OperationsAttentionReporter onCount={reportAttentionCount} />
-              <AgentUiShell hostStatus={hostStatus} initError={initError} />
+              <AgentUiShell
+                hostStatus={hostStatus}
+                initError={initError}
+                chatFocus={chatFocus}
+              />
             </>
           )
         ) : (
-          <AgentUiShell hostStatus={hostStatus} initError={initError} />
+          <AgentUiShell
+            hostStatus={hostStatus}
+            initError={initError}
+            chatFocus={chatFocus}
+          />
         )}
       </div>
     </HostPortsProvider>
@@ -327,9 +360,11 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 function AgentUiShell({
   hostStatus,
   initError,
+  chatFocus,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
+  chatFocus?: OpenChatFocus;
 }) {
   const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
@@ -339,8 +374,29 @@ function AgentUiShell({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lines, setLines] = useState<string[]>([]);
-  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(
+    () => chatFocus?.chatId ?? null,
+  );
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const lastFocusKey = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!chatFocus || lastFocusKey.current === chatFocus.key) {
+      return;
+    }
+    lastFocusKey.current = chatFocus.key;
+    if (chatFocus.chatId) {
+      setActiveChatId(chatFocus.chatId);
+      setActiveRunId(null);
+    }
+    setLines((prev) => {
+      const status = chatFocusStatusLine(chatFocus);
+      if (prev[prev.length - 1] === status) {
+        return prev;
+      }
+      return [...prev.slice(-200), status];
+    });
+  }, [chatFocus]);
 
   useEffect(() => {
     return ports.events.subscribe((event) => {

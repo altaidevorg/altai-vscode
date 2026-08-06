@@ -50,6 +50,10 @@ type TaskRunActions = {
     prompt: string;
   }) => void | Promise<void>;
   onReuse?: (title: string) => void;
+  /** Switch to Chat, optionally focusing the task owner session. */
+  onOpenChat?: (input: { chatId?: string; label?: string }) => void;
+  /** Marks the card whose chat is currently focused in the Chat slice. */
+  focusedChatId?: string | null;
 };
 
 type AutomationActions = {
@@ -76,6 +80,7 @@ type InboxActions = {
   markingAllRead?: boolean;
   error?: string | null;
   loading?: boolean;
+  onOpenChat?: (input: { chatId?: string; label?: string }) => void;
 };
 
 export function OperationsWorkDomain({
@@ -215,8 +220,12 @@ export function OperationsInboxDomain({
         allNotifications={filtered}
         onMarkNotificationSeen={actions.onMarkSeen}
         onResolveNotification={actions.onResolve}
-        onOpenNotificationChat={() => {
-          /* Chat deep-link lands with a later V-slice. */
+        onOpenNotificationChat={(id) => {
+          const item = notifications.find((row) => row.id === id);
+          actions.onOpenChat?.({
+            ...(item?.chatId ? { chatId: item.chatId } : {}),
+            ...(item?.title ? { label: item.title } : {}),
+          });
         }}
       />
     </div>
@@ -276,8 +285,18 @@ function TaskRunsList({
               createdAtMs={taskRunCreatedAtMs(run)}
               active={active}
               busyRetry={busy}
+              isOpenNow={
+                Boolean(
+                  run.chatId &&
+                    actions.focusedChatId &&
+                    run.chatId === actions.focusedChatId,
+                )
+              }
               onOpen={() => {
-                /* Session focus is a later chat/host bridge. */
+                actions.onOpenChat?.({
+                  ...(run.chatId ? { chatId: run.chatId } : {}),
+                  label: run.title,
+                });
               }}
               onReuse={() => {
                 actions.onReuse?.(run.title);
