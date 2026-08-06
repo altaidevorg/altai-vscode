@@ -76,6 +76,8 @@ sibling `file:` packages until public npm publish.
   attention from run and transcript state.
 - Active / blocked runs mount `RunDetailsHeader` + `RunOverviewCard` with stop
   and local metrics (turns, tools, edits, approvals).
+- Composer shows shared `ChatProjectTarget` for the open workspace folder;
+  click reveals the root in Explorer when `workspace.info` is available.
 
 ### Security
 
