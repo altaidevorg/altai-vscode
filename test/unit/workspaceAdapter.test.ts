@@ -180,4 +180,17 @@ describe("WorkspaceAdapter", () => {
     });
     expect(api.window.showQuickPick).toHaveBeenCalled();
   });
+
+  it("runs allowlisted recovery commands without workspace trust", async () => {
+    const { adapter, api } = createAdapter(false);
+    await expect(
+      adapter.request("executeAltaiCommand", { command: "altai.openLogs" }),
+    ).resolves.toEqual({ ok: true });
+    expect(api.commands.executeCommand).toHaveBeenCalledWith("altai.openLogs");
+    await expect(
+      adapter.request("executeAltaiCommand", {
+        command: "workbench.action.quit",
+      }),
+    ).rejects.toMatchObject({ code: "command_not_allowed" });
+  });
 });

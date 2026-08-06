@@ -9,6 +9,7 @@ import {
   HostPortsProvider,
   SurfaceEmptyState,
   SurfaceHeader,
+  SurfaceSecondaryAction,
   useCapability,
   useHostPorts,
   type Capabilities,
@@ -45,6 +46,7 @@ import {
   type PersistedWebviewState,
 } from "../shared/webviewState.js";
 import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
+import { listRecoveryActions } from "./hostRecoveryActions.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { ChatSettingsHub } from "./ChatSettingsHub.js";
@@ -1424,6 +1426,26 @@ function AgentUiShell({
             Diagnostic · {hostStatus.diagnosticCode}
           </p>
         ) : null}
+        <div
+          className="altai-ops-create-bar"
+          style={{ padding: "0 1rem 0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+        >
+          {listRecoveryActions().map((action) => (
+            <SurfaceSecondaryAction
+              key={action.command}
+              type="button"
+              onClick={() => {
+                void requestWorkspace("executeAltaiCommand", {
+                  command: action.command,
+                }).catch(() => {
+                  /* allowlisted; failures surface in Extension Host */
+                });
+              }}
+            >
+              {action.label}
+            </SurfaceSecondaryAction>
+          ))}
+        </div>
         <CapabilityList
           canInitialize={canInitialize}
           canStartRun={canStartRun}

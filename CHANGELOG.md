@@ -130,6 +130,8 @@ sibling `file:` packages until public npm publish.
 - Empty home shows composer affordance hint: `/` commands · `#` snippets ·
   `@` files.
 - Operations new-automation form offers the same skill chips as new-task runs.
+- Wait shell exposes Open logs, Run diagnostics, and Restart host via an
+  allowlisted Extension Host command (works even when the workspace is untrusted).
 
 ### Security
 
