@@ -216,13 +216,19 @@ The extension is an **internal-channel (0.1.0)** thin VS Code host:
   diagnostics with recovery hints;
 - Webview mounts `@altai/agent-ui` via `HostPortsProvider` (no second chat UI);
 - capability-gated Chat (sessions, run stream, permission mode, model picker,
-  provider status, approvals/clarifications) and Operations (overview, Work,
-  Runs, Inbox, Scheduled, composers, deep-links);
+  provider status, approvals/clarifications, change review, run inspector,
+  checkpoints, slash commands, `#` snippets, copy transcript, draft restore)
+  and Operations (overview, Work, Runs, Inbox, Scheduled, skill chips on
+  compose forms, deep-links including compose task/automation);
+- Settings surface (provider, model, MCP, skills, About) plus allowlisted
+  recovery actions (logs / diagnostics / restart; Manage Workspace Trust when
+  host is untrusted);
 - packaging audit, single-target VSIX tooling, fixture package CI, secret and
   license scans, CHANGELOG / RELEASE gates.
 
 Remaining external gates for alpha+: signed native hosts per target, published
-shared npm packages, Remote e2e automation. See
+shared npm packages, Remote e2e automation, deeper Desktop settings parity
+(hooks/agents context), and true auto-model routing. See
 [FEATURE_MATRIX.md](FEATURE_MATRIX.md) and [RELEASE.md](RELEASE.md).
 
 ## Agent Profiles in `.altai/agents/`
