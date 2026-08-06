@@ -54,6 +54,31 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.openOperations",
+        "title": "ALTAI: Open Operations",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.openOperationsWork",
+        "title": "ALTAI: Open Operations Work",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.openOperationsRuns",
+        "title": "ALTAI: Open Operations Runs",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.openOperationsInbox",
+        "title": "ALTAI: Open Operations Inbox",
+        "category": "ALTAI"
+      },
+      {
+        "command": "altai.openOperationsScheduled",
+        "title": "ALTAI: Open Operations Scheduled Work",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openLogs",
         "title": "ALTAI: Open Logs",
         "category": "ALTAI"

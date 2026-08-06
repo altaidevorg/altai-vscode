@@ -10,11 +10,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
+  OPEN_OPERATIONS_EVENT,
   type HostRpcNotificationPayload,
   type HostStatusPayload,
+  type OpenOperationsPayload,
 } from "../shared/messages.js";
 import { parsePersistedWebviewState } from "../shared/webviewState.js";
 import { OperationsPanel } from "./OperationsPanel.js";
+import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
   createVsCodeHostPorts,
@@ -104,6 +107,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [surface, setSurface] = useState<"chat" | "operations">("chat");
+  const [operationsNav, setOperationsNav] = useState<
+    OpenOperationsPayload | undefined
+  >(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,6 +176,15 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     return off;
   }, [client]);
 
+  useEffect(() => {
+    return client.onEvent(OPEN_OPERATIONS_EVENT, (payload) => {
+      const parsed = parseOpenOperationsPayload(payload);
+      if (!parsed) return;
+      setSurface("operations");
+      setOperationsNav(parsed);
+    });
+  }, [client]);
+
   return (
     <HostPortsProvider ports={ports} capabilities={capabilities}>
       <div className="altai-shell">
@@ -203,7 +218,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
           </button>
         </div>
         {surface === "operations" && hostStatus.status === "ready" && !initError ? (
-          <OperationsPanel />
+          <OperationsPanel navigation={operationsNav} />
         ) : (
           <AgentUiShell hostStatus={hostStatus} initError={initError} />
         )}
