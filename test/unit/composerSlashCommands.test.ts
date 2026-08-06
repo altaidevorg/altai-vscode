@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   findSlashCommands,
+  formatSlashHelpDigest,
   tryRunSlashCommand,
 } from "../../src/webview/composerSlashCommands.js";
 
@@ -60,5 +61,27 @@ describe("tryRunSlashCommand", () => {
       kind: "handled",
       action: "stop",
     });
+  });
+
+  it("lists help digest", () => {
+    expect(tryRunSlashCommand("/help")).toMatchObject({
+      kind: "handled",
+      action: "help",
+    });
+    expect(tryRunSlashCommand("/?")).toMatchObject({
+      kind: "handled",
+      action: "help",
+    });
+  });
+});
+
+describe("formatSlashHelpDigest", () => {
+  it("summarizes all commands or a filter", () => {
+    const all = formatSlashHelpDigest();
+    expect(all).toContain("/help");
+    expect(all).toContain("/new");
+    const subset = formatSlashHelpDigest("settings");
+    expect(subset).toMatch(/settings/i);
+    expect(formatSlashHelpDigest("zzzzq")).toMatch(/No slash commands match/);
   });
 });

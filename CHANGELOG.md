@@ -132,6 +132,8 @@ sibling `file:` packages until public npm publish.
 - Operations new-automation form offers the same skill chips as new-task runs.
 - Wait shell exposes Open logs, Run diagnostics, and Restart host via an
   allowlisted Extension Host command (works even when the workspace is untrusted).
+- `/help` (aliases `/?`, `/commands`) prints a filtered slash-command digest in
+  the transcript.
 
 ### Security
 
