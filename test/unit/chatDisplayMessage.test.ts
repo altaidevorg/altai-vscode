@@ -5,6 +5,7 @@ import {
   displayMessagesFromSession,
   shouldShowChatEmptyHome,
   extractToolFileTarget,
+  extractEditDiff,
   pathToFileUri,
   textFromAgentEvent,
 } from "../../src/webview/chatDisplayMessage.js";
@@ -115,6 +116,27 @@ describe("applyAgentEventToMessages", () => {
     expect(next[0]?.fileUri).toBe("file:///Users/me/proj/src/App.tsx");
     expect(next[0]?.content).toContain("App.tsx");
   });
+
+  it("maps edit_diff events for openDiff", () => {
+    const event: AgentEvent = {
+      type: "tool",
+      chatId: "c1",
+      runId: "r1",
+      seq: 4,
+      payload: {
+        type: "edit_diff",
+        file: "/Users/me/proj/src/App.tsx",
+        before: "a\n",
+        after: "b\n",
+        hunk_id: "h1",
+      },
+    };
+    const next = applyAgentEventToMessages([], event, { activeChatId: "c1" });
+    expect(next[0]?.toolName).toBe("edit_diff");
+    expect(next[0]?.diffOriginalText).toBe("a\n");
+    expect(next[0]?.diffModifiedText).toBe("b\n");
+    expect(next[0]?.filePath).toBe("/Users/me/proj/src/App.tsx");
+  });
 });
 
 describe("extractToolFileTarget", () => {
@@ -128,6 +150,26 @@ describe("extractToolFileTarget", () => {
       uri: "file:///tmp/a.ts",
     });
     expect(pathToFileUri("/tmp/x.ts")).toBe("file:///tmp/x.ts");
+  });
+});
+
+describe("extractEditDiff", () => {
+  it("reads nested edit_diff crates", () => {
+    expect(
+      extractEditDiff({
+        edit_diff: {
+          file: "/tmp/x.ts",
+          before: "1",
+          after: "2",
+          hunk_id: "h",
+        },
+      }),
+    ).toEqual({
+      path: "/tmp/x.ts",
+      originalText: "1",
+      modifiedText: "2",
+      hunkId: "h",
+    });
   });
 });
 
