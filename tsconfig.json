@@ -28,6 +28,7 @@
   "exclude": [
     "src/webview/**",
     "test/unit/createVsCodeHostPorts.test.ts",
+    "test/unit/operationsOverview.test.ts",
     "dist",
     "out",
     "node_modules"

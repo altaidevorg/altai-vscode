@@ -14,6 +14,7 @@ import {
   type HostStatusPayload,
 } from "../shared/messages.js";
 import { parsePersistedWebviewState } from "../shared/webviewState.js";
+import { OperationsPanel } from "./OperationsPanel.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
   createVsCodeHostPorts,
@@ -102,6 +103,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [surface, setSurface] = useState<"chat" | "operations">("chat");
 
   useEffect(() => {
     let cancelled = false;
@@ -180,7 +182,31 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             </span>
           }
         />
-        <AgentUiShell hostStatus={hostStatus} initError={initError} />
+        <div className="altai-view-tabs" role="tablist" aria-label="ALTAI surfaces">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={surface === "chat"}
+            className="altai-view-tab"
+            onClick={() => setSurface("chat")}
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={surface === "operations"}
+            className="altai-view-tab"
+            onClick={() => setSurface("operations")}
+          >
+            Operations
+          </button>
+        </div>
+        {surface === "operations" && hostStatus.status === "ready" && !initError ? (
+          <OperationsPanel />
+        ) : (
+          <AgentUiShell hostStatus={hostStatus} initError={initError} />
+        )}
       </div>
     </HostPortsProvider>
   );
