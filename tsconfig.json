@@ -54,6 +54,7 @@
     "test/unit/chatRunChrome.test.ts",
     "test/unit/chatPlanChrome.test.ts",
     "test/unit/chatEmptyStarterTemplates.test.ts",
+    "test/unit/runInspectorChrome.test.ts",
     "dist",
     "out",
     "node_modules"

@@ -107,6 +107,8 @@ sibling `file:` packages until public npm publish.
   back to hard-delete only when archive is not advertised).
 - Chat `startRun` / edit-resend pass the selected model id (omit `auto` for
   host-side routing).
+- Run details inspector sections: Approvals / Todos / Changes / Activity from
+  local transcript and pending prompt state (shared agent-ui inspectors).
 
 ### Security
 

@@ -1427,15 +1427,21 @@ function AgentUiShell({
               approvalsPending={
                 pendingApprovals.length + (pendingClarification ? 1 : 0)
               }
+              approvals={pendingApprovals}
+              onApprovalsChange={setPendingApprovals}
               blockedMessage={runBlockedMessage}
               warningMessage={runWarningMessage}
               totalTokens={runUsage.totalTokens}
+              runUsage={runUsage}
               onStop={() => {
                 void onCancel();
               }}
               onClose={() => {
                 setRunDetailsDismissed(true);
                 onInspectorOpenChange?.(false);
+              }}
+              onOpenChangeReview={() => {
+                setChangeReviewOpen(true);
               }}
             />
           ) : (
