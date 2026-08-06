@@ -1321,6 +1321,30 @@ function AgentUiShell({
           command: "altai.showVersionCompatibility",
         });
         break;
+      case "copy": {
+        const text = formatTranscriptForCopy(messages);
+        if (!text) {
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Nothing to copy yet."),
+          );
+          return;
+        }
+        try {
+          await navigator.clipboard?.writeText(text);
+          setCopiedTranscript(true);
+          window.setTimeout(() => {
+            setCopiedTranscript(false);
+          }, 1500);
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Copied transcript to clipboard"),
+          );
+        } catch {
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Clipboard copy failed"),
+          );
+        }
+        return;
+      }
       default:
         break;
     }
