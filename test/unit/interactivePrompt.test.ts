@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { AgentEvent } from "@altai/host-contract";
 import {
+  applyInteractivePrompt,
   interactivePromptFromAgentEvent,
   normalizeAgentEventType,
 } from "../../src/webview/interactivePrompt.js";
-import { applyInteractivePrompt } from "../../src/webview/ChatInteractivePrompts.js";
 
 function event(partial: Partial<AgentEvent> & Pick<AgentEvent, "type">): AgentEvent {
   return {

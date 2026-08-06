@@ -10,7 +10,6 @@ import {
 } from "@altai/agent-ui";
 import { useCallback, useState } from "react";
 import type {
-  InteractivePrompt,
   PendingClarificationPrompt,
   PendingToolApproval,
 } from "./interactivePrompt.js";
@@ -145,33 +144,4 @@ export function ChatInteractivePrompts({
       ) : null}
     </div>
   );
-}
-
-/** Merge a new prompt into local pending state (no duplicates). */
-export function applyInteractivePrompt(
-  currentApprovals: PendingToolApproval[],
-  currentClarification: PendingClarificationPrompt | null,
-  prompt: InteractivePrompt,
-): {
-  approvals: PendingToolApproval[];
-  clarification: PendingClarificationPrompt | null;
-} {
-  if (prompt.kind === "tool") {
-    if (
-      currentApprovals.some((item) => item.approvalId === prompt.approvalId)
-    ) {
-      return {
-        approvals: currentApprovals,
-        clarification: currentClarification,
-      };
-    }
-    return {
-      approvals: [...currentApprovals, prompt],
-      clarification: currentClarification,
-    };
-  }
-  return {
-    approvals: currentApprovals,
-    clarification: prompt,
-  };
 }

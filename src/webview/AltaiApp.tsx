@@ -35,11 +35,9 @@ import {
 import { transcriptLinesFromMessages } from "./sessionTranscript.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
+import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import {
   applyInteractivePrompt,
-  ChatInteractivePrompts,
-} from "./ChatInteractivePrompts.js";
-import {
   interactivePromptFromAgentEvent,
   type PendingClarificationPrompt,
   type PendingToolApproval,
