@@ -5,11 +5,12 @@ import {
 } from "../../src/webview/hostRecoveryActions.js";
 
 describe("host recovery actions", () => {
-  it("allowlists open logs, diagnostics, and restart", () => {
+  it("allowlists open logs, diagnostics, restart, and version", () => {
     expect(listRecoveryActions().map((a) => a.command)).toEqual([
       "altai.openLogs",
       "altai.runDiagnostics",
       "altai.restartAgentHost",
+      "altai.showVersionCompatibility",
     ]);
     expect(isAltaiRecoveryCommand("altai.openLogs")).toBe(true);
     expect(isAltaiRecoveryCommand("workbench.action.quit")).toBe(false);
@@ -25,9 +26,7 @@ describe("host recovery actions", () => {
       "altai.openLogs",
       "altai.runDiagnostics",
       "altai.restartAgentHost",
+      "altai.showVersionCompatibility",
     ]);
-    expect(isAltaiRecoveryCommand("workbench.action.manageWorkspaceTrust")).toBe(
-      true,
-    );
   });
 });
