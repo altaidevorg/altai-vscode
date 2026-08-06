@@ -44,6 +44,7 @@ import {
   type PersistedWorkHubView,
   type PersistedWebviewState,
 } from "../shared/webviewState.js";
+import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { ChatSettingsHub } from "./ChatSettingsHub.js";
@@ -1358,6 +1359,13 @@ function AgentUiShell({
   };
 
   if (initError || hostStatus.status !== "ready") {
+    const recovery = recoveryHintForDiagnosticCode(hostStatus.diagnosticCode);
+    const description = [
+      initError ?? hostStatus.message,
+      recovery ? `Recovery: ${recovery}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
     return (
       <main className="altai-shell-body">
         <SurfaceEmptyState
@@ -1366,8 +1374,17 @@ function AgentUiShell({
               ? "Shared UI failed to initialize"
               : "Waiting for agent host"
           }
-          description={initError ?? hostStatus.message}
+          description={description}
         />
+        {hostStatus.diagnosticCode ? (
+          <p
+            className="altai-shell-meta"
+            style={{ padding: "0 1rem 0.75rem" }}
+            role="status"
+          >
+            Diagnostic · {hostStatus.diagnosticCode}
+          </p>
+        ) : null}
         <CapabilityList
           canInitialize={canInitialize}
           canStartRun={canStartRun}
