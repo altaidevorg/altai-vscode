@@ -195,10 +195,39 @@ body {
   color: var(--foreground);
 }
 
+.altai-view-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.35rem 0.75rem 0;
+}
+
+.altai-view-tab {
+  border: 1px solid transparent;
+  border-radius: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.altai-view-tab:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.altai-view-tab[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--foreground);
+  border-color: var(--border-subtle);
+}
+
 /* High-contrast: prefer VS Code contrast tokens when present. */
 @media (forced-colors: active) {
   .altai-capability,
-  .altai-host-pill {
+  .altai-host-pill,
+  .altai-view-tab[aria-selected="true"] {
     border: 1px solid CanvasText;
   }
 }
