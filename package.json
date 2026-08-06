@@ -80,6 +80,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.askAboutActiveFile",
+        "title": "ALTAI: Ask About Active File",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openOperations",
         "title": "ALTAI: Open Operations",
         "category": "ALTAI"
@@ -151,6 +156,11 @@
           "command": "altai.askAboutSelection",
           "group": "altai@1",
           "when": "editorHasSelection && workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutActiveFile",
+          "group": "altai@2",
+          "when": "editorTextFocus && workspaceFolderCount > 0"
         }
       ]
     },
@@ -160,6 +170,12 @@
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a",
         "when": "editorHasSelection && workspaceFolderCount > 0"
+      },
+      {
+        "command": "altai.askAboutActiveFile",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f",
+        "when": "editorTextFocus && workspaceFolderCount > 0"
       }
     ]
   },
