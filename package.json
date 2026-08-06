@@ -166,6 +166,11 @@
     },
     "keybindings": [
       {
+        "command": "altai.openSidePanel",
+        "key": "ctrl+shift+alt+a",
+        "mac": "cmd+shift+alt+a"
+      },
+      {
         "command": "altai.askAboutSelection",
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a",
