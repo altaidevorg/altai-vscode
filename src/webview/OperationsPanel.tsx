@@ -25,6 +25,7 @@ import {
   OperationsRunsDomain,
   OperationsWorkDomain,
 } from "./OperationsDomainViews.js";
+import { OperationsOverviewMetrics } from "./OperationsOverviewMetrics.js";
 import {
   resolveDeepLinkOperationsView,
   resolveDeepLinkWorkHubView,
@@ -36,6 +37,7 @@ import {
   overviewActiveRunId,
   overviewFailedRunId,
   overviewUnreadInboxId,
+  withOverviewMetricNavigation,
   withOverviewRowNavigation,
   type OperationsOverviewData,
 } from "./operationsOverview.js";
@@ -440,7 +442,11 @@ export function OperationsPanel({
       return { ...row, actions };
     });
     return {
-      metrics: base.metrics,
+      metrics: withOverviewMetricNavigation(
+        base.metrics,
+        flags,
+        navigateOverviewRow,
+      ),
       attention,
       progressing,
     };
@@ -484,27 +490,30 @@ export function OperationsPanel({
       availableViews={availableViews}
     >
       {view === "overview" ? (
-        <OperationsOverview
-          status={
-            state.status === "error"
-              ? "error"
-              : state.status === "ready"
-                ? "ready"
-                : "loading"
-          }
-          {...(state.status === "error"
-            ? {
-                errorMessage: state.message,
-                onDismissError: () => {
-                  setState({ status: "loading" });
-                  void load();
-                },
-              }
-            : {})}
-          metrics={viewModel.metrics}
-          attention={viewModel.attention}
-          progressing={viewModel.progressing}
-        />
+        state.status === "loading" || state.status === "error" ? (
+          <OperationsOverview
+            status={state.status === "error" ? "error" : "loading"}
+            {...(state.status === "error"
+              ? {
+                  errorMessage: state.message,
+                  onDismissError: () => {
+                    setState({ status: "loading" });
+                    void load();
+                  },
+                }
+              : {})}
+          />
+        ) : (
+          <div className="altai-ops-overview-stack">
+            <OperationsOverviewMetrics metrics={viewModel.metrics} />
+            <OperationsOverview
+              status="ready"
+              metrics={[]}
+              attention={viewModel.attention}
+              progressing={viewModel.progressing}
+            />
+          </div>
+        )
       ) : null}
 
       {view === "work" ? (
@@ -526,6 +535,7 @@ export function OperationsPanel({
             canTaskRuns={canTaskRuns}
             canAutomations={canAutomations}
             hubView={workHubView}
+            onHubViewChange={setWorkHubView}
             actions={taskActions}
             automationActions={automationActions}
           />

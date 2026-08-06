@@ -25,9 +25,12 @@ Operations (V7): Chat/Operations surface tabs mount shared
 Runs / Inbox domain lists enable only when the host advertises the matching
 capabilities. Command palette deep-links (`ALTAI: Open Operations …`) focus
 the panel and select the route. Overview attention/progress rows open the
-matching Work/Runs/Inbox domain when that capability is available. Presentation
+matching Work/Runs/Inbox domain when that capability is available. Metric
+tiles on Overview also navigate to the matching domain (host-wrapped
+`InspectorMetric` until shared metric `onOpen` lands). Presentation
 (Chat vs Operations, secondary route, Work hub strip) survives Webview reload
-via getState/setState. Active overview runs expose a Cancel action; failed
+via getState/setState, including Runs/Scheduled toggles on the Work hub. Active
+overview runs expose a Cancel action; failed
 runs Retry and unread inbox Mark read. Attention count drives a status-bar
 badge that opens Operations; the badge also refreshes while Chat is open
 (Operations unmounted) via lifecycle/notification host events. Work/Runs offer

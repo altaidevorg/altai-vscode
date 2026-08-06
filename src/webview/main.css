@@ -323,6 +323,50 @@ body {
   cursor: pointer;
 }
 
+.altai-ops-overview-stack {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  gap: 0;
+}
+
+.altai-ops-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0.75rem 0.75rem 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--border);
+}
+
+.altai-ops-metric-tile {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: var(--card);
+  color: inherit;
+  text-align: left;
+  cursor: default;
+  font: inherit;
+}
+
+button.altai-ops-metric-tile {
+  cursor: pointer;
+}
+
+button.altai-ops-metric-tile:hover {
+  background: var(--muted);
+}
+
+button.altai-ops-metric-tile:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: -1px;
+  z-index: 1;
+}
+
 .altai-ops-row-action {
   border: 1px solid var(--border);
   border-radius: 0.3rem;

@@ -86,6 +86,7 @@ export function OperationsWorkDomain({
   actions,
   automationActions,
   hubView: hubViewProp,
+  onHubViewChange,
 }: {
   taskRuns: TaskRunInfo[];
   automations: AutomationInfo[];
@@ -95,6 +96,8 @@ export function OperationsWorkDomain({
   automationActions: AutomationActions;
   /** Optional deep-link selection for the Work hub strip. */
   hubView?: WorkHubView;
+  /** Persist hub selection when the user toggles Runs/Scheduled. */
+  onHubViewChange?: (view: WorkHubView) => void;
 }) {
   const defaultView: WorkHubView =
     hubViewProp ?? (canTaskRuns ? "runs" : "scheduled");
@@ -117,7 +120,13 @@ export function OperationsWorkDomain({
   return (
     <div className="altai-ops-domain">
       {showNav ? (
-        <WorkHubNavigation view={hubView} onViewChange={setHubView} />
+        <WorkHubNavigation
+          view={hubView}
+          onViewChange={(next) => {
+            setHubView(next);
+            onHubViewChange?.(next);
+          }}
+        />
       ) : null}
       {active === "runs" ? (
         <TaskRunsList taskRuns={taskRuns} actions={actions} title="Runs" />

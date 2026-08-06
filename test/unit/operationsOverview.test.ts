@@ -8,10 +8,12 @@ import {
   buildOperationsOverview,
   countOperationsAttention,
   destinationForOverviewRowId,
+  destinationForOverviewMetric,
   overviewActiveRunId,
   overviewFailedRunId,
   overviewUnreadInboxId,
   withOverviewRowNavigation,
+  withOverviewMetricNavigation,
   type OverviewNavFlags,
 } from "../../src/webview/operationsOverview.js";
 
@@ -175,6 +177,58 @@ describe("destinationForOverviewRowId", () => {
         inbox: false,
       }),
     ).toBeNull();
+  });
+});
+
+describe("destinationForOverviewMetric", () => {
+  const all: OverviewNavFlags = {
+    taskRuns: true,
+    automations: true,
+    inbox: true,
+  };
+
+  it("maps metric labels onto capability-gated routes", () => {
+    expect(destinationForOverviewMetric("Active runs", all)).toEqual({
+      view: "runs",
+    });
+    expect(destinationForOverviewMetric("Needs attention", all)).toEqual({
+      view: "runs",
+    });
+    expect(destinationForOverviewMetric("Scheduled", all)).toEqual({
+      view: "work",
+      workHubView: "scheduled",
+    });
+    expect(destinationForOverviewMetric("Unknown", all)).toBeNull();
+  });
+
+  it("falls back Needs attention to inbox when runs are unavailable", () => {
+    expect(
+      destinationForOverviewMetric("Needs attention", {
+        taskRuns: false,
+        automations: false,
+        inbox: true,
+      }),
+    ).toEqual({ view: "inbox" });
+  });
+});
+
+describe("withOverviewMetricNavigation", () => {
+  it("attaches onOpen only for navigable metrics", () => {
+    const visited: string[] = [];
+    const metrics = withOverviewMetricNavigation(
+      [
+        { label: "Active runs", value: "1" },
+        { label: "Scheduled", value: "2" },
+      ],
+      { taskRuns: true, automations: false, inbox: false },
+      (destination) => {
+        visited.push(destination.view);
+      },
+    );
+    expect(typeof metrics[0]?.onOpen).toBe("function");
+    expect(metrics[1]?.onOpen).toBeUndefined();
+    metrics[0]?.onOpen?.();
+    expect(visited).toEqual(["runs"]);
   });
 });
 
