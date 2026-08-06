@@ -1359,6 +1359,11 @@ function AgentUiShell({
         }
         return;
       }
+      case "connect":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.connectProvider",
+        });
+        break;
       default:
         break;
     }

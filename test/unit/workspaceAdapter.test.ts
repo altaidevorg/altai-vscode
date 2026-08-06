@@ -202,5 +202,10 @@ describe("WorkspaceAdapter", () => {
         command: "altai.showVersionCompatibility",
       }),
     ).resolves.toEqual({ ok: true });
+    await expect(
+      adapter.request("executeAltaiCommand", {
+        command: "altai.connectProvider",
+      }),
+    ).resolves.toEqual({ ok: true });
   });
 });
