@@ -85,6 +85,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.askAboutWorkingTree",
+        "title": "ALTAI: Ask About Working Tree",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openOperations",
         "title": "ALTAI: Open Operations",
         "category": "ALTAI"
@@ -161,6 +166,11 @@
           "command": "altai.askAboutActiveFile",
           "group": "altai@2",
           "when": "editorTextFocus && workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutWorkingTree",
+          "group": "altai@3",
+          "when": "workspaceFolderCount > 0"
         }
       ]
     },

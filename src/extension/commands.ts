@@ -24,6 +24,9 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.askAboutActiveFile", async () => {
       await provider.openChatWithActiveFile();
     }),
+    vscode.commands.registerCommand("altai.askAboutWorkingTree", async () => {
+      await provider.openChatWithWorkingTree();
+    }),
     vscode.commands.registerCommand("altai.openOperations", async () => {
       await provider.openOperations({ view: "overview" });
     }),

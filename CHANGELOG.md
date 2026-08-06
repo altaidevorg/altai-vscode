@@ -164,6 +164,8 @@ sibling `file:` packages until public npm publish.
 - Slash `/connect` (`/provider`) opens the Extension Host provider credential flow.
 - Keyboard shortcut Cmd/Ctrl+Shift+Alt+A opens the ALTAI side panel.
 - Slash `/disconnect` clears a provider credential via the Extension Host.
+- Command palette **Ask About Working Tree** attaches a path/status summary via
+  the selection deep-link (no `git` spawn).
 
 ### Security
 
