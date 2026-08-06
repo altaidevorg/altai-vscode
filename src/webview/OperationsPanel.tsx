@@ -32,6 +32,7 @@ import {
 import {
   buildOperationsOverview,
   EMPTY_OPERATIONS_DATA,
+  withOverviewRowNavigation,
   type OperationsOverviewData,
 } from "./operationsOverview.js";
 import { resolveAvailableOperationsViews } from "./operationsRoutes.js";
@@ -127,7 +128,38 @@ export function OperationsPanel({ navigation }: OperationsPanelProps) {
 
   const data =
     state.status === "ready" ? state.data : EMPTY_OPERATIONS_DATA;
-  const viewModel = buildOperationsOverview(data);
+
+  const navigateOverviewRow = useCallback(
+    (destination: {
+      view: "overview" | "work" | "runs" | "inbox";
+      workHubView?: "runs" | "scheduled";
+    }) => {
+      setView(resolveDeepLinkOperationsView(destination.view, flags));
+      if (destination.workHubView) {
+        setWorkHubView(
+          resolveDeepLinkWorkHubView(destination.workHubView, flags),
+        );
+      }
+    },
+    [flags],
+  );
+
+  const viewModel = useMemo(() => {
+    const base = buildOperationsOverview(data);
+    return {
+      metrics: base.metrics,
+      attention: withOverviewRowNavigation(
+        base.attention,
+        flags,
+        navigateOverviewRow,
+      ),
+      progressing: withOverviewRowNavigation(
+        base.progressing,
+        flags,
+        navigateOverviewRow,
+      ),
+    };
+  }, [data, flags, navigateOverviewRow]);
 
   const withBusy = useCallback(
     async (id: string, action: () => Promise<void>) => {

@@ -4,7 +4,12 @@ import type {
   NotificationInfo,
   TaskRunInfo,
 } from "@altai/host-contract";
-import { buildOperationsOverview } from "../../src/webview/operationsOverview.js";
+import {
+  buildOperationsOverview,
+  destinationForOverviewRowId,
+  withOverviewRowNavigation,
+  type OverviewNavFlags,
+} from "../../src/webview/operationsOverview.js";
 
 function taskRun(partial: Partial<TaskRunInfo> & { id: string }): TaskRunInfo {
   return {
@@ -134,5 +139,57 @@ describe("buildOperationsOverview", () => {
     expect(view.progressing[0]?.detail).toBe(
       "Once · 2026-08-06T09:00:00.000Z",
     );
+  });
+});
+
+describe("destinationForOverviewRowId", () => {
+  const all: OverviewNavFlags = {
+    taskRuns: true,
+    automations: true,
+    inbox: true,
+  };
+
+  it("maps stable row id prefixes onto capability-gated routes", () => {
+    expect(destinationForOverviewRowId("run:abc", all)).toEqual({
+      view: "runs",
+    });
+    expect(destinationForOverviewRowId("inbox:n1", all)).toEqual({
+      view: "inbox",
+    });
+    expect(destinationForOverviewRowId("automation:s1", all)).toEqual({
+      view: "work",
+      workHubView: "scheduled",
+    });
+    expect(destinationForOverviewRowId("unknown:x", all)).toBeNull();
+  });
+
+  it("returns null when the destination capability is missing", () => {
+    expect(
+      destinationForOverviewRowId("inbox:n1", {
+        taskRuns: true,
+        automations: false,
+        inbox: false,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("withOverviewRowNavigation", () => {
+  it("attaches onOpen only for navigable rows", () => {
+    const visited: string[] = [];
+    const rows = withOverviewRowNavigation(
+      [
+        { id: "run:a", title: "A", statusLabel: "Failed" },
+        { id: "inbox:n1", title: "N", statusLabel: "Unread" },
+      ],
+      { taskRuns: true, automations: false, inbox: false },
+      (destination) => {
+        visited.push(destination.view);
+      },
+    );
+    expect(typeof rows[0]?.onOpen).toBe("function");
+    expect(rows[1]?.onOpen).toBeUndefined();
+    rows[0]?.onOpen?.();
+    expect(visited).toEqual(["runs"]);
   });
 });
