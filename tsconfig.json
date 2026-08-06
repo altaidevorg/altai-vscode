@@ -50,6 +50,7 @@
     "test/unit/composerCompactChrome.test.ts",
     "test/unit/checkpointChrome.test.ts",
     "test/unit/chatContentSegments.test.ts",
+    "test/unit/todoToolParse.test.ts",
     "dist",
     "out",
     "node_modules"

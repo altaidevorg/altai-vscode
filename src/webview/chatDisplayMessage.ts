@@ -6,7 +6,13 @@
 
 import type { AgentEvent } from "@altai/host-contract";
 import type { ContextChip, TodoItem } from "@altai/agent-ui";
-import { parseTodoItems, summarizeTodos } from "@altai/agent-ui";
+import {
+  isTodoToolName,
+  parseTodoItemsFromInput,
+  summarizeTodoItems,
+} from "./todoToolParse.js";
+
+export { isTodoToolName } from "./todoToolParse.js";
 
 export type ChatDisplayRole =
   | "user"
@@ -240,17 +246,6 @@ export function toolBubbleContent(
   return `Using ${name}…`;
 }
 
-export function isTodoToolName(name: string): boolean {
-  const n = name.toLowerCase().replace(/[\s-]+/g, "_");
-  return (
-    n === "todo_write" ||
-    n === "todowrite" ||
-    n === "update_todos" ||
-    n === "todo" ||
-    n === "todos"
-  );
-}
-
 /** Pull todo_write-style item lists from nested tool event payloads. */
 export function extractTodoToolItems(payload: unknown): TodoItem[] {
   if (!isRecord(payload)) {
@@ -270,7 +265,7 @@ export function extractTodoToolItems(payload: unknown): TodoItem[] {
     );
   }
   for (const candidate of candidates) {
-    const items = parseTodoItems(candidate);
+    const items = parseTodoItemsFromInput(candidate);
     if (items.length > 0) {
       return items;
     }
@@ -460,7 +455,7 @@ export function applyAgentEventToMessages(
       ? extractTodoToolItems(event.payload)
       : [];
     const todoSummary =
-      todos.length > 0 ? summarizeTodos(todos) : null;
+      todos.length > 0 ? summarizeTodoItems(todos) : null;
     const content =
       todoSummary && isTodoToolName(name)
         ? `Todos · ${todoSummary.done}/${todoSummary.total} done`
