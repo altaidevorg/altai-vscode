@@ -69,14 +69,13 @@ describe("auditReleaseDocs", () => {
     ).toEqual([]);
   });
 
-  it("fails when changelog or commands are incomplete", () => {
+  it("flags missing internal paths when presentPaths is supplied", () => {
     const findings = auditReleaseDocs({
-      version: "0.2.0",
+      version: "0.1.0",
       changelogMarkdown: sampleChangelog,
-      releaseMarkdown: "## Channels\n\n## Pre-release checklist\n\n## Commands\n\n## Versioning rules\n",
+      releaseMarkdown: sampleRelease,
+      presentPaths: ["CHANGELOG.md", "docs/RELEASE.md"],
     });
-    const codes = findings.map((f) => f.code);
-    expect(codes).toContain("changelog_version_missing");
-    expect(codes).toContain("release_command_missing");
+    expect(findings.some((f) => f.code === "internal_doc_missing")).toBe(true);
   });
 });

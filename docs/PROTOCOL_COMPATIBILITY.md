@@ -5,7 +5,7 @@ Pinned versions for this repository. Update this file whenever
 
 | Extension | `@altai/agent-ui` | Protocol major | `altai-agent-host` | Notes |
 |---|---|---:|---|---|
-| 0.1.0 | `0.1.0` (sibling `file:` until npm publish) | 1 | `stdio-via-altai-cli-serve` | Internal channel; capability-gated Chat + Operations; packaged host pin pending release binaries |
+| 0.1.0 | `0.1.0` (sibling `file:` until npm publish) | 1 | `stdio-via-altai-cli-serve` | Internal **preview** channel; Chat + Operations gated by host capabilities; packaged host SemVer pins land with alpha host artifacts |
 
 ## Policy
 
@@ -18,3 +18,5 @@ Pinned versions for this repository. Update this file whenever
 4. Before cutting alpha+, follow [RELEASE.md](RELEASE.md) and keep
    `CHANGELOG.md` in sync with `package.json` version
    (`npm run verify:release-docs`).
+5. Feature status for the current channel is tracked in
+   [FEATURE_MATRIX.md](FEATURE_MATRIX.md).

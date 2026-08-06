@@ -97,10 +97,14 @@ npm run verify:vsix -- --vsix=altai-0.1.0-linux-x64.vsix --target=linux-x64
 4. Protocol-major mismatches must fail host initialize once packaged binary
    pins land (see protocol compatibility policy).
 
-## Current gaps (track for beta)
+## Current gaps (track for alpha / beta)
+
+See [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for the full internal matrix.
+
+External (not blocked on vscode-only code):
 
 - Real signed `altai-agent-host` artifacts per target (fixture hosts only in CI).
 - Published `@altai/agent-ui` / `@altai/host-contract` npm versions (still
   `file:` links).
-- Automated Remote SSH e2e in CI.
+- Automated Remote SSH e2e in CI (manual Remote section above for beta).
 - Visual / a11y regression suite.

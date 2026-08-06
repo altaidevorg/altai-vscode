@@ -210,11 +210,20 @@ Its responsibilities include:
 
 ### Current implementation status
 
-The extension currently implements the trust-gated native host lifecycle,
-protocol framing, initialization, capability storage, status reporting, and
-diagnostics. The Webview mounts `@altai/agent-ui` via `HostPortsProvider` with
-VS Code theme token mapping and capability gating (TASK-008). Full chat
-sessions, runs, and streaming are not wired yet (TASK-009).
+The extension is an **internal-channel (0.1.0)** thin VS Code host:
+
+- trust-gated native host lifecycle, stdio JSON-RPC, capability storage, and
+  diagnostics with recovery hints;
+- Webview mounts `@altai/agent-ui` via `HostPortsProvider` (no second chat UI);
+- capability-gated Chat (sessions, run stream, permission mode, model picker,
+  provider status, approvals/clarifications) and Operations (overview, Work,
+  Runs, Inbox, Scheduled, composers, deep-links);
+- packaging audit, single-target VSIX tooling, fixture package CI, secret and
+  license scans, CHANGELOG / RELEASE gates.
+
+Remaining external gates for alpha+: signed native hosts per target, published
+shared npm packages, Remote e2e automation. See
+[FEATURE_MATRIX.md](FEATURE_MATRIX.md) and [RELEASE.md](RELEASE.md).
 
 ## Agent Profiles in `.altai/agents/`
 

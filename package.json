@@ -5,6 +5,12 @@
   "version": "0.1.0",
   "publisher": "altaidevorg",
   "license": "Apache-2.0",
+  "preview": true,
+  "icon": "media/altai-icon.png",
+  "homepage": "https://github.com/altaidevorg/altai-vscode#readme",
+  "bugs": {
+    "url": "https://github.com/altaidevorg/altai-vscode/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/altaidevorg/altai-vscode.git"
@@ -23,6 +29,10 @@
     "isanagent",
     "coding-assistant"
   ],
+  "galleryBanner": {
+    "color": "#12161E",
+    "theme": "dark"
+  },
   "activationEvents": [],
   "main": "./dist/extension/extension.js",
   "extensionKind": [
