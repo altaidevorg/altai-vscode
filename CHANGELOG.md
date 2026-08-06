@@ -139,6 +139,8 @@ sibling `file:` packages until public npm publish.
 - Slash `/logs`, `/diagnostics` (`/diag`), and `/restart-host` (`/restart`)
   invoke the allowlisted Extension Host recovery commands.
 - Settings About exposes the same recovery buttons as the wait shell.
+- When the host reports `host.untrusted`, recovery surfaces expose Manage
+  workspace trust (allowlisted VS Code command).
 
 ### Security
 

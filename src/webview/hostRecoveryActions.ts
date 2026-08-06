@@ -7,6 +7,7 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.openLogs",
   "altai.runDiagnostics",
   "altai.restartAgentHost",
+  "workbench.action.manageWorkspaceTrust",
 ] as const;
 
 export type AltaiRecoveryCommand = (typeof ALTAI_RECOVERY_COMMANDS)[number];
@@ -22,10 +23,24 @@ export function isAltaiRecoveryCommand(
   return (ALTAI_RECOVERY_COMMANDS as readonly string[]).includes(value);
 }
 
-export function listRecoveryActions(): readonly RecoveryAction[] {
-  return [
+/**
+ * Wait-shell / Settings recovery buttons.
+ * When the host reports `host.untrusted`, surface Manage workspace trust first.
+ */
+export function listRecoveryActions(input?: {
+  diagnosticCode?: string;
+}): readonly RecoveryAction[] {
+  const actions: RecoveryAction[] = [];
+  if (input?.diagnosticCode === "host.untrusted") {
+    actions.push({
+      command: "workbench.action.manageWorkspaceTrust",
+      label: "Manage workspace trust",
+    });
+  }
+  actions.push(
     { command: "altai.openLogs", label: "Open logs" },
     { command: "altai.runDiagnostics", label: "Run diagnostics" },
     { command: "altai.restartAgentHost", label: "Restart host" },
-  ];
+  );
+  return actions;
 }

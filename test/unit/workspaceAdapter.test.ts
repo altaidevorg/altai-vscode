@@ -192,5 +192,10 @@ describe("WorkspaceAdapter", () => {
         command: "workbench.action.quit",
       }),
     ).rejects.toMatchObject({ code: "command_not_allowed" });
+    await expect(
+      adapter.request("executeAltaiCommand", {
+        command: "workbench.action.manageWorkspaceTrust",
+      }),
+    ).resolves.toEqual({ ok: true });
   });
 });
