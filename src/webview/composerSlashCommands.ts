@@ -40,7 +40,8 @@ export type SlashHostAction =
   | "permissions"
   | "mcp"
   | "skills"
-  | "settings";
+  | "settings"
+  | "help";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -92,6 +93,7 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "mcp", invocation: "/mcp", label: "MCP", description: "Open Settings for MCP servers.", aliases: ["mcps"], category: "settings", behavior: "action" },
   { name: "skills", invocation: "/skills", label: "Skills", description: "Open Settings for installed skills.", category: "settings", behavior: "action" },
   { name: "settings", invocation: "/settings", label: "Settings", description: "Open the Settings surface.", aliases: ["config", "prefs"], category: "settings", behavior: "action" },
+  { name: "help", invocation: "/help", label: "Help", description: "List available slash commands.", aliases: ["commands", "?"], category: "settings", behavior: "action" },
 ];
 
 export const SLASH_COMMAND_INDEX: readonly SlashCommandMeta[] =
@@ -121,6 +123,43 @@ export function resolveSlashCommand(
     (command) =>
       command.name === normalized || command.aliases?.includes(normalized),
   );
+}
+
+/**
+ * Format a compact help digest for the transcript meta line.
+ * Optional filter prefers matching category tokens or command names.
+ */
+export function formatSlashHelpDigest(
+  filter = "",
+  commands: readonly SlashCommandMeta[] = SLASH_COMMAND_INDEX,
+): string {
+  const needle = filter.trim().toLowerCase();
+  const list = needle
+    ? commands.filter((command) =>
+        [
+          command.name,
+          command.category,
+          command.label,
+          ...(command.aliases ?? []),
+        ].some((value) => value.toLowerCase().includes(needle)),
+      )
+    : [...commands];
+  if (list.length === 0) {
+    return `No slash commands match “${filter.trim()}”. Try /help.`;
+  }
+  const lines = list.map(
+    (command) => `${command.invocation} — ${command.description}`,
+  );
+  const head = needle
+    ? `Slash commands matching “${filter.trim()}”:`
+    : "Slash commands (type / for autocomplete):";
+  // Cap so a meta message stays readable in the side panel.
+  const body = lines.slice(0, 40);
+  const more =
+    lines.length > body.length
+      ? `\n…and ${lines.length - body.length} more (narrow with /help <query>).`
+      : "";
+  return `${head}\n${body.join("\n")}${more}`;
 }
 
 /**
@@ -199,6 +238,8 @@ function toastFor(name: string, tail: string): string | undefined {
     case "skills":
     case "settings":
       return "Opened Settings";
+    case "help":
+      return undefined;
     default:
       return undefined;
   }

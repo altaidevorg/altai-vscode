@@ -115,6 +115,7 @@ import {
   type SnippetHandle,
 } from "./ChatComposerSnippet.js";
 import {
+  formatSlashHelpDigest,
   tryRunSlashCommand,
   type SlashCommandMeta,
   type SlashHostAction,
@@ -1198,6 +1199,11 @@ function AgentUiShell({
       case "settings":
         onOpenSettings?.();
         break;
+      case "help": {
+        const digest = formatSlashHelpDigest(tail);
+        setMessages((prev) => appendMetaMessage(prev, digest));
+        return;
+      }
       default:
         break;
     }
