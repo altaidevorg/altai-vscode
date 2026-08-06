@@ -35,6 +35,8 @@ sibling `file:` packages until public npm publish.
 - Change review Apply/Deny when native host advertises
   `review/proposals/apply` + `review/proposals/deny` (`review.editProposal`).
   One-shot apply sends path/content; writes stay on the Rust host.
+- Run details token chip accumulates host `usage` events (prompt +
+  completion totals) instead of a static "live" placeholder.
 - Structured Chat message cards and shared `ChatTabStrip`, with run/event
   mapping fixed for nested `agent_message` envelopes (stream coalescing).
 - Active-run composer follow-up: shared `ComposerFollowupBar` for Steer /

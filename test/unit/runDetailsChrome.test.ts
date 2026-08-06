@@ -62,6 +62,13 @@ describe("run details status and copy", () => {
     expect(runDetailsTokenLabel({ hasActiveRun: true, status: "running" })).toBe(
       "Tokens · live",
     );
+    expect(
+      runDetailsTokenLabel({
+        hasActiveRun: true,
+        status: "running",
+        totalTokens: 1500,
+      }),
+    ).toBe("Tokens · 1.5k");
   });
 
   it("prefers blocked step copy", () => {

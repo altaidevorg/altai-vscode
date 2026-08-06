@@ -107,6 +107,12 @@ import {
 } from "./chatRunChrome.js";
 import { canShowRunDetailsChrome } from "./runDetailsChrome.js";
 import {
+  accumulateRunUsage,
+  usageDeltaFromPayload,
+  ZERO_RUN_USAGE,
+  type RunUsageTotals,
+} from "./usageMeterChrome.js";
+import {
   applyInteractivePrompt,
   interactivePromptFromAgentEvent,
   type PendingClarificationPrompt,
@@ -627,6 +633,7 @@ function AgentUiShell({
     () => chatFocus?.chatId ?? null,
   );
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [runUsage, setRunUsage] = useState<RunUsageTotals>(ZERO_RUN_USAGE);
   const [sessionListKey, setSessionListKey] = useState(0);
   const [permissionMode, setPermissionMode] = useState<PermissionMode | null>(
     null,
@@ -680,6 +687,7 @@ function AgentUiShell({
     if (chatFocus.chatId) {
       setActiveChatId(chatFocus.chatId);
       setActiveRunId(null);
+      setRunUsage(ZERO_RUN_USAGE);
       rememberTab(chatFocus.chatId, chatFocus.label);
     }
 
@@ -810,6 +818,17 @@ function AgentUiShell({
           activeChatId: activeChatIdRef.current,
         }),
       );
+
+      if (
+        event.type === "usage" &&
+        event.chatId &&
+        event.chatId === activeChatIdRef.current
+      ) {
+        const delta = usageDeltaFromPayload(event.payload);
+        if (delta) {
+          setRunUsage((prev) => accumulateRunUsage(prev, delta));
+        }
+      }
 
       // Clear active-run bookkeeping when this chat's run ends.
       if (
@@ -946,6 +965,7 @@ function AgentUiShell({
       setActiveChatId(ref.chatId);
       if (mode !== "queue") {
         setActiveRunId(ref.runId);
+        setRunUsage(ZERO_RUN_USAGE);
       }
       rememberTab(ref.chatId);
       setMessages((prev) =>
@@ -1028,6 +1048,7 @@ function AgentUiShell({
       });
       setActiveChatId(ref.chatId);
       setActiveRunId(ref.runId);
+      setRunUsage(ZERO_RUN_USAGE);
       setMessages((prev) => appendUserMessage(prev, text));
       setSessionListKey((key) => key + 1);
     } catch (err) {
@@ -1051,6 +1072,7 @@ function AgentUiShell({
         ...(activeRunId ? { runId: activeRunId } : {}),
       });
       setActiveRunId(ref.runId);
+      setRunUsage(ZERO_RUN_USAGE);
       setMessages((prev) => appendMetaMessage(prev, "Retrying…"));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -1156,6 +1178,7 @@ function AgentUiShell({
               }
               blockedMessage={runBlockedMessage}
               warningMessage={runWarningMessage}
+              totalTokens={runUsage.totalTokens}
               onStop={() => {
                 void onCancel();
               }}
