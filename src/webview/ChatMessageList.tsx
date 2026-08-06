@@ -96,6 +96,7 @@ export function ChatMessageList({
         return (
           <article
             key={message.id}
+            id={`altai-msg-${message.id}`}
             className={
               message.role === "user"
                 ? "altai-chat-bubble altai-chat-bubble--user"

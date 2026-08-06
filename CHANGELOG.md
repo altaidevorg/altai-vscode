@@ -54,6 +54,8 @@ sibling `file:` packages until public npm publish.
   blocks; paths open via shared `ChatPathLink` + `workspace.openFile`.
   HTTP(S) links open via Extension Host `openExternal`.
 - `todo_write` (and aliases) tool events render shared `TodoChecklist` cards.
+- Change-review and run-blocked banners: `ChangeReviewBanner` for queued
+  `edit_diff` rows and `RunBlockedBanner` on terminal run failures.
 
 ### Security
 
