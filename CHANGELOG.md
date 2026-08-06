@@ -109,6 +109,9 @@ sibling `file:` packages until public npm publish.
   host-side routing).
 - Run details inspector sections: Approvals / Todos / Changes / Activity from
   local transcript and pending prompt state (shared agent-ui inspectors).
+- Transcript collapses consecutive tool rows (≥2 Read / Web / Ran / Tools) into
+  shared `TranscriptToolGroup` chrome.
+- MCP status: Enable/Disable when `mcp.configure` is available (alongside Restart).
 
 ### Security
 
