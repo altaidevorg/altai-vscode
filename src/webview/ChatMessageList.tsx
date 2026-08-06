@@ -22,6 +22,7 @@ import {
   buildDisplayTranscriptBlocks,
   type ToolGroupKind,
 } from "./transcriptGroupChrome.js";
+import { canCopyDisplayMessage } from "./messageCopyChrome.js";
 
 export type ChatMessageListProps = {
   messages: readonly ChatDisplayMessage[];
@@ -79,6 +80,7 @@ export function ChatMessageList({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const lastAssistantId = [...messages]
     .reverse()
@@ -114,6 +116,7 @@ export function ChatMessageList({
       message.diffOriginalText !== undefined &&
       message.diffModifiedText !== undefined &&
       !message.streaming;
+    const showCopy = canCopyDisplayMessage(message);
 
     return (
       <article
@@ -214,9 +217,33 @@ export function ChatMessageList({
             ) : null}
           </>
         )}
-        {(showEdit || showRetry || showOpenFile || showOpenDiff) &&
+        {(showEdit || showRetry || showOpenFile || showOpenDiff || showCopy) &&
         !isEditing ? (
           <footer className="altai-chat-bubble-actions">
+            {showCopy ? (
+              <HoverActionButton
+                title="Copy message"
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      await navigator.clipboard.writeText(message.content);
+                      setCopiedId(message.id);
+                      window.setTimeout(() => {
+                        setCopiedId((id) =>
+                          id === message.id ? null : id,
+                        );
+                      }, 1500);
+                    } catch (err: unknown) {
+                      onOpenFileError?.(
+                        err instanceof Error ? err.message : String(err),
+                      );
+                    }
+                  })();
+                }}
+              >
+                {copiedId === message.id ? "Copied" : "Copy"}
+              </HoverActionButton>
+            ) : null}
             {showEdit ? (
               <HoverActionButton
                 title="Edit message"
