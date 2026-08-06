@@ -580,6 +580,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 onInspectorOpenChange={setRunInspectorOpen}
                 onFocusChat={openChatFromOperations}
                 onOpenOperations={openOperationsSurface}
+                onOpenSettings={() => {
+                  selectSurface("settings");
+                }}
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
                 }
@@ -604,6 +607,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             onInspectorOpenChange={setRunInspectorOpen}
             onFocusChat={openChatFromOperations}
             onOpenOperations={openOperationsSurface}
+            onOpenSettings={() => {
+              selectSurface("settings");
+            }}
             requestWorkspace={(method, params) =>
               transport.requestWorkspace(method, params)
             }
@@ -627,6 +633,7 @@ function AgentUiShell({
   onInspectorOpenChange,
   onFocusChat,
   onOpenOperations,
+  onOpenSettings,
   requestWorkspace,
 }: {
   hostStatus: HostStatusPayload;
@@ -644,6 +651,7 @@ function AgentUiShell({
     view: OperationsDeepLinkView;
     workHubView?: OperationsDeepLinkWorkHubView;
   }) => void;
+  onOpenSettings?: () => void;
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
 }) {
   const ports = useHostPorts();
@@ -1145,6 +1153,8 @@ function AgentUiShell({
       case "permissions":
       case "mcp":
       case "skills":
+      case "settings":
+        onOpenSettings?.();
         break;
       default:
         break;

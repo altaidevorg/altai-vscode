@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   findSlashCommands,
-  resolveSlashCommand,
   tryRunSlashCommand,
 } from "../../src/webview/composerSlashCommands.js";
 
@@ -48,8 +47,15 @@ describe("tryRunSlashCommand", () => {
     expect(result.kind).toBe("send-prompt");
   });
 
-  it("resolves aliases", () => {
-    expect(resolveSlashCommand("work")?.name).toBe("tasks");
+  it("maps settings actions", () => {
+    expect(tryRunSlashCommand("/settings")).toMatchObject({
+      kind: "handled",
+      action: "settings",
+    });
+    expect(tryRunSlashCommand("/models")).toMatchObject({
+      kind: "handled",
+      action: "models",
+    });
     expect(tryRunSlashCommand("/cancel")).toMatchObject({
       kind: "handled",
       action: "stop",
