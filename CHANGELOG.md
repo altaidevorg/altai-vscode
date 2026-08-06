@@ -141,6 +141,8 @@ sibling `file:` packages until public npm publish.
 - Settings About exposes the same recovery buttons as the wait shell.
 - When the host reports `host.untrusted`, recovery surfaces expose Manage
   workspace trust (allowlisted VS Code command).
+- Slash `/new-task` and `/new-automation` open Operations compose forms
+  (optional title from the command tail).
 
 ### Security
 

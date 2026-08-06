@@ -77,6 +77,23 @@ describe("tryRunSlashCommand", () => {
       action: "restart-host",
     });
   });
+
+  it("opens new task and automation composers", () => {
+    expect(tryRunSlashCommand("/new-task Fix CI")).toMatchObject({
+      kind: "handled",
+      action: "new-task",
+      tail: "Fix CI",
+    });
+    expect(tryRunSlashCommand("/task")).toMatchObject({
+      kind: "handled",
+      action: "new-task",
+    });
+    expect(tryRunSlashCommand("/new-automation Nightly")).toMatchObject({
+      kind: "handled",
+      action: "new-automation",
+      tail: "Nightly",
+    });
+  });
 });
 
 describe("formatSlashHelpDigest", () => {

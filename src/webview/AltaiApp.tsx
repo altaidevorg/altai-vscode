@@ -355,10 +355,18 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     (input: {
       view: OperationsDeepLinkView;
       workHubView?: OperationsDeepLinkWorkHubView;
+      composeTask?: boolean;
+      composeAutomation?: boolean;
+      draftTitle?: string;
     }) => {
       const payload = buildOpenOperationsPayload({
         view: input.view,
         ...(input.workHubView ? { workHubView: input.workHubView } : {}),
+        ...(input.composeTask ? { composeTask: true } : {}),
+        ...(input.composeAutomation ? { composeAutomation: true } : {}),
+        ...(input.draftTitle?.trim()
+          ? { draftTitle: input.draftTitle.trim() }
+          : {}),
       });
       selectSurface("operations");
       setOperationsNav(payload);
@@ -713,6 +721,9 @@ function AgentUiShell({
   onOpenOperations?: (input: {
     view: OperationsDeepLinkView;
     workHubView?: OperationsDeepLinkWorkHubView;
+    composeTask?: boolean;
+    composeAutomation?: boolean;
+    draftTitle?: string;
   }) => void;
   onOpenSettings?: () => void;
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
@@ -1217,11 +1228,27 @@ function AgentUiShell({
       case "tasks":
         onOpenOperations?.({ view: "work", workHubView: "runs" });
         break;
+      case "new-task":
+        onOpenOperations?.({
+          view: "runs",
+          workHubView: "runs",
+          composeTask: true,
+          ...(tail.trim() ? { draftTitle: tail.trim() } : {}),
+        });
+        break;
       case "inbox":
         onOpenOperations?.({ view: "inbox" });
         break;
       case "automations":
         onOpenOperations?.({ view: "work", workHubView: "scheduled" });
+        break;
+      case "new-automation":
+        onOpenOperations?.({
+          view: "work",
+          workHubView: "scheduled",
+          composeAutomation: true,
+          ...(tail.trim() ? { draftTitle: tail.trim() } : {}),
+        });
         break;
       case "models":
       case "permissions":

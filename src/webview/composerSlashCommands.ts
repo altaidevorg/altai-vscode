@@ -44,7 +44,9 @@ export type SlashHostAction =
   | "help"
   | "logs"
   | "diagnostics"
-  | "restart-host";
+  | "restart-host"
+  | "new-task"
+  | "new-automation";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -89,8 +91,10 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "workflow", invocation: "/workflow", label: "Create workflow", description: "Design or update a reusable WORKFLOW.md process.", category: "project", behavior: "prompt" },
   { name: "research", invocation: "/research", label: "Research", description: "Research with primary sources and return cited findings.", category: "project", behavior: "prompt" },
   { name: "tasks", invocation: "/tasks", label: "Work", description: "Open Operations work (runs).", aliases: ["work"], category: "project", behavior: "action" },
+  { name: "new-task", invocation: "/new-task", label: "New task", description: "Open Operations and start a new background task. Optional title after the command.", aliases: ["task"], category: "project", behavior: "action" },
   { name: "inbox", invocation: "/inbox", label: "Notifications", description: "Open the Operations inbox.", category: "project", behavior: "action" },
   { name: "automations", invocation: "/automations", label: "Scheduled", description: "Open Operations scheduled work.", aliases: ["schedule"], category: "project", behavior: "action" },
+  { name: "new-automation", invocation: "/new-automation", label: "New automation", description: "Open Scheduled and start a new automation. Optional title after the command.", aliases: ["schedule-new"], category: "project", behavior: "action" },
   { name: "models", invocation: "/models", label: "Model settings", description: "Open Settings to pick a model.", aliases: ["model"], category: "settings", behavior: "action" },
   { name: "permissions", invocation: "/permissions", label: "Permissions", description: "Open Settings for permission modes.", aliases: ["permission"], category: "settings", behavior: "action" },
   { name: "mcp", invocation: "/mcp", label: "MCP", description: "Open Settings for MCP servers.", aliases: ["mcps"], category: "settings", behavior: "action" },
@@ -238,6 +242,10 @@ function toastFor(name: string, tail: string): string | undefined {
       return "Opened Operations inbox";
     case "automations":
       return "Opened Operations scheduled";
+    case "new-task":
+      return "Opened new task composer";
+    case "new-automation":
+      return "Opened new automation composer";
     case "models":
     case "permissions":
     case "mcp":
