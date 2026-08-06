@@ -83,6 +83,16 @@ export const OPEN_CHAT_WITH_SELECTION_EVENT = "chat.attachSelection" as const;
  */
 export const OPEN_CHAT_WITH_FILE_EVENT = "chat.attachFile" as const;
 
+/**
+ * Extension Host → Webview: switch to the Settings surface (presentation only).
+ */
+export const OPEN_SETTINGS_EVENT = "settings.open" as const;
+
+export type OpenSettingsPayload = {
+  /** Unique key so remounted/idempotent opens re-apply. */
+  key: number;
+};
+
 export type OperationsDeepLinkView =
   | "overview"
   | "work"

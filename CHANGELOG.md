@@ -166,6 +166,7 @@ sibling `file:` packages until public npm publish.
 - Slash `/disconnect` clears a provider credential via the Extension Host.
 - Command palette **Ask About Working Tree** attaches a path/status summary via
   the selection deep-link (no `git` spawn).
+- Command palette **Open Settings** focuses the side panel on the Settings surface.
 
 ### Security
 
