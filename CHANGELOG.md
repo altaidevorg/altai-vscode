@@ -48,6 +48,8 @@ sibling `file:` packages until public npm publish.
   restores when `review.checkpoints` / `review.restoreCheckpoint` allow it.
 - Tool bubbles surface file path when present and offer Open via
   `workspace.openFile` when the host advertises it.
+- `edit_diff` stream events become review rows with Diff (openDiff) and Open
+  actions when host capabilities allow.
 
 ### Security
 

@@ -47,6 +47,7 @@ export function ChatMessageList({
 }: ChatMessageListProps) {
   const ports = useHostPorts();
   const canOpenFile = useCapability("workspace.openFile");
+  const canOpenDiff = useCapability("workspace.openDiff");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -81,6 +82,12 @@ export function ChatMessageList({
           message.role === "tool" &&
           canOpenFile &&
           Boolean(message.fileUri) &&
+          !message.streaming;
+        const showOpenDiff =
+          message.role === "tool" &&
+          canOpenDiff &&
+          message.diffOriginalText !== undefined &&
+          message.diffModifiedText !== undefined &&
           !message.streaming;
 
         return (
@@ -169,7 +176,8 @@ export function ChatMessageList({
                 </p>
               </>
             )}
-            {(showEdit || showRetry || showOpenFile) && !isEditing ? (
+            {(showEdit || showRetry || showOpenFile || showOpenDiff) &&
+            !isEditing ? (
               <footer className="altai-chat-bubble-actions">
                 {showEdit ? (
                   <HoverActionButton
@@ -190,6 +198,40 @@ export function ChatMessageList({
                     onClick={() => onRetry?.()}
                   >
                     Retry
+                  </HoverActionButton>
+                ) : null}
+                {showOpenDiff ? (
+                  <HoverActionButton
+                    title={
+                      message.filePath
+                        ? `Review diff for ${message.filePath}`
+                        : "Open diff"
+                    }
+                    disabled={openingId === message.id}
+                    onClick={() => {
+                      setOpeningId(message.id);
+                      void ports.workspace
+                        .openDiff({
+                          title: message.filePath
+                            ? `ALTAI · ${message.filePath}`
+                            : "ALTAI review",
+                          originalText: message.diffOriginalText ?? "",
+                          modifiedText: message.diffModifiedText ?? "",
+                          ...(message.filePath
+                            ? { path: message.filePath }
+                            : {}),
+                        })
+                        .catch((err: unknown) => {
+                          onOpenFileError?.(
+                            err instanceof Error ? err.message : String(err),
+                          );
+                        })
+                        .finally(() => {
+                          setOpeningId(null);
+                        });
+                    }}
+                  >
+                    {openingId === message.id ? "Opening…" : "Diff"}
                   </HoverActionButton>
                 ) : null}
                 {showOpenFile ? (

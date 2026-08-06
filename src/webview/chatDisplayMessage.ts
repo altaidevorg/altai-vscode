@@ -28,6 +28,10 @@ export type ChatDisplayMessage = {
   fileUri?: string;
   /** Display path when a tool targets a file. */
   filePath?: string;
+  /** Original text for edit_diff rows (host opens via workspace.openDiff). */
+  diffOriginalText?: string;
+  /** Proposed text for edit_diff rows. */
+  diffModifiedText?: string;
 };
 
 export type SessionMessageLike = {
@@ -233,6 +237,70 @@ export function toolBubbleContent(
   return `Using ${name}…`;
 }
 
+/**
+ * Normalize native `edit_diff` crates (file + before/after) for Open Diff.
+ */
+export function extractEditDiff(payload: unknown): {
+  path: string;
+  originalText: string;
+  modifiedText: string;
+  hunkId?: string;
+} | null {
+  const candidates: unknown[] = [payload];
+  if (isRecord(payload)) {
+    if (payload.event !== undefined) {
+      candidates.push(payload.event);
+    }
+    if (payload.edit_diff !== undefined) {
+      candidates.push(payload.edit_diff);
+    }
+    if (payload.payload !== undefined) {
+      candidates.push(payload.payload);
+    }
+  }
+  for (const candidate of candidates) {
+    if (!isRecord(candidate)) {
+      continue;
+    }
+    const path =
+      (typeof candidate.file === "string" && candidate.file.trim()) ||
+      (typeof candidate.path === "string" && candidate.path.trim()) ||
+      "";
+    const originalText =
+      typeof candidate.before === "string"
+        ? candidate.before
+        : typeof candidate.original === "string"
+          ? candidate.original
+          : typeof candidate.originalText === "string"
+            ? candidate.originalText
+            : null;
+    const modifiedText =
+      typeof candidate.after === "string"
+        ? candidate.after
+        : typeof candidate.modified === "string"
+          ? candidate.modified
+          : typeof candidate.proposed === "string"
+            ? candidate.proposed
+            : typeof candidate.modifiedText === "string"
+              ? candidate.modifiedText
+              : null;
+    if (!path || originalText === null || modifiedText === null) {
+      continue;
+    }
+    return {
+      path,
+      originalText,
+      modifiedText,
+      ...(typeof candidate.hunk_id === "string"
+        ? { hunkId: candidate.hunk_id }
+        : typeof candidate.hunkId === "string"
+          ? { hunkId: candidate.hunkId }
+          : {}),
+    };
+  }
+  return null;
+}
+
 function pushTrimmed(
   messages: ChatDisplayMessage[],
   next: ChatDisplayMessage,
@@ -311,7 +379,31 @@ export function applyAgentEventToMessages(
     );
   }
 
-  if (crateType === "tool_call_start" || event.type === "tool") {
+  if (crateType === "edit_diff" || event.type === "diff") {
+    const diff = extractEditDiff(event.payload);
+    if (diff) {
+      const base = diff.path.replace(/\\/g, "/").split("/").pop() || diff.path;
+      return pushTrimmed(
+        list,
+        {
+          id: newDisplayMessageId("diff"),
+          role: "tool",
+          content: `Edit · ${base}`,
+          toolName: "edit_diff",
+          filePath: diff.path,
+          fileUri: pathToFileUri(diff.path),
+          diffOriginalText: diff.originalText,
+          diffModifiedText: diff.modifiedText,
+        },
+        max,
+      );
+    }
+  }
+
+  if (
+    crateType === "tool_call_start" ||
+    (event.type === "tool" && crateType !== "edit_diff")
+  ) {
     const name =
       (typeof body.name === "string" && body.name) ||
       (isRecord(body.event) &&
