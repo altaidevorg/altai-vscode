@@ -158,6 +158,8 @@ sibling `file:` packages until public npm publish.
 - Multi-root preferred project root is restored from Webview presentation state
   (display/Explorer only — does not rebind the agent host cwd).
 - Slash `/copy` (`/export`) copies the current transcript as plain text.
+- Settings About can Copy diagnostic (same text as the wait shell) and Escape
+  also dismisses change-review / run-details chrome when no error banner is open.
 
 ### Security
 
