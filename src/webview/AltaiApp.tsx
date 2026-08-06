@@ -1231,6 +1231,21 @@ function AgentUiShell({
         setMessages((prev) => appendMetaMessage(prev, digest));
         return;
       }
+      case "logs":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.openLogs",
+        });
+        break;
+      case "diagnostics":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.runDiagnostics",
+        });
+        break;
+      case "restart-host":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.restartAgentHost",
+        });
+        break;
       default:
         break;
     }

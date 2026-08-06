@@ -63,14 +63,18 @@ describe("tryRunSlashCommand", () => {
     });
   });
 
-  it("lists help digest", () => {
-    expect(tryRunSlashCommand("/help")).toMatchObject({
+  it("maps recovery actions", () => {
+    expect(tryRunSlashCommand("/logs")).toMatchObject({
       kind: "handled",
-      action: "help",
+      action: "logs",
     });
-    expect(tryRunSlashCommand("/?")).toMatchObject({
+    expect(tryRunSlashCommand("/diag")).toMatchObject({
       kind: "handled",
-      action: "help",
+      action: "diagnostics",
+    });
+    expect(tryRunSlashCommand("/restart")).toMatchObject({
+      kind: "handled",
+      action: "restart-host",
     });
   });
 });
