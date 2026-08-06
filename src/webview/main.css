@@ -223,6 +223,27 @@ body {
   border-color: var(--border-subtle);
 }
 
+.altai-ops-domain {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+}
+
+.altai-ops-domain-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.altai-ops-domain--inbox {
+  /* Inbox uses AuxiliarySurface absolute chrome; keep a height for inset-0. */
+  min-height: 16rem;
+}
+
 /* High-contrast: prefer VS Code contrast tokens when present. */
 @media (forced-colors: active) {
   .altai-capability,

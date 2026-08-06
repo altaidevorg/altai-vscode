@@ -1,11 +1,11 @@
 /**
  * VS Code mount of the shared Operations surfaces.
  *
- * Renders `OperationsNavigationShell` with the Overview view; Work/Inbox/Runs
- * routes stay inert until their canonical slices land. Data is aggregated
- * from the existing Work/Inbox host ports (`operationsOverview.ts`) — there
- * is no webview-owned store, and a canonical `OperationsSummary` projection
- * replaces this composition later.
+ * Renders `OperationsNavigationShell` with capability-gated Overview / Work /
+ * Runs / Inbox. Overview aggregates Work+Inbox ports (`operationsOverview.ts`);
+ * domain routes list the same data through shared cards. There is no
+ * webview-owned durable store — a canonical OperationsSummary projection
+ * replaces host aggregation later (CP-17).
  */
 
 import {
@@ -16,12 +16,19 @@ import {
   useHostPortsContext,
   type OperationsView,
 } from "@altai/agent-ui";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  OperationsDomainStatus,
+  OperationsInboxDomain,
+  OperationsRunsDomain,
+  OperationsWorkDomain,
+} from "./OperationsDomainViews.js";
 import {
   buildOperationsOverview,
   EMPTY_OPERATIONS_DATA,
   type OperationsOverviewData,
 } from "./operationsOverview.js";
+import { resolveAvailableOperationsViews } from "./operationsRoutes.js";
 
 type LoadState =
   | { status: "loading" }
@@ -36,6 +43,24 @@ export function OperationsPanel() {
   const canInbox = useCapability("inbox.notifications");
   const [view, setView] = useState<OperationsView>("overview");
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [actionBusyId, setActionBusyId] = useState<string | null>(null);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
+
+  const availableViews = useMemo(
+    () =>
+      resolveAvailableOperationsViews({
+        taskRuns: canTaskRuns,
+        automations: canAutomations,
+        inbox: canInbox,
+      }),
+    [canTaskRuns, canAutomations, canInbox],
+  );
+
+  useEffect(() => {
+    if (!availableViews.includes(view)) {
+      setView("overview");
+    }
+  }, [availableViews, view]);
 
   const load = useCallback(async () => {
     // Capabilities are null until runtime.initialize completes; the effect
@@ -76,37 +101,181 @@ export function OperationsPanel() {
     [ports, load],
   );
 
-  const viewModel = buildOperationsOverview(
-    state.status === "ready" ? state.data : EMPTY_OPERATIONS_DATA,
+  const data =
+    state.status === "ready" ? state.data : EMPTY_OPERATIONS_DATA;
+  const viewModel = buildOperationsOverview(data);
+
+  const withBusy = useCallback(
+    async (id: string, action: () => Promise<void>) => {
+      setActionBusyId(id);
+      try {
+        await action();
+        await load();
+      } catch (error) {
+        setState({
+          status: "error",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      } finally {
+        setActionBusyId(null);
+      }
+    },
+    [load],
   );
+
+  const taskActions = {
+    busyId: actionBusyId,
+    onRetry: (id: string) => {
+      void withBusy(id, () => ports.work.retryTaskRun(id).then(() => undefined));
+    },
+    onStop: (id: string) => {
+      void withBusy(id, () => ports.work.cancelTaskRun(id));
+    },
+    onRemove: (id: string) => {
+      void withBusy(id, () => ports.work.removeTaskRun(id));
+    },
+  };
+
+  const automationActions = {
+    busyId: actionBusyId,
+    onTrigger: (id: string) => {
+      void withBusy(id, () => ports.work.triggerAutomation(id));
+    },
+    onPause: (id: string) => {
+      void withBusy(id, () => ports.work.pauseAutomation(id));
+    },
+    onDelete: (id: string) => {
+      void withBusy(id, () => ports.work.deleteAutomation(id));
+    },
+  };
 
   return (
     <OperationsNavigationShell
       view={view}
       onViewChange={setView}
-      availableViews={["overview"]}
+      availableViews={availableViews}
     >
-      <OperationsOverview
-        status={
-          state.status === "error"
-            ? "error"
-            : state.status === "ready"
-              ? "ready"
-              : "loading"
-        }
-        {...(state.status === "error"
-          ? {
-              errorMessage: state.message,
-              onDismissError: () => {
-                setState({ status: "loading" });
+      {view === "overview" ? (
+        <OperationsOverview
+          status={
+            state.status === "error"
+              ? "error"
+              : state.status === "ready"
+                ? "ready"
+                : "loading"
+          }
+          {...(state.status === "error"
+            ? {
+                errorMessage: state.message,
+                onDismissError: () => {
+                  setState({ status: "loading" });
+                  void load();
+                },
+              }
+            : {})}
+          metrics={viewModel.metrics}
+          attention={viewModel.attention}
+          progressing={viewModel.progressing}
+        />
+      ) : null}
+
+      {view === "work" ? (
+        state.status !== "ready" ? (
+          <OperationsDomainStatus
+            status={state.status === "error" ? "error" : "loading"}
+            errorMessage={
+              state.status === "error" ? state.message : undefined
+            }
+            onRetry={() => {
+              setState({ status: "loading" });
+              void load();
+            }}
+          />
+        ) : (
+          <OperationsWorkDomain
+            taskRuns={data.taskRuns}
+            automations={data.automations}
+            canTaskRuns={canTaskRuns}
+            canAutomations={canAutomations}
+            actions={taskActions}
+            automationActions={automationActions}
+          />
+        )
+      ) : null}
+
+      {view === "runs" ? (
+        state.status !== "ready" ? (
+          <OperationsDomainStatus
+            status={state.status === "error" ? "error" : "loading"}
+            errorMessage={
+              state.status === "error" ? state.message : undefined
+            }
+            onRetry={() => {
+              setState({ status: "loading" });
+              void load();
+            }}
+          />
+        ) : (
+          <OperationsRunsDomain
+            taskRuns={data.taskRuns}
+            actions={taskActions}
+          />
+        )
+      ) : null}
+
+      {view === "inbox" ? (
+        state.status !== "ready" && state.status !== "error" ? (
+          <OperationsDomainStatus
+            status="loading"
+            onRetry={() => {
+              void load();
+            }}
+          />
+        ) : (
+          <OperationsInboxDomain
+            notifications={data.notifications}
+            actions={{
+              busyId: actionBusyId,
+              loading: false,
+              error: state.status === "error" ? state.message : null,
+              markingAllRead,
+              onRefresh: () => {
                 void load();
               },
-            }
-          : {})}
-        metrics={viewModel.metrics}
-        attention={viewModel.attention}
-        progressing={viewModel.progressing}
-      />
+              onMarkSeen: (id) => {
+                void withBusy(id, () => ports.inbox.markNotificationSeen(id));
+              },
+              onResolve: (id) => {
+                void withBusy(id, () => ports.inbox.resolveNotification(id));
+              },
+              onMarkAllRead: () => {
+                void (async () => {
+                  setMarkingAllRead(true);
+                  try {
+                    const unread = data.notifications.filter((item) => !item.seen);
+                    await Promise.all(
+                      unread.map((item) =>
+                        ports.inbox.markNotificationSeen(item.id),
+                      ),
+                    );
+                    await load();
+                  } catch (error) {
+                    setState({
+                      status: "error",
+                      message:
+                        error instanceof Error
+                          ? error.message
+                          : String(error),
+                    });
+                  } finally {
+                    setMarkingAllRead(false);
+                  }
+                })();
+              },
+            }}
+          />
+        )
+      ) : null}
     </OperationsNavigationShell>
   );
 }
