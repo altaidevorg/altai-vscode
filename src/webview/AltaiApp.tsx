@@ -1364,6 +1364,11 @@ function AgentUiShell({
           command: "altai.connectProvider",
         });
         break;
+      case "disconnect":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.clearProviderCredential",
+        });
+        break;
       default:
         break;
     }

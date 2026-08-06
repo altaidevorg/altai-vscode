@@ -127,6 +127,13 @@ describe("tryRunSlashCommand", () => {
       action: "connect",
     });
   });
+
+  it("clears a provider credential", () => {
+    expect(tryRunSlashCommand("/disconnect")).toMatchObject({
+      kind: "handled",
+      action: "disconnect",
+    });
+  });
 });
 
 describe("formatSlashHelpDigest", () => {

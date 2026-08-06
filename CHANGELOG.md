@@ -163,6 +163,7 @@ sibling `file:` packages until public npm publish.
 - Empty-home starters also cover `/settings` and `/new` (dispatched immediately).
 - Slash `/connect` (`/provider`) opens the Extension Host provider credential flow.
 - Keyboard shortcut Cmd/Ctrl+Shift+Alt+A opens the ALTAI side panel.
+- Slash `/disconnect` clears a provider credential via the Extension Host.
 
 ### Security
 
