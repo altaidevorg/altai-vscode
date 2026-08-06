@@ -21,6 +21,7 @@ describe("package.json command contributions", () => {
       "altai.askAboutSelection",
       "altai.askAboutActiveFile",
       "altai.askAboutWorkingTree",
+      "altai.askAboutTerminal",
     ]) {
       expect(commands.has(id), `missing command ${id}`).toBe(true);
     }
