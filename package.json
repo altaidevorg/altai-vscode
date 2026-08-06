@@ -75,6 +75,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.openSettings",
+        "title": "ALTAI: Open Settings",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.askAboutSelection",
         "title": "ALTAI: Ask About Selection",
         "category": "ALTAI"
@@ -179,6 +184,11 @@
         "command": "altai.openSidePanel",
         "key": "ctrl+shift+alt+a",
         "mac": "cmd+shift+alt+a"
+      },
+      {
+        "command": "altai.openSettings",
+        "key": "ctrl+alt+,",
+        "mac": "cmd+alt+,"
       },
       {
         "command": "altai.askAboutSelection",
