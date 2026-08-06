@@ -249,7 +249,18 @@ body {
 
 .altai-chat-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
+  align-items: center;
+}
+
+.altai-permission-chrome {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
 }
 
 .altai-chat-actions button {
