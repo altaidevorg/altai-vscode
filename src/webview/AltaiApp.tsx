@@ -35,6 +35,13 @@ import {
 import { transcriptLinesFromMessages } from "./sessionTranscript.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
+import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
+import {
+  applyInteractivePrompt,
+  interactivePromptFromAgentEvent,
+  type PendingClarificationPrompt,
+  type PendingToolApproval,
+} from "./interactivePrompt.js";
 import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
@@ -392,9 +399,16 @@ function AgentUiShell({
   const [permissionMode, setPermissionMode] = useState<PermissionMode | null>(
     null,
   );
+  const [pendingApprovals, setPendingApprovals] = useState<
+    PendingToolApproval[]
+  >([]);
+  const [pendingClarification, setPendingClarification] =
+    useState<PendingClarificationPrompt | null>(null);
   const appliedFocus = useRef<{ key: number; withTranscript: boolean } | null>(
     null,
   );
+  const activeChatIdRef = useRef<string | null>(activeChatId);
+  activeChatIdRef.current = activeChatId;
 
   useEffect(() => {
     if (!chatFocus) {
@@ -457,8 +471,39 @@ function AgentUiShell({
           ? (event.payload as { text: string }).text
           : `${event.type} · seq ${event.seq}`;
       setLines((prev) => [...prev.slice(-200), summary]);
+
+      const prompt = interactivePromptFromAgentEvent(event);
+      if (!prompt) {
+        return;
+      }
+      const currentChat = activeChatIdRef.current;
+      if (currentChat && prompt.chatId !== currentChat) {
+        return;
+      }
+      if (prompt.kind === "tool") {
+        setPendingApprovals((prev) =>
+          applyInteractivePrompt(prev, null, prompt).approvals,
+        );
+      } else {
+        setPendingClarification(prompt);
+        if (prompt.content) {
+          setLines((prev) => {
+            const line = `ALTAI: ${prompt.content}`;
+            if (prev[prev.length - 1] === line) {
+              return prev;
+            }
+            return [...prev.slice(-200), line];
+          });
+        }
+      }
     });
   }, [ports]);
+
+  // Clear pending decisions when switching sessions.
+  useEffect(() => {
+    setPendingApprovals([]);
+    setPendingClarification(null);
+  }, [activeChatId]);
 
   const onSubmit = async (): Promise<void> => {
     const text = prompt.trim();
@@ -555,6 +600,12 @@ function AgentUiShell({
               {error}
             </p>
           ) : null}
+          <ChatInteractivePrompts
+            approvals={pendingApprovals}
+            clarification={pendingClarification}
+            onApprovalsChange={setPendingApprovals}
+            onClarificationChange={setPendingClarification}
+          />
           <form
             className="altai-chat-composer"
             onSubmit={(event) => {
