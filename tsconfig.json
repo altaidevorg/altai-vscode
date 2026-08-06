@@ -59,6 +59,7 @@
     "test/unit/messageCopyChrome.test.ts",
     "test/unit/transcriptCopyChrome.test.ts",
     "test/unit/surfaceTabsChrome.test.ts",
+    "test/unit/composerHintChrome.test.ts",
     "dist",
     "out",
     "node_modules"
