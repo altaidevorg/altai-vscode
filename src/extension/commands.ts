@@ -2,6 +2,10 @@ import * as vscode from "vscode";
 import type { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
 import { getOutputChannel } from "./output.js";
 import { COMPATIBILITY } from "./compatibility.js";
+import {
+  formatCompatibilitySummary,
+  formatDiagnosticsReport,
+} from "./diagnosticsReport.js";
 import type { HostManager } from "./host/HostManager.js";
 import { isWorkspaceTrusted } from "./workspaceTrust.js";
 
@@ -67,34 +71,38 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.runDiagnostics", async () => {
       const channel = getOutputChannel();
       channel.show(true);
-      const diagnostic = hostManager.getLastDiagnostic();
-      channel.appendLine("[altai] diagnostics");
-      channel.appendLine(`  extension=${COMPATIBILITY.extension}`);
-      channel.appendLine(`  agentUi=${COMPATIBILITY.agentUi}`);
-      channel.appendLine(`  protocol=${COMPATIBILITY.protocol}`);
-      channel.appendLine(`  agentHost=${COMPATIBILITY.agentHost}`);
-      channel.appendLine(
-        `  workspaceTrusted=${isWorkspaceTrusted() ? "yes" : "no"}`,
-      );
-      channel.appendLine(`  remoteName=${vscode.env.remoteName ?? "(local)"}`);
-      channel.appendLine(`  appHost=${vscode.env.appHost}`);
-      channel.appendLine(`  uiKind=${vscode.env.uiKind}`);
-      channel.appendLine(
-        `  resolvedPath=${hostManager.getResolvedPath() ?? "(none)"}`,
-      );
-      channel.appendLine(`  lifecycle=${hostManager.getLifecycleState()}`);
-      channel.appendLine(
-        `  diagnosticCode=${diagnostic?.code ?? "(none)"}`,
-      );
-      channel.appendLine(`  hostStatus=${hostManager.getStatus().status}`);
-      channel.appendLine(`  hostMessage=${hostManager.getStatus().message}`);
+      const status = hostManager.getStatus();
+      const lines = formatDiagnosticsReport({
+        compatibility: COMPATIBILITY,
+        env: {
+          workspaceTrusted: isWorkspaceTrusted(),
+          remoteName: vscode.env.remoteName,
+          appHost: vscode.env.appHost,
+          uiKind: vscode.env.uiKind,
+          extensionPath: context.extensionUri.fsPath,
+        },
+        host: {
+          lifecycle: hostManager.getLifecycleState(),
+          resolvedPath: hostManager.getResolvedPath(),
+          status: status.status,
+          message: status.message,
+          diagnostic: hostManager.getLastDiagnostic(),
+        },
+      });
+      for (const line of lines) {
+        channel.appendLine(line);
+      }
+      const recovery = lines.find((line) => line.startsWith("  recovery="));
+      const summary = recovery
+        ? recovery.slice("  recovery=".length)
+        : "Diagnostics written to the ALTAI output channel.";
       await vscode.window.showInformationMessage(
-        "ALTAI diagnostics written to the ALTAI output channel.",
+        summary.length > 160 ? `${summary.slice(0, 157)}…` : summary,
       );
     }),
     vscode.commands.registerCommand("altai.showVersionCompatibility", async () => {
       await vscode.window.showInformationMessage(
-        `ALTAI ${COMPATIBILITY.extension} · UI ${COMPATIBILITY.agentUi} · protocol ${COMPATIBILITY.protocol} · host ${COMPATIBILITY.agentHost}`,
+        formatCompatibilitySummary(COMPATIBILITY),
       );
     }),
     vscode.commands.registerCommand("altai.connectProvider", async () => {
