@@ -58,6 +58,7 @@ import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
+import { ChatComposerCompact } from "./ChatComposerCompact.js";
 import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
 import { ChatComposerContext } from "./ChatComposerContext.js";
 import {
@@ -965,6 +966,21 @@ function AgentUiShell({
                 <ComposerPrimaryRow
                   tools={
                     <>
+                      <ChatComposerCompact
+                        chatId={activeChatId}
+                        composerBusy={busy}
+                        onCompacted={() => {
+                          setMessages((prev) =>
+                            appendMetaMessage(
+                              prev,
+                              "Context compaction requested",
+                            ),
+                          );
+                        }}
+                        onError={(message) => {
+                          setError(message);
+                        }}
+                      />
                       <ChatModelPickerChrome />
                     </>
                   }

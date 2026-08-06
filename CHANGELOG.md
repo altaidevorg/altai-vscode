@@ -42,6 +42,8 @@ sibling `file:` packages until public npm publish.
   selection, git working-tree diff, and terminal context with shared chips.
 - Composer `@file` picker: type `@` + query to search workspace files and
   attach a match (keyboard navigable).
+- Composer compact control: shared `CompactNowControl` calls
+  `runtime.compactContext` when the host advertises the capability.
 
 ### Security
 
