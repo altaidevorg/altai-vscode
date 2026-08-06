@@ -3,6 +3,7 @@ import { registerCommands } from "./commands.js";
 import { COMPATIBILITY } from "./compatibility.js";
 import { HostManager } from "./host/HostManager.js";
 import { getOutputChannel } from "./output.js";
+import { AttentionStatusBar } from "./AttentionStatusBar.js";
 import { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
 import { DiffContentProvider } from "./vscode/DiffContentProvider.js";
 import { GitDiffAdapter } from "./vscode/GitDiffAdapter.js";
@@ -22,6 +23,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   let provider: AltaiViewProvider | undefined;
+
+  const attentionBar = new AttentionStatusBar();
+  context.subscriptions.push(attentionBar);
 
   hostManager = new HostManager({
     extensionPath: context.extensionUri.fsPath,
@@ -44,7 +48,12 @@ export function activate(context: vscode.ExtensionContext): void {
     (label, text) => diffContentProvider.createUri(label, text),
     () => gitDiffAdapter.getDiffContext(),
   );
-  provider = new AltaiViewProvider(context, hostManager, workspaceAdapter);
+  provider = new AltaiViewProvider(
+    context,
+    hostManager,
+    workspaceAdapter,
+    (count) => attentionBar.setAttentionCount(count),
+  );
   // Persist presentation state via vscodeApi getState/setState (TASK-003).
   // Do not retain hidden Webview contexts.
   context.subscriptions.push(

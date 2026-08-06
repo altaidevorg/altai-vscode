@@ -31,14 +31,17 @@ import {
 } from "./operationsDeepLink.js";
 import {
   buildOperationsOverview,
+  countOperationsAttention,
   EMPTY_OPERATIONS_DATA,
   overviewActiveRunId,
+  overviewFailedRunId,
+  overviewUnreadInboxId,
   withOverviewRowNavigation,
   type OperationsOverviewData,
 } from "./operationsOverview.js";
 import { resolveAvailableOperationsViews } from "./operationsRoutes.js";
 import type { ReactNode } from "react";
-import { createElement } from "react";
+import { createElement, Fragment } from "react";
 
 type LoadState =
   | { status: "loading" }
@@ -56,6 +59,8 @@ export type OperationsPanelProps = {
     operationsView: OperationsView;
     workHubView: WorkHubView;
   }) => void;
+  /** Push attention count to the Extension Host status bar. */
+  onAttentionCountChange?: (count: number) => void;
 };
 
 export function OperationsPanel({
@@ -63,6 +68,7 @@ export function OperationsPanel({
   initialView = "overview",
   initialWorkHubView = "runs",
   onPresentationChange,
+  onAttentionCountChange,
 }: OperationsPanelProps) {
   const ports = useHostPorts();
   const { capabilities } = useHostPortsContext();
@@ -205,6 +211,13 @@ export function OperationsPanel({
     [ports.work, withBusy],
   );
 
+  const onMarkInboxSeen = useCallback(
+    (id: string) => {
+      void withBusy(id, () => ports.inbox.markNotificationSeen(id));
+    },
+    [ports.inbox, withBusy],
+  );
+
   const taskActions = {
     busyId: actionBusyId,
     onRetry: onRetryTask,
@@ -212,13 +225,65 @@ export function OperationsPanel({
     onRemove: onRemoveTask,
   };
 
+  useEffect(() => {
+    if (state.status !== "ready") {
+      return;
+    }
+    onAttentionCountChange?.(countOperationsAttention(state.data));
+  }, [state, onAttentionCountChange]);
+
   const viewModel = useMemo(() => {
     const base = buildOperationsOverview(data);
     const attention = withOverviewRowNavigation(
       base.attention,
       flags,
       navigateOverviewRow,
-    );
+    ).map((row) => {
+      const failedId = overviewFailedRunId(row.id, row.statusLabel);
+      const inboxId = overviewUnreadInboxId(row.id, row.statusLabel);
+      const buttons: ReactNode[] = [];
+      if (failedId && canTaskRuns) {
+        buttons.push(
+          createElement(
+            "button",
+            {
+              key: "retry",
+              type: "button",
+              className: "altai-ops-row-action",
+              disabled: actionBusyId === failedId,
+              onClick: () => {
+                onRetryTask(failedId);
+              },
+            },
+            actionBusyId === failedId ? "…" : "Retry",
+          ),
+        );
+      }
+      if (inboxId && canInbox) {
+        buttons.push(
+          createElement(
+            "button",
+            {
+              key: "seen",
+              type: "button",
+              className: "altai-ops-row-action",
+              disabled: actionBusyId === inboxId,
+              onClick: () => {
+                onMarkInboxSeen(inboxId);
+              },
+            },
+            actionBusyId === inboxId ? "…" : "Mark read",
+          ),
+        );
+      }
+      if (buttons.length === 0) {
+        return row;
+      }
+      return {
+        ...row,
+        actions: createElement(Fragment, null, ...buttons),
+      };
+    });
     const progressing = withOverviewRowNavigation(
       base.progressing,
       flags,
@@ -252,8 +317,11 @@ export function OperationsPanel({
     flags,
     navigateOverviewRow,
     canTaskRuns,
+    canInbox,
     actionBusyId,
     onStopTask,
+    onRetryTask,
+    onMarkInboxSeen,
   ]);
 
   const automationActions = {

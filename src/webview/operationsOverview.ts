@@ -179,6 +179,42 @@ export function overviewActiveRunId(
   return id.length > 0 ? id : null;
 }
 
+/**
+ * Failed attention runs expose Retry; status copy is buildOperationsOverview's
+ * "Failed" label.
+ */
+export function overviewFailedRunId(
+  rowId: string,
+  statusLabel: string,
+): string | null {
+  if (!rowId.startsWith("run:") || statusLabel !== "Failed") {
+    return null;
+  }
+  const id = rowId.slice("run:".length);
+  return id.length > 0 ? id : null;
+}
+
+/** Unread inbox attention rows expose Mark read. */
+export function overviewUnreadInboxId(
+  rowId: string,
+  statusLabel: string,
+): string | null {
+  if (!rowId.startsWith("inbox:") || statusLabel !== "Unread") {
+    return null;
+  }
+  const id = rowId.slice("inbox:".length);
+  return id.length > 0 ? id : null;
+}
+
+/** Attention metric: failed runs + unseen notifications (matches overview). */
+export function countOperationsAttention(
+  data: OperationsOverviewData,
+): number {
+  const failed = data.taskRuns.filter((run) => run.status === "failed").length;
+  const unseen = data.notifications.filter((item) => !item.seen).length;
+  return failed + unseen;
+}
+
 function automationScheduleLabel(automation: AutomationInfo): string {
   const { schedule } = automation;
   if (schedule.kind === "once") {

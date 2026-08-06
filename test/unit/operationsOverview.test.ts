@@ -6,8 +6,11 @@ import type {
 } from "@altai/host-contract";
 import {
   buildOperationsOverview,
+  countOperationsAttention,
   destinationForOverviewRowId,
   overviewActiveRunId,
+  overviewFailedRunId,
+  overviewUnreadInboxId,
   withOverviewRowNavigation,
   type OverviewNavFlags,
 } from "../../src/webview/operationsOverview.js";
@@ -201,5 +204,32 @@ describe("overviewActiveRunId", () => {
     expect(overviewActiveRunId("run:abc", "Queued")).toBe("abc");
     expect(overviewActiveRunId("run:abc", "Failed")).toBeNull();
     expect(overviewActiveRunId("inbox:n1", "Working")).toBeNull();
+  });
+});
+
+describe("overview attention row ids", () => {
+  it("detects failed runs and unread inbox rows", () => {
+    expect(overviewFailedRunId("run:x", "Failed")).toBe("x");
+    expect(overviewFailedRunId("run:x", "Working")).toBeNull();
+    expect(overviewUnreadInboxId("inbox:n", "Unread")).toBe("n");
+    expect(overviewUnreadInboxId("inbox:n", "Failed")).toBeNull();
+  });
+});
+
+describe("countOperationsAttention", () => {
+  it("sums failed runs and unseen notifications", () => {
+    expect(
+      countOperationsAttention({
+        taskRuns: [
+          taskRun({ id: "a", status: "failed" }),
+          taskRun({ id: "b", status: "running" }),
+        ],
+        automations: [],
+        notifications: [
+          notification({ id: "n1", seen: false }),
+          notification({ id: "n2", seen: true }),
+        ],
+      }),
+    ).toBe(2);
   });
 });
