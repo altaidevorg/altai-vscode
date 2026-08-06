@@ -21,7 +21,7 @@ import type {
   NotificationInfo,
   TaskRunInfo,
 } from "@altai/host-contract";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   automationScheduleUiLabel,
   mapTaskRunUiStatus,
@@ -62,6 +62,7 @@ export function OperationsWorkDomain({
   canAutomations,
   actions,
   automationActions,
+  hubView: hubViewProp,
 }: {
   taskRuns: TaskRunInfo[];
   automations: AutomationInfo[];
@@ -69,10 +70,19 @@ export function OperationsWorkDomain({
   canAutomations: boolean;
   actions: TaskRunActions;
   automationActions: AutomationActions;
+  /** Optional deep-link selection for the Work hub strip. */
+  hubView?: WorkHubView;
 }) {
   const defaultView: WorkHubView =
-    canTaskRuns ? "runs" : "scheduled";
+    hubViewProp ?? (canTaskRuns ? "runs" : "scheduled");
   const [hubView, setHubView] = useState<WorkHubView>(defaultView);
+
+  useEffect(() => {
+    if (hubViewProp) {
+      setHubView(hubViewProp);
+    }
+  }, [hubViewProp]);
+
   const showNav = canTaskRuns && canAutomations;
   const active =
     !showNav

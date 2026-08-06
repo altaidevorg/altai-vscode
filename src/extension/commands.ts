@@ -14,6 +14,27 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.openSidePanel", async () => {
       await vscode.commands.executeCommand("altai.sidePanel.focus");
     }),
+    vscode.commands.registerCommand("altai.openOperations", async () => {
+      await provider.openOperations({ view: "overview" });
+    }),
+    vscode.commands.registerCommand("altai.openOperationsWork", async () => {
+      await provider.openOperations({ view: "work", workHubView: "runs" });
+    }),
+    vscode.commands.registerCommand("altai.openOperationsRuns", async () => {
+      await provider.openOperations({ view: "runs" });
+    }),
+    vscode.commands.registerCommand("altai.openOperationsInbox", async () => {
+      await provider.openOperations({ view: "inbox" });
+    }),
+    vscode.commands.registerCommand(
+      "altai.openOperationsScheduled",
+      async () => {
+        await provider.openOperations({
+          view: "work",
+          workHubView: "scheduled",
+        });
+      },
+    ),
     vscode.commands.registerCommand("altai.openLogs", () => {
       getOutputChannel().show(true);
     }),

@@ -15,14 +15,20 @@ import {
   useHostPorts,
   useHostPortsContext,
   type OperationsView,
+  type WorkHubView,
 } from "@altai/agent-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { OpenOperationsPayload } from "../shared/messages.js";
 import {
   OperationsDomainStatus,
   OperationsInboxDomain,
   OperationsRunsDomain,
   OperationsWorkDomain,
 } from "./OperationsDomainViews.js";
+import {
+  resolveDeepLinkOperationsView,
+  resolveDeepLinkWorkHubView,
+} from "./operationsDeepLink.js";
 import {
   buildOperationsOverview,
   EMPTY_OPERATIONS_DATA,
@@ -35,26 +41,44 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "ready"; data: OperationsOverviewData };
 
-export function OperationsPanel() {
+export type OperationsPanelProps = {
+  /** Deep-link from Extension Host commands; reapplied when `key` changes. */
+  navigation?: OpenOperationsPayload;
+};
+
+export function OperationsPanel({ navigation }: OperationsPanelProps) {
   const ports = useHostPorts();
   const { capabilities } = useHostPortsContext();
   const canTaskRuns = useCapability("work.taskRuns");
   const canAutomations = useCapability("work.automations");
   const canInbox = useCapability("inbox.notifications");
   const [view, setView] = useState<OperationsView>("overview");
+  const [workHubView, setWorkHubView] = useState<WorkHubView>("runs");
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
 
-  const availableViews = useMemo(
-    () =>
-      resolveAvailableOperationsViews({
-        taskRuns: canTaskRuns,
-        automations: canAutomations,
-        inbox: canInbox,
-      }),
+  const flags = useMemo(
+    () => ({
+      taskRuns: canTaskRuns,
+      automations: canAutomations,
+      inbox: canInbox,
+    }),
     [canTaskRuns, canAutomations, canInbox],
   );
+
+  const availableViews = useMemo(
+    () => resolveAvailableOperationsViews(flags),
+    [flags],
+  );
+
+  useEffect(() => {
+    if (!navigation) return;
+    setView(resolveDeepLinkOperationsView(navigation.view, flags));
+    setWorkHubView(
+      resolveDeepLinkWorkHubView(navigation.workHubView, flags),
+    );
+  }, [navigation, flags]);
 
   useEffect(() => {
     if (!availableViews.includes(view)) {
@@ -197,6 +221,7 @@ export function OperationsPanel() {
             automations={data.automations}
             canTaskRuns={canTaskRuns}
             canAutomations={canAutomations}
+            hubView={workHubView}
             actions={taskActions}
             automationActions={automationActions}
           />

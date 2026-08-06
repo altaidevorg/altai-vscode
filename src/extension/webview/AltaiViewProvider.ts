@@ -3,10 +3,15 @@ import * as path from "node:path";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
+  OPEN_OPERATIONS_EVENT,
   type HostRequestParams,
   type HostStatusPayload,
+  type OpenOperationsPayload,
+  type OperationsDeepLinkView,
+  type OperationsDeepLinkWorkHubView,
   type WorkspaceRequestParams,
 } from "../../shared/messages.js";
+import { buildOpenOperationsPayload } from "../../shared/operationsDeepLink.js";
 import { createNonce } from "../../shared/nonce.js";
 import type { HostManager } from "../host/HostManager.js";
 import { getOutputChannel } from "../output.js";
@@ -30,6 +35,8 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | undefined;
   private bridge: WebviewBridge | undefined;
   private removeNotificationListener: (() => void) | undefined;
+  /** Queued until the Webview bridge is ready (first panel open). */
+  private pendingOperationsOpen: OpenOperationsPayload | undefined;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -113,11 +120,36 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     });
 
     bridge.postEvent(HOST_STATUS_EVENT, this.getHostStatus());
+    if (this.pendingOperationsOpen) {
+      bridge.postEvent(OPEN_OPERATIONS_EVENT, this.pendingOperationsOpen);
+      this.pendingOperationsOpen = undefined;
+    }
     getOutputChannel().appendLine("[altai] webview resolved");
   }
 
   publishHostStatus(status: HostStatusPayload): void {
     this.bridge?.postEvent(HOST_STATUS_EVENT, status);
+  }
+
+  /**
+   * Focus the ALTAI side panel and open Operations on the requested route.
+   */
+  public async openOperations(input?: {
+    view?: OperationsDeepLinkView;
+    workHubView?: OperationsDeepLinkWorkHubView;
+  }): Promise<void> {
+    const payload = buildOpenOperationsPayload({
+      ...(input?.view !== undefined ? { view: input.view } : {}),
+      ...(input?.workHubView !== undefined
+        ? { workHubView: input.workHubView }
+        : {}),
+    });
+    await vscode.commands.executeCommand("altai.sidePanel.focus");
+    if (this.bridge && !this.bridge.isDisposed) {
+      this.bridge.postEvent(OPEN_OPERATIONS_EVENT, payload);
+      return;
+    }
+    this.pendingOperationsOpen = payload;
   }
 
   private async proxyHostRequest(params: unknown): Promise<unknown> {

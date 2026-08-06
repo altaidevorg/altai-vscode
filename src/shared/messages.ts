@@ -65,6 +65,27 @@ export const HOST_STATUS_EVENT = "host.status" as const;
 /** Native JSON-RPC notification forwarded from the agent host (e.g. run/event). */
 export const HOST_RPC_NOTIFICATION_EVENT = "host.rpc.notification" as const;
 
+/**
+ * Extension Host → Webview: open the Operations surface on a secondary route.
+ * Used by command palette deep-links; the panel is capability-gated client-side.
+ */
+export const OPEN_OPERATIONS_EVENT = "operations.open" as const;
+
+export type OperationsDeepLinkView =
+  | "overview"
+  | "work"
+  | "runs"
+  | "inbox";
+
+export type OperationsDeepLinkWorkHubView = "runs" | "scheduled";
+
+export type OpenOperationsPayload = {
+  /** Unique key so remounted/idempotent opens re-apply. */
+  key: number;
+  view: OperationsDeepLinkView;
+  workHubView?: OperationsDeepLinkWorkHubView;
+};
+
 export type HostRpcNotificationPayload = {
   method: string;
   params?: unknown;
