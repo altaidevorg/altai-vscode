@@ -19,11 +19,17 @@ describe("shouldShowChatStarters", () => {
 });
 
 describe("DEFAULT_CHAT_STARTERS", () => {
-  it("provides labeled prompts", () => {
-    expect(DEFAULT_CHAT_STARTERS.length).toBeGreaterThanOrEqual(4);
+  it("provides labeled prompts including snippet shortcuts", () => {
+    expect(DEFAULT_CHAT_STARTERS.length).toBeGreaterThanOrEqual(6);
     for (const starter of DEFAULT_CHAT_STARTERS) {
       expect(starter.label.trim()).not.toBe("");
       expect(starter.value.trim().length).toBeGreaterThan(20);
     }
+    expect(
+      DEFAULT_CHAT_STARTERS.some((s) => s.value.includes("#pr")),
+    ).toBe(true);
+    expect(
+      DEFAULT_CHAT_STARTERS.some((s) => s.value.includes("#testplan")),
+    ).toBe(true);
   });
 });

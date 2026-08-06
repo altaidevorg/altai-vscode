@@ -124,6 +124,7 @@ sibling `file:` packages until public npm publish.
 - **Copy chat** exports the full transcript as plain text to the clipboard.
 - Surface tabs (Chat / Operations / Settings) support roving tabindex and
   arrow / Home / End keyboard navigation.
+- Empty-home starters include `#pr` and `#testplan` snippet shortcuts.
 
 ### Security
 
