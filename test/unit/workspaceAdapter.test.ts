@@ -207,5 +207,10 @@ describe("WorkspaceAdapter", () => {
         command: "altai.connectProvider",
       }),
     ).resolves.toEqual({ ok: true });
+    await expect(
+      adapter.request("executeAltaiCommand", {
+        command: "altai.clearProviderCredential",
+      }),
+    ).resolves.toEqual({ ok: true });
   });
 });
