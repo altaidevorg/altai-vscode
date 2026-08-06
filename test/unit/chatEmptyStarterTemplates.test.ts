@@ -39,5 +39,8 @@ describe("DEFAULT_CHAT_STARTERS", () => {
     expect(DEFAULT_CHAT_STARTERS.some((s) => s.value.trim() === "/help")).toBe(
       true,
     );
+    expect(
+      DEFAULT_CHAT_STARTERS.some((s) => s.value.trim() === "/settings"),
+    ).toBe(true);
   });
 });

@@ -49,6 +49,14 @@ export const DEFAULT_CHAT_STARTERS: readonly PromptTemplate[] = [
     label: "List commands (/help)",
     value: "/help",
   },
+  {
+    label: "Open Settings",
+    value: "/settings",
+  },
+  {
+    label: "New chat (/new)",
+    value: "/new",
+  },
 ];
 
 export function shouldShowChatStarters(input: {
