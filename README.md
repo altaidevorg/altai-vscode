@@ -113,7 +113,12 @@ Useful scripts:
 | `npm test` | Unit tests |
 | `npm run build` | Bundle extension host + webview |
 | `npm run guard:architecture` | Ban host imports / copied UI symbols |
-| `npm run verify` | All of the above |
+| `npm run verify:package` | Manifest + built assets + native host layout audit |
+| `npm run verify` | All of the above (including package audit) |
+
+Remote workspaces (SSH, WSL, Dev Containers): the extension declares
+`extensionKind: workspace` so the native agent host runs on the **remote**
+machine next to the workspace filesystem — not as a UI-only local extension.
 
 ## Architecture
 
