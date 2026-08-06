@@ -218,6 +218,11 @@ body {
   word-break: break-word;
 }
 
+.altai-chat-inline-diff {
+  margin-top: 0.4rem;
+  max-width: 100%;
+}
+
 .altai-chat-bubble-actions {
   display: flex;
   flex-wrap: wrap;
