@@ -33,6 +33,7 @@
     "test/unit/operationsDeepLink.test.ts",
     "test/unit/taskRunDraft.test.ts",
     "test/unit/automationDraft.test.ts",
+    "test/unit/operationsAttentionPoll.test.ts",
     "dist",
     "out",
     "node_modules"
