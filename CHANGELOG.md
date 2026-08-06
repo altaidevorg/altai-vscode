@@ -147,6 +147,7 @@ sibling `file:` packages until public npm publish.
 - Clearing Chat focus removes `activeChatId` from Webview presentation state
   instead of leaving an empty string.
 - Chat error banner is dismissible without clearing the draft or transcript.
+- Slash `/version` (`/compat`) shows ALTAI version / protocol pin summary.
 
 ### Security
 

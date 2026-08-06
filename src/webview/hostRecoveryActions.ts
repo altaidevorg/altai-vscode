@@ -7,6 +7,7 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.openLogs",
   "altai.runDiagnostics",
   "altai.restartAgentHost",
+  "altai.showVersionCompatibility",
   "workbench.action.manageWorkspaceTrust",
 ] as const;
 

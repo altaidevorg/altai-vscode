@@ -1278,6 +1278,11 @@ function AgentUiShell({
           command: "altai.restartAgentHost",
         });
         break;
+      case "version":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.showVersionCompatibility",
+        });
+        break;
       default:
         break;
     }

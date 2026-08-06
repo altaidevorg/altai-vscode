@@ -197,5 +197,10 @@ describe("WorkspaceAdapter", () => {
         command: "workbench.action.manageWorkspaceTrust",
       }),
     ).resolves.toEqual({ ok: true });
+    await expect(
+      adapter.request("executeAltaiCommand", {
+        command: "altai.showVersionCompatibility",
+      }),
+    ).resolves.toEqual({ ok: true });
   });
 });
