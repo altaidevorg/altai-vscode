@@ -61,6 +61,7 @@
     "test/unit/surfaceTabsChrome.test.ts",
     "test/unit/composerHintChrome.test.ts",
     "test/unit/hostRecoveryActions.test.ts",
+    "test/unit/waitShellChrome.test.ts",
     "dist",
     "out",
     "node_modules"
