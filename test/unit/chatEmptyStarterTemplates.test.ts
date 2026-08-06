@@ -23,7 +23,12 @@ describe("DEFAULT_CHAT_STARTERS", () => {
     expect(DEFAULT_CHAT_STARTERS.length).toBeGreaterThanOrEqual(6);
     for (const starter of DEFAULT_CHAT_STARTERS) {
       expect(starter.label.trim()).not.toBe("");
-      expect(starter.value.trim().length).toBeGreaterThan(20);
+      const value = starter.value.trim();
+      if (value.startsWith("/")) {
+        expect(value.length).toBeGreaterThan(1);
+      } else {
+        expect(value.length).toBeGreaterThan(20);
+      }
     }
     expect(
       DEFAULT_CHAT_STARTERS.some((s) => s.value.includes("#pr")),
@@ -31,5 +36,8 @@ describe("DEFAULT_CHAT_STARTERS", () => {
     expect(
       DEFAULT_CHAT_STARTERS.some((s) => s.value.includes("#testplan")),
     ).toBe(true);
+    expect(DEFAULT_CHAT_STARTERS.some((s) => s.value.trim() === "/help")).toBe(
+      true,
+    );
   });
 });
