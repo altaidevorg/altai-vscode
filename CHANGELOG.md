@@ -122,6 +122,8 @@ sibling `file:` packages until public npm publish.
   `ALTAI: Run Diagnostics`) when `host.status` carries a diagnostic code.
 - Chat user/assistant messages offer Copy on hover when text is complete.
 - **Copy chat** exports the full transcript as plain text to the clipboard.
+- Surface tabs (Chat / Operations / Settings) support roving tabindex and
+  arrow / Home / End keyboard navigation.
 
 ### Security
 
