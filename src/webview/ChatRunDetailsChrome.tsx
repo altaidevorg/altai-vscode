@@ -1,6 +1,6 @@
 /**
  * Compact Run details strip: shared RunDetailsHeader + RunOverviewCard when a
- * run is active or blocked (no deferred Apply controls).
+ * run is active or blocked, plus optional inspector sections.
  */
 
 import {
@@ -16,6 +16,8 @@ import {
   isRecoverableRunAttention,
 } from "./agentStatusPillChrome.js";
 import { countPendingEditDiffs } from "./chatRunChrome.js";
+import { ChatRunInspectorSections } from "./ChatRunInspectorSections.js";
+import type { PendingToolApproval } from "./interactivePrompt.js";
 import {
   buildRunOverviewMetrics,
   canShowRunDetailsChrome,
@@ -25,6 +27,7 @@ import {
   runDetailsSubtitle,
   runDetailsTokenLabel,
 } from "./runDetailsChrome.js";
+import type { RunUsageTotals } from "./usageMeterChrome.js";
 
 export type ChatRunDetailsChromeProps = {
   messages: readonly ChatDisplayMessage[];
@@ -32,12 +35,18 @@ export type ChatRunDetailsChromeProps = {
   hasActiveRun: boolean;
   busy: boolean;
   approvalsPending: number;
+  approvals?: readonly PendingToolApproval[];
+  onApprovalsChange?: (next: PendingToolApproval[]) => void;
   blockedMessage: string | null;
   warningMessage?: string | null;
   /** Accumulated prompt+completion tokens from host usage events. */
   totalTokens?: number | null;
+  inputTokens?: number;
+  outputTokens?: number;
   onStop?: () => void;
   onClose?: () => void;
+  onOpenChangeReview?: () => void;
+  runUsage?: RunUsageTotals | null;
 };
 
 export function ChatRunDetailsChrome({
@@ -46,11 +55,17 @@ export function ChatRunDetailsChrome({
   hasActiveRun,
   busy,
   approvalsPending,
+  approvals = [],
+  onApprovalsChange,
   blockedMessage,
   warningMessage = null,
   totalTokens = null,
+  inputTokens = 0,
+  outputTokens = 0,
   onStop,
   onClose,
+  onOpenChangeReview,
+  runUsage = null,
 }: ChatRunDetailsChromeProps) {
   const show = canShowRunDetailsChrome({
     hasActiveRun,
@@ -100,6 +115,12 @@ export function ChatRunDetailsChrome({
     warningMessage,
   });
 
+  const tokenTotal =
+    totalTokens ??
+    (runUsage && runUsage.totalTokens > 0 ? runUsage.totalTokens : null);
+  const inTok = inputTokens || runUsage?.inputTokens || 0;
+  const outTok = outputTokens || runUsage?.outputTokens || 0;
+
   return (
     <section className="altai-run-details-chrome" aria-label="Run details">
       <RunDetailsHeader
@@ -123,12 +144,22 @@ export function ChatRunDetailsChrome({
           tokenLabel={runDetailsTokenLabel({
             hasActiveRun,
             status,
-            totalTokens: totalTokens ?? null,
+            totalTokens: tokenTotal,
           })}
           step={step}
           metrics={metrics}
         />
       </div>
+      {onApprovalsChange ? (
+        <ChatRunInspectorSections
+          messages={messages}
+          approvals={approvals}
+          onApprovalsChange={onApprovalsChange}
+          onOpenChangeReview={onOpenChangeReview}
+          inputTokens={inTok}
+          outputTokens={outTok}
+        />
+      ) : null}
     </section>
   );
 }
