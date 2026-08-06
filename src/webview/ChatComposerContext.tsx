@@ -27,16 +27,21 @@ import {
   toComposerAttachFiles,
   type ComposerContextItem,
 } from "./composerContext.js";
+import { type Snippet } from "./composerSnippets.js";
 
 export type ChatComposerContextProps = {
   items: ComposerContextItem[];
   onChange: (items: ComposerContextItem[]) => void;
+  snippets?: readonly Snippet[];
+  onRemoveSnippet?: (id: string) => void;
   disabled?: boolean;
 };
 
 export function ChatComposerContext({
   items,
   onChange,
+  snippets = [],
+  onRemoveSnippet,
   disabled = false,
 }: ChatComposerContextProps) {
   const ports = useHostPorts();
@@ -181,7 +186,13 @@ export function ChatComposerContext({
     }
   };
 
-  if (!show) {
+  const attachSnippets = snippets.map((s) => ({
+    id: s.id,
+    handle: s.handle,
+    description: s.description || s.name,
+  }));
+
+  if (!show && attachSnippets.length === 0) {
     return null;
   }
 
@@ -190,8 +201,10 @@ export function ChatComposerContext({
       <ComposerAttachChips
         files={toComposerAttachFiles(items)}
         onRemoveFile={(id) => onChange(removeContextItem(items, id))}
-        snippets={[]}
-        onRemoveSnippet={() => {}}
+        snippets={attachSnippets}
+        onRemoveSnippet={(id) => {
+          onRemoveSnippet?.(id);
+        }}
         commands={[]}
         onRemoveCommand={() => {}}
       />
@@ -226,21 +239,23 @@ export function ChatComposerContext({
           ))}
         </div>
       ) : null}
-      <div className="altai-composer-context-row">
-        <ComposerToolbarIcon
-          title="Attach context"
-          disabled={disabled || busy}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.75} />
-        </ComposerToolbarIcon>
-        {error ? (
-          <span className="altai-composer-context-error" role="status">
-            {error}
-          </span>
-        ) : null}
-      </div>
-      {menuOpen ? (
+      {show ? (
+        <div className="altai-composer-context-row">
+          <ComposerToolbarIcon
+            title="Attach context"
+            disabled={disabled || busy}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.75} />
+          </ComposerToolbarIcon>
+          {error ? (
+            <span className="altai-composer-context-error" role="status">
+              {error}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      {show && menuOpen ? (
         <div
           className="altai-composer-context-menu"
           role="menu"

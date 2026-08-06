@@ -41,8 +41,6 @@ sibling `file:` packages until public npm publish.
   advertises `skills/list` (`skills.list` capability). Install from GitHub
   (`owner/repo` or `owner/repo#skill`) when the host advertises
   `skills/install` (`skills.install`).
-- Composer `@` mention helpers re-export from shared `@altai/agent-ui`
-  (`detectAtMention` and related A6.9 utilities).
 - Multi-root workspaces: project chip opens a QuickPick to pick the agent
   target folder, then reveals it in Explorer.
 - Structured Chat message cards and shared `ChatTabStrip`, with run/event
@@ -101,6 +99,10 @@ sibling `file:` packages until public npm publish.
   session actions (`/new`, `/stop`, `/retry`, `/compact`, …), Operations
   deep-links (`/tasks`, `/inbox`, `/automations`), plan toggle, change review,
   and prompt expansions (`/fix`, `/init`, …) for a normal agent turn.
+- Composer **`#` snippets**: type `#` for suggestions (built-in `#pr`,
+  `#testplan`, `#explain`, `#reproduce`, `#commitmsg`, plus optional workspace
+  `.altai/snippets.json`). Tokens expand to `<snippet>` blocks on send;
+  removable chips track picks.
 
 ### Security
 
