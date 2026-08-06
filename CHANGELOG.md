@@ -144,6 +144,8 @@ sibling `file:` packages until public npm publish.
 - Slash `/new-task` and `/new-automation` open Operations compose forms
   (optional title from the command tail).
 - Wait shell Copy diagnostic button builds a plain-text host recovery report.
+- Clearing Chat focus removes `activeChatId` from Webview presentation state
+  instead of leaving an empty string.
 
 ### Security
 
