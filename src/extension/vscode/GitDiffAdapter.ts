@@ -1,5 +1,39 @@
+/**
+ * Reads only the published VS Code Git extension state. It deliberately does
+ * not spawn git or extract real patch text; the agent service owns content
+ * policy. A path/status summary is still provided as `patch` so the composer
+ * can attach working-tree context without requesting file bodies.
+ */
+
 import type { GitDiffContext } from "@altai/host-contract" with { "resolution-mode": "import" };
 import type * as vscode from "vscode";
+
+// Keep this formatter local so Extension Host builds stay free of webview deps.
+function formatGitDiffSummary(input: {
+  branch?: string;
+  files: readonly { path: string; status: string }[];
+}): string | null {
+  if (input.files.length === 0) {
+    return null;
+  }
+  const head = input.branch?.trim()
+    ? `Working tree changes on ${input.branch.trim()}`
+    : "Working tree changes";
+  const lines = input.files
+    .map((file) => {
+      const path = file.path.trim();
+      const status = file.status.trim();
+      if (!path) {
+        return null;
+      }
+      return status ? `- ${status}  ${path}` : `- ${path}`;
+    })
+    .filter((line): line is string => Boolean(line));
+  if (lines.length === 0) {
+    return null;
+  }
+  return [`${head}:`, ...lines].join("\n");
+}
 
 type GitChange = {
   uri: vscode.Uri;
@@ -25,10 +59,6 @@ type GitExtension = {
   getAPI(version: 1): GitApi;
 };
 
-/**
- * Reads only the published VS Code Git extension state. It deliberately does
- * not spawn git or extract patch text; the agent service owns content policy.
- */
 export class GitDiffAdapter {
   constructor(private readonly api: typeof vscode) {}
 
@@ -57,9 +87,19 @@ export class GitDiffAdapter {
         files.set(relative, `${group}:${change.status}`);
       }
     }
+    const fileList = [...files].map(([path, status]) => ({ path, status }));
+    const branch = repository.state.HEAD?.name;
+    const summary = formatGitDiffSummary({
+      ...(branch ? { branch } : {}),
+      files: fileList,
+    });
+    if (!summary) {
+      return null;
+    }
     return {
-      ...(repository.state.HEAD?.name ? { branch: repository.state.HEAD.name } : {}),
-      files: [...files].map(([path, status]) => ({ path, status })),
+      ...(branch ? { branch } : {}),
+      files: fileList,
+      patch: summary,
     };
   }
 

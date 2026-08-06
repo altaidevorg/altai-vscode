@@ -43,6 +43,10 @@ describe("GitDiffAdapter", () => {
     await expect(new GitDiffAdapter(api as never).getDiffContext()).resolves.toEqual({
       branch: "main",
       files: [{ path: "src/main.ts", status: "working-tree:1" }],
+      patch: [
+        "Working tree changes on main:",
+        "- working-tree:1  src/main.ts",
+      ].join("\n"),
     });
     expect(getAPI).toHaveBeenCalledWith(1);
   });

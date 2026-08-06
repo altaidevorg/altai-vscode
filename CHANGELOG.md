@@ -151,6 +151,9 @@ sibling `file:` packages until public npm publish.
 - Recovery action rows also include a Version button for the same command.
 - Empty-home “List commands (/help)” runs the slash help action immediately.
 - Escape dismisses Chat error and run blocked/warning banners.
+- Composer git-diff attach synthesizes a path/status summary when VS Code Git
+  has no real patch text; terminal attach accepts cwd when selection is empty.
+- Empty-home slash starters are allowed to be short command tokens in tests.
 
 ### Security
 
