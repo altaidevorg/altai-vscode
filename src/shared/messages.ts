@@ -84,6 +84,10 @@ export type OpenOperationsPayload = {
   key: number;
   view: OperationsDeepLinkView;
   workHubView?: OperationsDeepLinkWorkHubView;
+  /** Open the new-task composer on Work/Runs surfaces. */
+  composeTask?: boolean;
+  /** Prefill title when composing (e.g. TaskRunCard reuse). */
+  draftTitle?: string;
 };
 
 export type HostRpcNotificationPayload = {

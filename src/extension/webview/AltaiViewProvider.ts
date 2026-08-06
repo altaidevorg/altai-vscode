@@ -151,11 +151,17 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   public async openOperations(input?: {
     view?: OperationsDeepLinkView;
     workHubView?: OperationsDeepLinkWorkHubView;
+    composeTask?: boolean;
+    draftTitle?: string;
   }): Promise<void> {
     const payload = buildOpenOperationsPayload({
       ...(input?.view !== undefined ? { view: input.view } : {}),
       ...(input?.workHubView !== undefined
         ? { workHubView: input.workHubView }
+        : {}),
+      ...(input?.composeTask ? { composeTask: true } : {}),
+      ...(input?.draftTitle !== undefined && input.draftTitle.length > 0
+        ? { draftTitle: input.draftTitle }
         : {}),
     });
     await vscode.commands.executeCommand("altai.sidePanel.focus");
