@@ -247,6 +247,17 @@ body {
   font: inherit;
 }
 
+.altai-interactive-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.altai-interactive-prompt.is-busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 .altai-chat-actions {
   display: flex;
   flex-wrap: wrap;

@@ -947,9 +947,13 @@ function mapRunEvent(value: unknown): AgentEvent | null {
       : typeof value.event === "string"
         ? value.event
         : "lifecycle";
-  const type = EVENT_TYPES.has(rawType as AgentEventType)
-    ? (rawType as AgentEventType)
-    : "lifecycle";
+  // Keep Desktop/crate aliases (approval_request) aligned with host-contract.
+  const type: AgentEventType =
+    rawType === "approval_request"
+      ? "approval"
+      : EVENT_TYPES.has(rawType as AgentEventType)
+        ? (rawType as AgentEventType)
+        : "lifecycle";
   const chatId =
     typeof value.chat_id === "string"
       ? value.chat_id
