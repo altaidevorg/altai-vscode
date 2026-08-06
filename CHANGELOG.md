@@ -46,6 +46,8 @@ sibling `file:` packages until public npm publish.
   `runtime.compactContext` when the host advertises the capability.
 - Edit checkpoints: shared `CheckpointMenuPanel` lists native checkpoints and
   restores when `review.checkpoints` / `review.restoreCheckpoint` allow it.
+- Tool bubbles surface file path when present and offer Open via
+  `workspace.openFile` when the host advertises it.
 
 ### Security
 

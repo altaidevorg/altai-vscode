@@ -22,6 +22,12 @@ export type ChatDisplayMessage = {
   streaming?: boolean;
   /** Optional context chips from attached editor / terminal / diff. */
   chips?: ContextChip[];
+  /** Tool name when role is tool. */
+  toolName?: string;
+  /** Workspace URI to open (file tools). */
+  fileUri?: string;
+  /** Display path when a tool targets a file. */
+  filePath?: string;
 };
 
 export type SessionMessageLike = {
@@ -140,6 +146,93 @@ export function textFromAgentEvent(event: AgentEvent): {
   return null;
 }
 
+/**
+ * Best-effort workspace open target for a tool event payload (Desktop tools
+ * often put path on the crate event or under `input`).
+ */
+export function extractToolFileTarget(payload: unknown): {
+  path?: string;
+  uri?: string;
+} {
+  const stack: unknown[] = [payload];
+  const visited = new Set<unknown>();
+  let path: string | undefined;
+  let uri: string | undefined;
+
+  while (stack.length > 0 && (!path || !uri)) {
+    const cur = stack.pop();
+    if (!cur || visited.has(cur) || !isRecord(cur)) {
+      continue;
+    }
+    visited.add(cur);
+    if (!uri && typeof cur.uri === "string" && cur.uri.trim()) {
+      uri = cur.uri.trim();
+    }
+    if (!path) {
+      for (const key of [
+        "path",
+        "file_path",
+        "filePath",
+        "target",
+        "file",
+      ] as const) {
+        const value = cur[key];
+        if (typeof value === "string" && value.trim() && looksLikePath(value)) {
+          path = value.trim();
+          break;
+        }
+      }
+    }
+    for (const nestedKey of ["input", "args", "params", "event", "payload"]) {
+      if (cur[nestedKey] !== undefined) {
+        stack.push(cur[nestedKey]);
+      }
+    }
+  }
+
+  return {
+    ...(path ? { path } : {}),
+    ...(uri ? { uri } : !path ? {} : { uri: pathToFileUri(path) }),
+  };
+}
+
+export function looksLikePath(value: string): boolean {
+  if (!value.trim() || value.includes("\n") || value.length > 1024) {
+    return false;
+  }
+  if (value.startsWith("file:")) {
+    return true;
+  }
+  if (value.startsWith("/") || value.startsWith("./") || value.startsWith("../")) {
+    return true;
+  }
+  // Windows drive letter
+  return /^[A-Za-z]:[\\/]/.test(value);
+}
+
+/** Convert an absolute filesystem path to a file URI for openFile. */
+export function pathToFileUri(path: string): string {
+  if (path.startsWith("file:")) {
+    return path;
+  }
+  if (/^[A-Za-z]:[\\/]/.test(path)) {
+    return `file:///${path.replace(/\\/g, "/")}`;
+  }
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return `file://${normalized}`;
+}
+
+export function toolBubbleContent(
+  name: string,
+  filePath?: string,
+): string {
+  if (filePath) {
+    const base = filePath.replace(/\\/g, "/").split("/").pop() || filePath;
+    return `Using ${name} · ${base}`;
+  }
+  return `Using ${name}…`;
+}
+
 function pushTrimmed(
   messages: ChatDisplayMessage[],
   next: ChatDisplayMessage,
@@ -224,13 +317,21 @@ export function applyAgentEventToMessages(
       (isRecord(body.event) &&
         typeof body.event.name === "string" &&
         body.event.name) ||
+      (isRecord(body.event) &&
+        typeof body.event.tool === "string" &&
+        body.event.tool) ||
+      (typeof body.tool === "string" && body.tool) ||
       "tool";
+    const file = extractToolFileTarget(event.payload);
     return pushTrimmed(
       list,
       {
         id: newDisplayMessageId("tool"),
         role: "tool",
-        content: `Using ${name}…`,
+        content: toolBubbleContent(name, file.path),
+        toolName: name,
+        ...(file.uri ? { fileUri: file.uri } : {}),
+        ...(file.path ? { filePath: file.path } : {}),
       },
       max,
     );
