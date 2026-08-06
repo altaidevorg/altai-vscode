@@ -23,12 +23,14 @@ import {
   OPEN_CHAT_WITH_SELECTION_EVENT,
   OPEN_CHAT_WITH_FILE_EVENT,
   OPEN_OPERATIONS_EVENT,
+  OPEN_SETTINGS_EVENT,
   type HostRpcNotificationPayload,
   type HostStatusPayload,
   type OpenOperationsPayload,
   type OperationsDeepLinkView,
   type OperationsDeepLinkWorkHubView,
 } from "../shared/messages.js";
+import { parseOpenSettingsPayload } from "../shared/settingsDeepLink.js";
 import {
   parseOpenChatWithSelectionPayload,
   type OpenChatWithSelectionPayload,
@@ -478,6 +480,16 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       });
     });
   }, [client, selectSurface, workHubView]);
+
+  useEffect(() => {
+    return client.onEvent(OPEN_SETTINGS_EVENT, (payload) => {
+      if (!parseOpenSettingsPayload(payload)) {
+        return;
+      }
+      selectSurface("settings");
+      patchPersistedState(client, { surface: "settings" });
+    });
+  }, [client, selectSurface]);
 
   useEffect(() => {
     return client.onEvent(OPEN_CHAT_WITH_SELECTION_EVENT, (payload) => {

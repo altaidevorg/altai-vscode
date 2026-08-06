@@ -1,19 +1,8 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import {
-  HOST_RPC_NOTIFICATION_EVENT,
-  HOST_STATUS_EVENT,
-  OPEN_CHAT_WITH_SELECTION_EVENT,
-  OPEN_CHAT_WITH_FILE_EVENT,
-  OPEN_OPERATIONS_EVENT,
-  type HostRequestParams,
-  type HostStatusPayload,
-  type OpenOperationsPayload,
-  type OperationsDeepLinkView,
-  type OperationsDeepLinkWorkHubView,
-  type WorkspaceRequestParams,
-} from "../../shared/messages.js";
-import { buildOpenOperationsPayload } from "../../shared/operationsDeepLink.js";
+  buildOpenOperationsPayload,
+} from "../../shared/operationsDeepLink.js";
 import {
   buildOpenChatWithSelectionPayload,
   type OpenChatWithSelectionPayload,
@@ -22,6 +11,24 @@ import {
   buildOpenChatWithFilePayload,
   type OpenChatWithFilePayload,
 } from "../../shared/fileDeepLink.js";
+import {
+  buildOpenSettingsPayload,
+} from "../../shared/settingsDeepLink.js";
+import {
+  HOST_RPC_NOTIFICATION_EVENT,
+  HOST_STATUS_EVENT,
+  OPEN_CHAT_WITH_SELECTION_EVENT,
+  OPEN_CHAT_WITH_FILE_EVENT,
+  OPEN_OPERATIONS_EVENT,
+  OPEN_SETTINGS_EVENT,
+  type HostRequestParams,
+  type HostStatusPayload,
+  type OpenOperationsPayload,
+  type OpenSettingsPayload,
+  type OperationsDeepLinkView,
+  type OperationsDeepLinkWorkHubView,
+  type WorkspaceRequestParams,
+} from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
 import type { HostManager } from "../host/HostManager.js";
 import { getOutputChannel } from "../output.js";
@@ -52,6 +59,8 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   private pendingSelectionAttach: OpenChatWithSelectionPayload | undefined;
   /** Queued until the Webview bridge is ready (first panel open). */
   private pendingFileAttach: OpenChatWithFilePayload | undefined;
+  /** Queued until the Webview bridge is ready (first panel open). */
+  private pendingSettingsOpen: OpenSettingsPayload | undefined;
   private attentionCount = 0;
 
   constructor(
@@ -162,6 +171,10 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     if (this.pendingFileAttach) {
       bridge.postEvent(OPEN_CHAT_WITH_FILE_EVENT, this.pendingFileAttach);
       this.pendingFileAttach = undefined;
+    }
+    if (this.pendingSettingsOpen) {
+      bridge.postEvent(OPEN_SETTINGS_EVENT, this.pendingSettingsOpen);
+      this.pendingSettingsOpen = undefined;
     }
     getOutputChannel().appendLine("[altai] webview resolved");
   }
@@ -345,6 +358,19 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     this.pendingSelectionAttach = payload;
+  }
+
+  /**
+   * Focus the ALTAI side panel and open the Settings surface.
+   */
+  public async openSettings(): Promise<void> {
+    const payload = buildOpenSettingsPayload();
+    await vscode.commands.executeCommand("altai.sidePanel.focus");
+    if (this.bridge && !this.bridge.isDisposed) {
+      this.bridge.postEvent(OPEN_SETTINGS_EVENT, payload);
+      return;
+    }
+    this.pendingSettingsOpen = payload;
   }
 
   private async proxyHostRequest(params: unknown): Promise<unknown> {

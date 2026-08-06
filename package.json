@@ -90,6 +90,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.openSettings",
+        "title": "ALTAI: Open Settings",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openOperations",
         "title": "ALTAI: Open Operations",
         "category": "ALTAI"
