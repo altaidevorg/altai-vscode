@@ -34,25 +34,4 @@ export function formatGitDiffSummary(input: {
   return [`${head}:`, ...lines].join("\n");
 }
 
-/**
- * Build terminal context attach text when VS Code may only expose cwd.
- */
-export function formatTerminalAttachText(input: {
-  selectedText?: string | null;
-  lastCommand?: string | null;
-  cwd?: string | null;
-}): string | null {
-  const selection = input.selectedText?.trim();
-  if (selection) {
-    return selection;
-  }
-  const command = input.lastCommand?.trim();
-  if (command) {
-    return command;
-  }
-  const cwd = input.cwd?.trim();
-  if (cwd) {
-    return `Active terminal cwd: ${cwd}`;
-  }
-  return null;
-}
+export { formatTerminalAttachText } from "../shared/terminalAttach.js";

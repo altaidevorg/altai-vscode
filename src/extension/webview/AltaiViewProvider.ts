@@ -14,6 +14,7 @@ import {
 import {
   buildOpenSettingsPayload,
 } from "../../shared/settingsDeepLink.js";
+import { formatTerminalAttachText } from "../../shared/terminalAttach.js";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
@@ -302,6 +303,70 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     this.pendingFileAttach = payload;
+  }
+
+  /**
+   * Attach presentation-only terminal context (selection, last command, or cwd)
+   * as composer context using the selection deep-link path.
+   */
+  public async openChatWithTerminal(): Promise<void> {
+    let terminal: {
+      cwd?: string;
+      selectedText?: string;
+      lastCommand?: string;
+    } | null;
+    try {
+      terminal = (await this.workspaceAdapter.request("getTerminalContext")) as {
+        cwd?: string;
+        selectedText?: string;
+        lastCommand?: string;
+      } | null;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "terminal_unavailable";
+      await vscode.window.showErrorMessage(
+        `ALTAI could not read the active terminal: ${message}`,
+      );
+      return;
+    }
+    const text = formatTerminalAttachText({
+      ...(terminal?.selectedText !== undefined
+        ? { selectedText: terminal.selectedText }
+        : {}),
+      ...(terminal?.lastCommand !== undefined
+        ? { lastCommand: terminal.lastCommand }
+        : {}),
+      ...(terminal?.cwd !== undefined ? { cwd: terminal.cwd } : {}),
+    });
+    if (!text) {
+      await vscode.window.showInformationMessage(
+        "Focus an integrated terminal with a cwd (or shell integration), then run ALTAI: Ask About Terminal.",
+      );
+      return;
+    }
+    const root =
+      vscode.workspace.workspaceFolders?.[0]?.uri.toString() ??
+      "file:///workspace";
+    const pathLabel = terminal?.cwd?.trim()
+      ? `terminal (${terminal.cwd.trim()})`
+      : "terminal";
+    const payload = buildOpenChatWithSelectionPayload({
+      uri: root,
+      path: pathLabel,
+      text,
+    });
+    if (!payload) {
+      await vscode.window.showInformationMessage(
+        "Focus an integrated terminal, then run ALTAI: Ask About Terminal.",
+      );
+      return;
+    }
+    await vscode.commands.executeCommand("altai.sidePanel.focus");
+    if (this.bridge && !this.bridge.isDisposed) {
+      this.bridge.postEvent(OPEN_CHAT_WITH_SELECTION_EVENT, payload);
+      return;
+    }
+    this.pendingSelectionAttach = payload;
   }
 
   /**

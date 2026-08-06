@@ -170,6 +170,8 @@ sibling `file:` packages until public npm publish.
 - Keyboard shortcut Cmd/Ctrl+Alt+G runs **Ask About Working Tree**.
 - Command palette lists **Open Settings** (registered contribution) with
   Cmd/Ctrl+Alt+, keybinding.
+- Command palette **Ask About Terminal** (Cmd/Ctrl+Alt+T while terminal
+  focused) attaches terminal context via the selection deep-link.
 
 ### Security
 
