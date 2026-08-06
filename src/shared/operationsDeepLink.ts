@@ -60,6 +60,12 @@ export function parseOpenOperationsPayload(
     }
     payload.composeTask = record.composeTask;
   }
+  if (record.composeAutomation !== undefined) {
+    if (typeof record.composeAutomation !== "boolean") {
+      return null;
+    }
+    payload.composeAutomation = record.composeAutomation;
+  }
   if (record.draftTitle !== undefined) {
     if (typeof record.draftTitle !== "string") {
       return null;
@@ -74,6 +80,7 @@ export function buildOpenOperationsPayload(input: {
   workHubView?: OperationsDeepLinkWorkHubView;
   key?: number;
   composeTask?: boolean;
+  composeAutomation?: boolean;
   draftTitle?: string;
 }): OpenOperationsPayload {
   const payload: OpenOperationsPayload = {
@@ -85,6 +92,9 @@ export function buildOpenOperationsPayload(input: {
   }
   if (input.composeTask) {
     payload.composeTask = true;
+  }
+  if (input.composeAutomation) {
+    payload.composeAutomation = true;
   }
   if (input.draftTitle !== undefined && input.draftTitle.length > 0) {
     payload.draftTitle = input.draftTitle;

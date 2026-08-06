@@ -30,6 +30,16 @@ export function registerCommands(
         composeTask: true,
       });
     }),
+    vscode.commands.registerCommand(
+      "altai.openOperationsNewAutomation",
+      async () => {
+        await provider.openOperations({
+          view: "work",
+          workHubView: "scheduled",
+          composeAutomation: true,
+        });
+      },
+    ),
     vscode.commands.registerCommand("altai.openOperationsInbox", async () => {
       await provider.openOperations({ view: "inbox" });
     }),

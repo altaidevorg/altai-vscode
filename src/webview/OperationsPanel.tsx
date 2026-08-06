@@ -40,6 +40,10 @@ import {
   type OperationsOverviewData,
 } from "./operationsOverview.js";
 import { resolveAvailableOperationsViews } from "./operationsRoutes.js";
+import {
+  newAutomationOwnerChatId,
+  type AutomationDraft,
+} from "./automationDraft.js";
 import type { ReactNode } from "react";
 import { createElement, Fragment } from "react";
 
@@ -85,6 +89,10 @@ export function OperationsPanel({
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createInitialTitle, setCreateInitialTitle] = useState("");
+  const [autoCreateOpen, setAutoCreateOpen] = useState(false);
+  const [autoCreateBusy, setAutoCreateBusy] = useState(false);
+  const [autoCreateError, setAutoCreateError] = useState<string | null>(null);
+  const [autoCreateInitialTitle, setAutoCreateInitialTitle] = useState("");
 
   const flags = useMemo(
     () => ({
@@ -110,8 +118,16 @@ export function OperationsPanel({
       setCreateOpen(true);
       setCreateError(null);
       setCreateInitialTitle(navigation.draftTitle ?? "");
+      setAutoCreateOpen(false);
     }
-  }, [navigation, flags, canTaskRuns]);
+    if (navigation.composeAutomation && canAutomations) {
+      setAutoCreateOpen(true);
+      setAutoCreateError(null);
+      setAutoCreateInitialTitle(navigation.draftTitle ?? "");
+      setCreateOpen(false);
+      setWorkHubView("scheduled");
+    }
+  }, [navigation, flags, canTaskRuns, canAutomations]);
 
   useEffect(() => {
     if (!availableViews.includes(view)) {
@@ -132,6 +148,17 @@ export function OperationsPanel({
       setCreateOpen(false);
     }
   }, [canTaskRuns, view]);
+
+  // Close automation composer when leaving Scheduled / Work or losing capability.
+  useEffect(() => {
+    const onScheduled =
+      canAutomations &&
+      view === "work" &&
+      (workHubView === "scheduled" || !canTaskRuns);
+    if (!onScheduled) {
+      setAutoCreateOpen(false);
+    }
+  }, [canAutomations, canTaskRuns, view, workHubView]);
 
   const load = useCallback(async () => {
     // Capabilities are null until runtime.initialize completes; the effect
@@ -258,6 +285,50 @@ export function OperationsPanel({
         );
       } finally {
         setCreateBusy(false);
+      }
+    },
+    [ports.work, load],
+  );
+
+  const openAutoCreate = useCallback(
+    (title = "") => {
+      setAutoCreateInitialTitle(title);
+      setAutoCreateError(null);
+      setAutoCreateOpen(true);
+      setCreateOpen(false);
+      setView("work");
+      setWorkHubView("scheduled");
+    },
+    [],
+  );
+
+  const closeAutoCreate = useCallback(() => {
+    setAutoCreateOpen(false);
+    setAutoCreateError(null);
+    setAutoCreateInitialTitle("");
+  }, []);
+
+  const submitAutoCreate = useCallback(
+    async (draft: AutomationDraft) => {
+      setAutoCreateBusy(true);
+      setAutoCreateError(null);
+      try {
+        await ports.work.createAutomation({
+          chatId: newAutomationOwnerChatId(),
+          title: draft.title,
+          prompt: draft.prompt,
+          schedule: draft.schedule,
+          enabled: draft.enabled,
+        });
+        setAutoCreateOpen(false);
+        setAutoCreateInitialTitle("");
+        await load();
+      } catch (error) {
+        setAutoCreateError(
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        setAutoCreateBusy(false);
       }
     },
     [ports.work, load],
@@ -396,6 +467,14 @@ export function OperationsPanel({
     onDelete: (id: string) => {
       void withBusy(id, () => ports.work.deleteAutomation(id));
     },
+    canCreate: canAutomations,
+    createOpen: autoCreateOpen,
+    createBusy: autoCreateBusy,
+    createError: autoCreateError,
+    createInitialTitle: autoCreateInitialTitle,
+    onCreateOpen: () => openAutoCreate(""),
+    onCreateClose: closeAutoCreate,
+    onCreateSubmit: submitAutoCreate,
   };
 
   return (
