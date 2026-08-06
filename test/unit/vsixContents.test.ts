@@ -26,7 +26,10 @@ describe("auditVsixEntries", () => {
   it("accepts a single-target linux VSIX entry set", () => {
     const result = auditVsixEntries({
       target: "linux-x64",
-      entries: goodLinux,
+      entries: [
+        ...goodLinux,
+        "extension/resources/native/PIN.json",
+      ],
     });
     expect(result.ok).toBe(true);
     expect(result.findings).toEqual([]);
