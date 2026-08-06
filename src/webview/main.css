@@ -267,11 +267,56 @@ body {
 
 .altai-permission-chrome {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   flex-wrap: wrap;
   gap: 0.25rem;
   align-items: center;
+}
+
+.altai-model-chrome {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.altai-model-popover {
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: min(16rem, 70vw);
+  max-height: 14rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--popover, var(--card));
+  color: var(--popover-foreground, var(--foreground));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  padding: 0.4rem;
+}
+
+.altai-model-search {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 0.7rem;
+  padding: 0.3rem 0.4rem;
+}
+
+.altai-model-search:focus {
+  outline: 1px solid var(--ring);
+  border-color: var(--ring);
+}
+
+.altai-model-options {
+  min-height: 0;
+  overflow: auto;
 }
 
 .altai-chat-actions button {

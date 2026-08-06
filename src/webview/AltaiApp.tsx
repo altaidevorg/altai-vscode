@@ -35,6 +35,7 @@ import {
 import { transcriptLinesFromMessages } from "./sessionTranscript.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
+import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import {
   applyInteractivePrompt,
@@ -624,6 +625,7 @@ function AgentUiShell({
               rows={3}
             />
             <div className="altai-chat-actions">
+              <ChatModelPickerChrome />
               <ChatPermissionModeChrome onModeChange={setPermissionMode} />
               <button
                 type="submit"
