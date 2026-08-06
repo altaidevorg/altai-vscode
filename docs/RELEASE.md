@@ -87,6 +87,34 @@ npm run package:target -- --target=linux-x64 --host=/path/to/altai-agent-host
 npm run verify:vsix -- --vsix=altai-0.1.0-linux-x64.vsix --target=linux-x64
 ```
 
+## Alpha real-host packaging
+
+```bash
+# Requires sibling altai-app + Rust toolchain
+export ALTAI_APP_ROOT=../altai-app-main
+npm run build:native-host -- --target=darwin-arm64
+npm run package:target -- --target=darwin-arm64 \
+  --host=resources/native/darwin-arm64/altai-agent-host
+
+# Or dispatch GitHub Action: release.yml (all targets)
+```
+
+CI tags `v*` and manual `release` runs produce **real** `altai-cli` hosts per
+OS, not fixtures. Marketplace publish remains operator-driven:
+
+```bash
+npx vsce publish --packagePath altai-0.1.0-linux-x64.vsix --pre-release
+# requires VSCE_PAT; set package.json preview=false only for stable
+```
+
+### Marketplace / npm (org secrets)
+
+- [ ] `VSCE_PAT` configured for publisher `altaidevorg`
+- [ ] Pre-release publish of multi-target VSIX from `release.yml` artifacts
+- [ ] After soak: remove `"preview": true`, bump version, stable publish
+- [ ] `NPM_TOKEN` publishes `@altai/host-contract` then `@altai/agent-ui` from
+      `altai-app`; switch vscode `file:` deps to exact versions
+
 ## Versioning rules
 
 1. Bump `package.json` `version` and `COMPATIBILITY.extension` together.

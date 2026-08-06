@@ -10,7 +10,7 @@ const baseCompat = {
   extension: "0.1.0",
   agentUi: "0.1.0",
   protocol: 1,
-  agentHost: "stdio-via-altai-cli-serve",
+  agentHost: "0.1.0-cli-stdio",
 } as const;
 
 describe("recoveryHintForDiagnostic", () => {
@@ -112,7 +112,7 @@ describe("formatDiagnosticsReport", () => {
 describe("formatCompatibilitySummary", () => {
   it("formats the status-bar friendly string", () => {
     expect(formatCompatibilitySummary(baseCompat)).toBe(
-      "ALTAI 0.1.0 · UI 0.1.0 · protocol 1 · host stdio-via-altai-cli-serve",
+      "ALTAI 0.1.0 · UI 0.1.0 · protocol 1 · host 0.1.0-cli-stdio",
     );
   });
 });

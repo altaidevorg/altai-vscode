@@ -92,6 +92,20 @@ export function registerCommands(
       for (const line of lines) {
         channel.appendLine(line);
       }
+      // Surface native host pin for alpha supportability.
+      try {
+        const pinUri = vscode.Uri.joinPath(
+          context.extensionUri,
+          "resources",
+          "native",
+          "PIN.json",
+        );
+        const pinBytes = await vscode.workspace.fs.readFile(pinUri);
+        const pinText = Buffer.from(pinBytes).toString("utf8");
+        channel.appendLine("  hostPin=" + pinText.replace(/\s+/g, " ").trim());
+      } catch {
+        channel.appendLine("  hostPin=(missing)");
+      }
       const recovery = lines.find((line) => line.startsWith("  recovery="));
       const summary = recovery
         ? recovery.slice("  recovery=".length)

@@ -27,6 +27,8 @@ sibling `file:` packages until public npm publish.
   code; workspace `extensionKind` for Remote SSH / WSL / Dev Containers.
 - Marketplace **preview** metadata, 128×128 icon, feature matrix, and security
   summary docs for the internal channel.
+- Native host pin `0.1.0-cli-stdio`, stage/build-host scripts, multi-OS
+  `release.yml` real-host packaging, integration smoke + a11y shell checks.
 
 ### Security
 
@@ -37,9 +39,9 @@ sibling `file:` packages until public npm publish.
 
 ### Notes
 
-- Packaged `altai-agent-host` binaries are not yet release-pinned; local debug
-  uses `ALTAI_AGENT_HOST_PATH` (see [docs/RELEASE.md](docs/RELEASE.md)).
-- Protocol major remains `1` (`stdio-via-altai-cli-serve`).
-- Shared UI packages remain `file:` linked until npm publish.
+- Native host id is `0.1.0-cli-stdio` (`resources/native/PIN.json`). Binaries
+  are staged from `altai-cli --release` via `build:native-host` / `release.yml`.
+- Shared UI packages remain `file:` linked until npm publish (org `NPM_TOKEN`).
+- Marketplace remains **preview**; pre-release publish uses `VSCE_PAT`.
 
 [0.1.0]: https://github.com/altaidevorg/altai-vscode/releases/tag/v0.1.0

@@ -87,14 +87,25 @@ export function auditVsixEntries(
   }
 
   // Exactly one native target directory under extension/resources/native/
+  // Allow non-target files such as PIN.json next to target dirs.
   const nativePrefix = "extension/resources/native/";
   const nativeTargets = new Set<string>();
   for (const entry of entries) {
     if (!entry.startsWith(nativePrefix)) continue;
     const rest = entry.slice(nativePrefix.length);
     const targetDir = rest.split("/")[0];
-    if (targetDir) {
+    if (!targetDir || targetDir.includes(".")) {
+      // skip files placed directly under native/ (e.g. PIN.json)
+      continue;
+    }
+    if (isSupportedNativeTarget(targetDir)) {
       nativeTargets.add(targetDir);
+    } else {
+      findings.push({
+        level: "error",
+        code: "vsix_unknown_target",
+        message: `unsupported native target directory: ${nativePrefix}${targetDir}`,
+      });
     }
   }
   for (const found of nativeTargets) {

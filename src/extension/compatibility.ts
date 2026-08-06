@@ -1,6 +1,6 @@
 /**
  * Pinned compatibility record for this extension build.
- * Update docs/PROTOCOL_COMPATIBILITY.md when these values change.
+ * Update docs/PROTOCOL_COMPATIBILITY.md and resources/native/PIN.json together.
  */
 export const COMPATIBILITY = {
   extension: "0.1.0",
@@ -8,9 +8,8 @@ export const COMPATIBILITY = {
   agentUi: "0.1.0",
   protocol: 1,
   /**
-   * Stdio host via `altai-cli serve --stdio`.
-   * Target-specific packaged host SemVer pins land when release binaries ship
-   * (resources/native/<target> + sha256 in package:target).
+   * Native host id — must match resources/native/PIN.json `agentHost`.
+   * Packaged binary is altai-cli built for serve --stdio.
    */
-  agentHost: "stdio-via-altai-cli-serve",
+  agentHost: "0.1.0-cli-stdio",
 } as const;

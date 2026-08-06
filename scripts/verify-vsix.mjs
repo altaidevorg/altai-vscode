@@ -89,7 +89,15 @@ for (const entry of entries) {
   const prefix = "extension/resources/native/";
   if (!entry.startsWith(prefix)) continue;
   const dir = entry.slice(prefix.length).split("/")[0];
-  if (dir) nativeTargets.add(dir);
+  // Skip files directly under native/ (e.g. PIN.json)
+  if (!dir || dir.includes(".")) continue;
+  if (SUPPORTED.has(dir)) {
+    nativeTargets.add(dir);
+  } else {
+    findings.push(
+      fail("vsix_unknown_target", `unsupported native target: ${dir}`),
+    );
+  }
 }
 for (const found of nativeTargets) {
   if (found !== target) {
