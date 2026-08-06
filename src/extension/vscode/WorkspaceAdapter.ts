@@ -28,7 +28,15 @@ export type WorkspaceRequestMethod =
   | "revealInExplorer"
   | "pickWorkspaceFolder"
   | "getGitDiff"
-  | "getTerminalContext";
+  | "getTerminalContext"
+  | "executeAltaiCommand";
+
+/** Recovery / diagnostic commands the Webview may invoke (no free-form execute). */
+const ALTAI_RECOVERY_COMMANDS = new Set([
+  "altai.openLogs",
+  "altai.runDiagnostics",
+  "altai.restartAgentHost",
+]);
 
 export type ReviewUriFactory = (label: string, text: string) => vscode.Uri;
 
@@ -45,6 +53,11 @@ export class WorkspaceAdapter {
   ) {}
 
   async request(method: string, params?: unknown): Promise<unknown> {
+    // Recovery commands stay available when the workspace is untrusted so the
+    // wait shell can open logs / diagnostics / restart without editor FS access.
+    if ((method as WorkspaceRequestMethod) === "executeAltaiCommand") {
+      return this.executeAltaiCommand(readAltaiCommandId(params));
+    }
     this.assertTrusted();
     switch (method as WorkspaceRequestMethod) {
       case "getWorkspace":
@@ -74,6 +87,17 @@ export class WorkspaceAdapter {
       default:
         throw codedError("method_not_found", `Unknown workspace method: ${method}`);
     }
+  }
+
+  private async executeAltaiCommand(command: string): Promise<{ ok: true }> {
+    if (!ALTAI_RECOVERY_COMMANDS.has(command)) {
+      throw codedError(
+        "command_not_allowed",
+        `ALTAI command is not allowlisted: ${command}`,
+      );
+    }
+    await this.api.commands.executeCommand(command);
+    return { ok: true };
   }
 
   private getWorkspace(): WorkspaceInfo {
@@ -306,6 +330,20 @@ function readQuery(value: unknown): string {
     throw codedError("invalid_params", "searchFiles requires a query string");
   }
   return value.query.trim();
+}
+
+function readAltaiCommandId(value: unknown): string {
+  if (!isRecord(value) || typeof value.command !== "string") {
+    throw codedError(
+      "invalid_params",
+      "executeAltaiCommand requires a command string",
+    );
+  }
+  const command = value.command.trim();
+  if (!command) {
+    throw codedError("invalid_params", "command must be non-empty");
+  }
+  return command;
 }
 
 function readUri(value: unknown): string {
