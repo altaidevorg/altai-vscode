@@ -5,6 +5,7 @@
  */
 
 import type { AgentEvent } from "@altai/host-contract";
+import type { ContextChip } from "@altai/agent-ui";
 
 export type ChatDisplayRole =
   | "user"
@@ -19,6 +20,8 @@ export type ChatDisplayMessage = {
   content: string;
   /** Live stream still appending to this bubble. */
   streaming?: boolean;
+  /** Optional context chips from attached editor / terminal / diff. */
+  chips?: ContextChip[];
 };
 
 export type SessionMessageLike = {
@@ -255,7 +258,7 @@ export function applyAgentEventToMessages(
 export function appendUserMessage(
   messages: readonly ChatDisplayMessage[],
   content: string,
-  options?: { maxMessages?: number },
+  options?: { maxMessages?: number; chips?: ContextChip[] },
 ): ChatDisplayMessage[] {
   const max = options?.maxMessages ?? DEFAULT_MAX;
   const withUser = pushTrimmed(
@@ -264,6 +267,9 @@ export function appendUserMessage(
       id: newDisplayMessageId("user"),
       role: "user",
       content: content.trim(),
+      ...(options?.chips && options.chips.length > 0
+        ? { chips: options.chips }
+        : {}),
     },
     max,
   );

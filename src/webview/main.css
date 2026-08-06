@@ -308,6 +308,39 @@ body {
   color: var(--destructive);
 }
 
+.altai-composer-context {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.altai-composer-context-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.altai-composer-context-error {
+  font-size: 0.65rem;
+  color: var(--destructive);
+}
+
+.altai-composer-context-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--popover, var(--card));
+  padding: 0.35rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.altai-composer-attach-chips button {
+  opacity: 0.85;
+}
+
 .altai-chat-composer-dock {
   flex-shrink: 0;
   padding: 0.45rem 0.75rem 0.65rem;

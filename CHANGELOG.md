@@ -38,6 +38,8 @@ sibling `file:` packages until public npm publish.
   Queue when host capabilities advertise them (⌘/Ctrl+Enter steers).
 - User message Edit + resend (truncate + startRun) and assistant Retry hover
   actions when host capabilities allow.
+- Chat composer context attach: active file (URI attachment), editor
+  selection, git working-tree diff, and terminal context with shared chips.
 
 ### Security
 
