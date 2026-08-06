@@ -1,4 +1,8 @@
 import {
+  ComposerPrimaryRow,
+  ComposerShell,
+  ComposerTextArea,
+  EmptyState,
   HostPortsProvider,
   SurfaceEmptyState,
   SurfaceHeader,
@@ -51,6 +55,7 @@ import {
   type HostRpcTransport,
 } from "./host/createVsCodeHostPorts.js";
 import type { PermissionMode } from "@altai/host-contract";
+import { chatLineKind, shouldShowChatEmptyHome } from "./chatLineKind.js";
 
 export type AltaiAppProps = {
   client: WebviewClient;
@@ -83,7 +88,8 @@ function patchPersistedState(
 }
 
 /**
- * Shared-UI shell + TASK-009 chat vertical slice (HostPorts over native RPC).
+ * Host shell: shared agent-ui chrome for chat (V3) + Operations, wired through
+ * HostPorts over the native RPC host.
  */
 export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const hostReadyRef = useRef(false);
@@ -571,6 +577,8 @@ function AgentUiShell({
     );
   }
 
+  const showEmptyHome = shouldShowChatEmptyHome(lines);
+
   return (
     <main className="altai-shell-body altai-shell-body--chat">
       <div className="altai-chat-layout">
@@ -580,80 +588,115 @@ function AgentUiShell({
           refreshKey={sessionListKey}
         />
         <div className="altai-chat-main">
-          <div className="altai-chat-log" role="log" aria-live="polite">
-            {lines.length === 0 ? (
-              <p className="altai-shell-meta">
-                Host ready. Send a prompt to start a run (TASK-009 vertical
-                slice).
-              </p>
+          <div className="altai-chat-scroll">
+            {showEmptyHome ? (
+              <EmptyState agentName="ALTAI" />
             ) : (
-              lines.map((line, index) => (
-                <p
-                  key={`${index}:${line.slice(0, 24)}`}
-                  className="altai-chat-line"
-                >
-                  {line}
-                </p>
-              ))
+              <div className="altai-chat-log" role="log" aria-live="polite">
+                {lines.map((line, index) => {
+                  const kind = chatLineKind(line);
+                  return (
+                    <p
+                      key={`${index}:${line.slice(0, 24)}`}
+                      className={
+                        kind === "user"
+                          ? "altai-chat-line altai-chat-line--user"
+                          : kind === "meta"
+                            ? "altai-chat-line altai-chat-line--meta"
+                            : "altai-chat-line altai-chat-line--agent"
+                      }
+                    >
+                      {line}
+                    </p>
+                  );
+                })}
+              </div>
             )}
-          </div>
-          {error ? (
-            <p className="altai-chat-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <ChatInteractivePrompts
-            approvals={pendingApprovals}
-            clarification={pendingClarification}
-            onApprovalsChange={setPendingApprovals}
-            onClarificationChange={setPendingClarification}
-          />
-          <form
-            className="altai-chat-composer"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void onSubmit();
-            }}
-          >
-            <textarea
-              className="altai-chat-input"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder={
-                canStartRun ? "Ask ALTAI…" : "Start run capability unavailable"
-              }
-              disabled={!canStartRun || busy}
-              rows={3}
+            {error ? (
+              <p className="altai-chat-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <ChatInteractivePrompts
+              approvals={pendingApprovals}
+              clarification={pendingClarification}
+              onApprovalsChange={setPendingApprovals}
+              onClarificationChange={setPendingClarification}
             />
-            <div className="altai-chat-actions">
-              <ChatModelPickerChrome />
-              <ChatPermissionModeChrome onModeChange={setPermissionMode} />
-              <button
-                type="submit"
-                disabled={!canStartRun || busy || !prompt.trim()}
-              >
-                {busy ? "Starting…" : "Send"}
-              </button>
-              <button
-                type="button"
-                disabled={!activeRunId || busy}
-                onClick={() => void onCancel()}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-          <CapabilityList
-            canInitialize={canInitialize}
-            canStartRun={canStartRun}
-            canListSessions={canListSessions}
-            canMessages={canMessages}
-          />
-          <ChatProviderStatusChrome />
-          <p className="altai-shell-meta">
-            Extension {hostStatus.extensionVersion} · UI from @altai/agent-ui
-            {activeChatId ? ` · chat ${activeChatId}` : ""}
-          </p>
+          </div>
+          <div className="altai-chat-composer-dock">
+            <form
+              className="altai-chat-composer-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void onSubmit();
+              }}
+            >
+              <ComposerShell busy={busy}>
+                <div className="px-2.5 pt-2">
+                  <ComposerTextArea
+                    value={prompt}
+                    onChange={(event) => setPrompt(event.target.value)}
+                    placeholder={
+                      canStartRun
+                        ? "Describe what should change…"
+                        : "Start run capability unavailable"
+                    }
+                    disabled={!canStartRun || busy}
+                    rows={2}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        !event.shiftKey &&
+                        !event.nativeEvent.isComposing
+                      ) {
+                        event.preventDefault();
+                        void onSubmit();
+                      }
+                    }}
+                  />
+                </div>
+                <ComposerPrimaryRow
+                  tools={
+                    <>
+                      <ChatModelPickerChrome />
+                    </>
+                  }
+                  permission={
+                    <ChatPermissionModeChrome
+                      onModeChange={setPermissionMode}
+                    />
+                  }
+                  submit={
+                    <>
+                      <button
+                        type="button"
+                        className="altai-composer-stop"
+                        disabled={!activeRunId || busy}
+                        onClick={() => void onCancel()}
+                      >
+                        Stop
+                      </button>
+                      <button
+                        type="submit"
+                        className="altai-composer-submit"
+                        disabled={!canStartRun || busy || !prompt.trim()}
+                      >
+                        {busy ? "Starting…" : "Send"}
+                      </button>
+                    </>
+                  }
+                />
+              </ComposerShell>
+            </form>
+          </div>
+          <div className="altai-chat-footer">
+            <ChatProviderStatusChrome />
+            <p className="altai-shell-meta">
+              Extension {hostStatus.extensionVersion}
+              {activeChatId ? ` · chat ${activeChatId}` : ""}
+            </p>
+          </div>
         </div>
       </div>
     </main>

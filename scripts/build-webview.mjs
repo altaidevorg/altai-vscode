@@ -1,7 +1,8 @@
 import * as esbuild from "esbuild";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 
 const watch = process.argv.includes("--watch");
@@ -41,18 +42,63 @@ const peerAliasPlugin = {
   },
 };
 
-/** @type {import("esbuild").Plugin} */
-const cssWritePlugin = {
-  name: "css-write",
-  setup(build) {
-    build.onEnd(async (result) => {
-      const cssOutput = result.outputFiles?.find((f) => f.path.endsWith(".css"));
-      if (cssOutput) {
-        await writeFile("dist/webview/main.css", cssOutput.text);
-      }
-    });
-  },
-};
+const cssCli = path.join(
+  extensionRoot,
+  "node_modules",
+  "@tailwindcss",
+  "cli",
+  "dist",
+  "index.mjs",
+);
+const cssInput = path.join(extensionRoot, "src/webview/main.css");
+const cssOutput = path.join(extensionRoot, "dist/webview/main.css");
+
+function requireCssCli() {
+  if (!existsSync(cssCli)) {
+    throw new Error(
+      "Missing @tailwindcss/cli. Run npm install so webview CSS can build.",
+    );
+  }
+}
+
+/** One-shot Tailwind compile into dist/webview/main.css. */
+function buildWebviewCssOnce() {
+  requireCssCli();
+  const result = spawnSync(
+    process.execPath,
+    [cssCli, "-i", cssInput, "-o", cssOutput],
+    {
+      cwd: extensionRoot,
+      stdio: "inherit",
+      env: process.env,
+    },
+  );
+  if (result.status !== 0) {
+    throw new Error(`Tailwind CSS build failed (exit ${result.status ?? "?"})`);
+  }
+}
+
+/** Watch Tailwind CSS (non-blocking). */
+function watchWebviewCss() {
+  requireCssCli();
+  const child = spawn(
+    process.execPath,
+    [cssCli, "-i", cssInput, "-o", cssOutput, "--watch"],
+    {
+      cwd: extensionRoot,
+      stdio: "inherit",
+      env: process.env,
+    },
+  );
+  child.on("exit", (code, signal) => {
+    if (signal) {
+      console.error(`[build:webview] CSS watch exited (${signal})`);
+    } else if (code !== 0 && code !== null) {
+      console.error(`[build:webview] CSS watch failed (exit ${code})`);
+    }
+  });
+  return child;
+}
 
 /** @type {import("esbuild").BuildOptions} */
 const options = {
@@ -68,10 +114,6 @@ const options = {
   write: true,
   absWorkingDir: extensionRoot,
   nodePaths: [path.join(extensionRoot, "node_modules")],
-  loader: {
-    ".css": "css",
-  },
-  // Ensure no vscode sneaks into the webview graph via accidental imports.
   plugins: [
     peerAliasPlugin,
     {
@@ -91,18 +133,15 @@ const options = {
 };
 
 if (watch) {
+  buildWebviewCssOnce();
+  watchWebviewCss();
   const ctx = await esbuild.context(options);
   await ctx.watch();
-  console.log("[build:webview] watching");
+  console.log("[build:webview] watching JS + CSS");
 } else {
   await esbuild.build(options);
-  // esbuild writes sibling main.css when CSS is imported from the entry.
-  try {
-    readFileSync("dist/webview/main.css");
-  } catch {
-    await writeFile(
-      "dist/webview/main.css",
-      "/* generated empty stylesheet */\n",
-    );
+  buildWebviewCssOnce();
+  if (!existsSync(cssOutput)) {
+    await writeFile(cssOutput, "/* generated empty stylesheet */\n");
   }
 }

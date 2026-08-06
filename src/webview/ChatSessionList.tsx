@@ -1,18 +1,17 @@
 /**
- * Capability-gated Chat session history using shared SessionRow chrome.
+ * Capability-gated Chat session history using shared ChatHistoryPanel.
  */
 
 import {
+  ChatHistoryPanel,
   groupSessionsByRecency,
-  SessionRow,
-  SurfacePrimaryAction,
-  SurfaceSecondaryAction,
   useCapability,
   useHostPorts,
   type SessionHistoryItem,
 } from "@altai/agent-ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionsToHistoryItems } from "./sessionHistoryMap.js";
+import { filterSessionsBySearch } from "./sessionSearch.js";
 
 export type ChatSessionListProps = {
   activeChatId: string | null;
@@ -20,6 +19,8 @@ export type ChatSessionListProps = {
   /** Bump to force list reload (e.g. after startRun). */
   refreshKey?: number;
 };
+
+export { filterSessionsBySearch } from "./sessionSearch.js";
 
 export function ChatSessionList({
   activeChatId,
@@ -34,9 +35,11 @@ export function ChatSessionList({
   const [items, setItems] = useState<SessionHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
     if (!canList) {
@@ -66,9 +69,14 @@ export function ChatSessionList({
     }
   }, [renamingId]);
 
+  const filtered = useMemo(
+    () => filterSessionsBySearch(items, search),
+    [items, search],
+  );
+
   const groups = useMemo(
-    () => groupSessionsByRecency(items),
-    [items],
+    () => groupSessionsByRecency(filtered),
+    [filtered],
   );
 
   if (!canList) {
@@ -76,146 +84,119 @@ export function ChatSessionList({
   }
 
   return (
-    <section className="altai-session-list" aria-label="Chat sessions">
-      <div className="altai-session-list-header">
-        <h2 className="altai-session-list-title">Sessions</h2>
-        <div className="altai-session-list-actions">
-          {canCreate ? (
-            <SurfacePrimaryAction
-              type="button"
-              onClick={() => {
-                void (async () => {
-                  try {
-                    const created = await ports.sessions.createSession();
-                    await load();
-                    onFocusSession({
-                      chatId: created.id,
-                      label: created.title,
-                    });
-                  } catch (err) {
-                    setError(
-                      err instanceof Error ? err.message : String(err),
-                    );
-                  }
-                })();
-              }}
-            >
-              New
-            </SurfacePrimaryAction>
-          ) : null}
-          <SurfaceSecondaryAction
-            type="button"
-            onClick={() => {
-              void load();
-            }}
-            disabled={loading}
-          >
-            {loading ? "…" : "Refresh"}
-          </SurfaceSecondaryAction>
-        </div>
-      </div>
+    <aside className="altai-chat-history-rail" aria-label="Chat sessions">
       {error ? (
-        <p className="altai-chat-error" role="alert">
+        <p className="altai-chat-error" role="alert" style={{ padding: "0.5rem" }}>
           {error}
         </p>
       ) : null}
-      {items.length === 0 && !loading ? (
-        <p className="altai-shell-meta">No sessions yet.</p>
-      ) : null}
-      {groups.map((group) => (
-        <div key={group.label} className="altai-session-group">
-          <h3 className="altai-session-group-label">{group.label}</h3>
-          <ul className="altai-session-group-list">
-            {group.items.map((session) => (
-              <li key={session.id}>
-                <SessionRow
-                  title={session.title}
-                  active={session.id === activeChatId}
-                  renaming={renamingId === session.id}
-                  renameValue={
-                    renamingId === session.id ? renameValue : session.title
-                  }
-                  renameInputRef={renameInputRef}
-                  onPick={() => {
+      {loading && items.length === 0 ? (
+        <p className="altai-shell-meta" style={{ padding: "0.75rem" }}>
+          Loading sessions…
+        </p>
+      ) : (
+        <ChatHistoryPanel
+          groups={groups}
+          activeId={activeChatId}
+          search={search}
+          onSearchChange={setSearch}
+          onNewChat={() => {
+            if (!canCreate) {
+              setError("Create session is unavailable on this host.");
+              return;
+            }
+            void (async () => {
+              try {
+                const created = await ports.sessions.createSession();
+                await load();
+                onFocusSession({
+                  chatId: created.id,
+                  label: created.title,
+                });
+              } catch (err) {
+                setError(err instanceof Error ? err.message : String(err));
+              }
+            })();
+          }}
+          onPick={(id) => {
+            const session = items.find((s) => s.id === id);
+            onFocusSession({
+              chatId: id,
+              label: session?.title,
+            });
+          }}
+          onDelete={(id) => {
+            if (!canDelete) {
+              setError("Delete is unavailable on this host.");
+              return;
+            }
+            void (async () => {
+              try {
+                const wasActive = id === activeChatId;
+                await ports.sessions.deleteSession(id);
+                const remaining = sessionsToHistoryItems(
+                  await ports.sessions.listSessions(),
+                );
+                setItems(remaining);
+                if (wasActive) {
+                  const next = remaining[0];
+                  if (next) {
                     onFocusSession({
-                      chatId: session.id,
-                      label: session.title,
+                      chatId: next.id,
+                      label: next.title,
                     });
-                  }}
-                  onStartRename={() => {
-                    if (!canRename) {
-                      setError("Rename is unavailable on this host.");
-                      return;
-                    }
-                    setRenamingId(session.id);
-                    setRenameValue(session.title);
-                  }}
-                  onRenameValueChange={setRenameValue}
-                  onCancelRename={() => {
-                    setRenamingId(null);
-                    setRenameValue("");
-                  }}
-                  onCommitRename={() => {
-                    if (!canRename || renamingId !== session.id) {
-                      setRenamingId(null);
-                      return;
-                    }
-                    const next = renameValue.trim();
-                    setRenamingId(null);
-                    if (!next || next === session.title) {
-                      return;
-                    }
-                    void (async () => {
-                      try {
-                        await ports.sessions.renameSession(session.id, next);
-                        await load();
-                        if (session.id === activeChatId) {
-                          onFocusSession({ chatId: session.id, label: next });
-                        }
-                      } catch (err) {
-                        setError(
-                          err instanceof Error ? err.message : String(err),
-                        );
-                      }
-                    })();
-                  }}
-                  onDelete={() => {
-                    if (!canDelete) {
-                      setError("Delete is unavailable on this host.");
-                      return;
-                    }
-                    void (async () => {
-                      try {
-                        const wasActive = session.id === activeChatId;
-                        await ports.sessions.deleteSession(session.id);
-                        const remaining = sessionsToHistoryItems(
-                          await ports.sessions.listSessions(),
-                        );
-                        setItems(remaining);
-                        if (wasActive) {
-                          const next = remaining[0];
-                          if (next) {
-                            onFocusSession({
-                              chatId: next.id,
-                              label: next.title,
-                            });
-                          } else {
-                            onFocusSession({});
-                          }
-                        }
-                      } catch (err) {
-                        setError(
-                          err instanceof Error ? err.message : String(err),
-                        );
-                      }
-                    })();
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </section>
+                  } else {
+                    onFocusSession({});
+                  }
+                }
+              } catch (err) {
+                setError(err instanceof Error ? err.message : String(err));
+              }
+            })();
+          }}
+          renamingId={renamingId}
+          renameValue={renameValue}
+          onStartRename={(id, title) => {
+            if (!canRename) {
+              setError("Rename is unavailable on this host.");
+              return;
+            }
+            setRenamingId(id);
+            setRenameValue(title);
+          }}
+          onCommitRename={() => {
+            if (!canRename || !renamingId) {
+              setRenamingId(null);
+              return;
+            }
+            const sessionId = renamingId;
+            const next = renameValue.trim();
+            const prev = items.find((s) => s.id === sessionId)?.title;
+            setRenamingId(null);
+            if (!next || next === prev) {
+              return;
+            }
+            void (async () => {
+              try {
+                await ports.sessions.renameSession(sessionId, next);
+                await load();
+                if (sessionId === activeChatId) {
+                  onFocusSession({ chatId: sessionId, label: next });
+                }
+              } catch (err) {
+                setError(err instanceof Error ? err.message : String(err));
+              }
+            })();
+          }}
+          onCancelRename={() => {
+            setRenamingId(null);
+            setRenameValue("");
+          }}
+          onRenameValueChange={setRenameValue}
+          renameInputRef={renameInputRef}
+          searchInputRef={searchInputRef}
+        />
+      )}
+    </aside>
   );
 }
