@@ -154,6 +154,7 @@ sibling `file:` packages until public npm publish.
 - Composer git-diff attach synthesizes a path/status summary when VS Code Git
   has no real patch text; terminal attach accepts cwd when selection is empty.
 - Empty-home slash starters are allowed to be short command tokens in tests.
+- Status-bar ALTAI badge with attention > 0 opens Operations Inbox.
 
 ### Security
 
