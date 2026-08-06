@@ -24,6 +24,7 @@ export type WorkspaceRequestMethod =
   | "readFile"
   | "openFile"
   | "openDiff"
+  | "openExternal"
   | "getGitDiff"
   | "getTerminalContext";
 
@@ -58,6 +59,8 @@ export class WorkspaceAdapter {
         return this.openFile(readUri(params), readRange(params));
       case "openDiff":
         return this.openDiff(readDiffInput(params));
+      case "openExternal":
+        return this.openExternal(readExternalHref(params));
       case "getGitDiff":
         return this.getGitDiffContext();
       case "getTerminalContext":
@@ -180,6 +183,23 @@ export class WorkspaceAdapter {
     await this.api.commands.executeCommand("vscode.diff", original, modified, title);
   }
 
+  private async openExternal(href: string): Promise<void> {
+    let uri: vscode.Uri;
+    try {
+      uri = this.api.Uri.parse(href, true);
+    } catch {
+      throw codedError("invalid_uri", "Invalid external URL");
+    }
+    const scheme = (uri.scheme || schemeFromHref(href)).toLowerCase();
+    if (scheme !== "http" && scheme !== "https" && scheme !== "mailto") {
+      throw codedError(
+        "unsupported_scheme",
+        "Only http(s) and mailto links can be opened externally",
+      );
+    }
+    await this.api.env.openExternal(uri);
+  }
+
   private getTerminalContext(): TerminalContext | null {
     const terminal = this.api.window.activeTerminal;
     if (!terminal) {
@@ -293,6 +313,22 @@ function readDiffInput(value: unknown): DiffInput {
     }
   }
   return input;
+}
+
+function readExternalHref(value: unknown): string {
+  if (!isRecord(value) || typeof value.href !== "string") {
+    throw codedError("invalid_params", "openExternal requires an href string");
+  }
+  const href = value.href.trim();
+  if (!href) {
+    throw codedError("invalid_params", "openExternal requires a non-empty href");
+  }
+  return href;
+}
+
+function schemeFromHref(href: string): string {
+  const match = /^([A-Za-z][A-Za-z0-9+.-]*):/.exec(href);
+  return match?.[1] ?? "";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

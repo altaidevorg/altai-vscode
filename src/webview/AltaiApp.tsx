@@ -394,6 +394,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 initError={initError}
                 chatFocus={chatFocus}
                 onFocusChat={openChatFromOperations}
+                requestWorkspace={(method, params) =>
+                  transport.requestWorkspace(method, params)
+                }
               />
             </>
           )
@@ -403,6 +406,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             initError={initError}
             chatFocus={chatFocus}
             onFocusChat={openChatFromOperations}
+            requestWorkspace={(method, params) =>
+              transport.requestWorkspace(method, params)
+            }
           />
         )}
       </div>
@@ -415,11 +421,13 @@ function AgentUiShell({
   initError,
   chatFocus,
   onFocusChat,
+  requestWorkspace,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
   chatFocus?: OpenChatFocus;
   onFocusChat: (input: { chatId?: string; label?: string }) => void;
+  requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
 }) {
   const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
@@ -864,6 +872,7 @@ function AgentUiShell({
                 onOpenFileError={(message) => {
                   setError(message);
                 }}
+                requestWorkspace={requestWorkspace}
               />
             )}
             {error ? (

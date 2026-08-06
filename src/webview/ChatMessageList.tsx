@@ -3,15 +3,10 @@
  * User bubbles support inline edit + resend when the host allows truncate.
  */
 
-import {
-  ContextChips,
-  HoverActionButton,
-  UnifiedDiffPreview,
-  useCapability,
-  useHostPorts,
-} from "@altai/agent-ui";
+import { ContextChips, HoverActionButton, UnifiedDiffPreview, useCapability, useHostPorts } from "@altai/agent-ui";
 import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
+import { ChatMessageContent } from "./ChatMessageContent.js";
 
 export type ChatMessageListProps = {
   messages: readonly ChatDisplayMessage[];
@@ -23,6 +18,7 @@ export type ChatMessageListProps = {
   onRetry?: () => void;
   editingBusy?: boolean;
   onOpenFileError?: (message: string) => void;
+  requestWorkspace?: (method: string, params?: unknown) => Promise<unknown>;
 };
 
 function roleLabel(role: ChatDisplayMessage["role"]): string {
@@ -50,6 +46,7 @@ export function ChatMessageList({
   onRetry,
   editingBusy = false,
   onOpenFileError,
+  requestWorkspace,
 }: ChatMessageListProps) {
   const ports = useHostPorts();
   const canOpenFile = useCapability("workspace.openFile");
@@ -172,14 +169,12 @@ export function ChatMessageList({
                 {message.chips && message.chips.length > 0 ? (
                   <ContextChips chips={message.chips} />
                 ) : null}
-                <p className="altai-chat-bubble-body">
-                  {message.content}
-                  {message.streaming ? (
-                    <span className="altai-chat-streaming" aria-hidden="true">
-                      ▍
-                    </span>
-                  ) : null}
-                </p>
+                <ChatMessageContent
+                  content={message.content}
+                  streaming={Boolean(message.streaming)}
+                  onError={onOpenFileError}
+                  requestWorkspace={requestWorkspace}
+                />
                 {message.diffOriginalText !== undefined &&
                 message.diffModifiedText !== undefined ? (
                   <div className="altai-chat-inline-diff">

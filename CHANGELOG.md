@@ -50,6 +50,9 @@ sibling `file:` packages until public npm publish.
   `workspace.openFile` when the host advertises it.
 - `edit_diff` stream events become review rows with Diff (openDiff) and Open
   actions when host capabilities allow, plus an inline `UnifiedDiffPreview`.
+- Chat message bodies segment absolute paths, `file://` URIs, and fenced code
+  blocks; paths open via shared `ChatPathLink` + `workspace.openFile`.
+  HTTP(S) links open via Extension Host `openExternal`.
 
 ### Security
 

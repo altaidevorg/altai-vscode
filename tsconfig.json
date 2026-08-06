@@ -49,6 +49,7 @@
     "test/unit/composerAtMention.test.ts",
     "test/unit/composerCompactChrome.test.ts",
     "test/unit/checkpointChrome.test.ts",
+    "test/unit/chatContentSegments.test.ts",
     "dist",
     "out",
     "node_modules"
