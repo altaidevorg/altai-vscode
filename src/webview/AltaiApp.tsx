@@ -5,8 +5,10 @@ import {
   useCapability,
   useHostPorts,
   type Capabilities,
+  type OperationsView,
+  type WorkHubView,
 } from "@altai/agent-ui";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
@@ -15,7 +17,14 @@ import {
   type HostStatusPayload,
   type OpenOperationsPayload,
 } from "../shared/messages.js";
-import { parsePersistedWebviewState } from "../shared/webviewState.js";
+import {
+  mergePersistedWebviewState,
+  parsePersistedWebviewState,
+  type PersistedAltaiSurface,
+  type PersistedOperationsView,
+  type PersistedWorkHubView,
+  type PersistedWebviewState,
+} from "../shared/webviewState.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
@@ -45,14 +54,24 @@ function isHostRpcNotification(
   );
 }
 
+function patchPersistedState(
+  client: WebviewClient,
+  patch: PersistedWebviewState,
+): void {
+  client.setPersistedState(
+    mergePersistedWebviewState(client.getPersistedState(), patch),
+  );
+}
+
 /**
  * Shared-UI shell + TASK-009 chat vertical slice (HostPorts over native RPC).
  */
 export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const hostReadyRef = useRef(false);
   const [nativeCapabilities, setNativeCapabilities] = useState<readonly string[] | null>(null);
+  const persisted = client.getPersistedState();
   const [hostStatus, setHostStatus] = useState<HostStatusPayload>(() => {
-    const previous = client.getPersistedState().hostStatus;
+    const previous = persisted.hostStatus;
     if (isHostStatusPayload(previous)) {
       hostReadyRef.current = previous.status === "ready";
       return previous;
@@ -106,10 +125,43 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 
   const [capabilities, setCapabilities] = useState<Capabilities | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
-  const [surface, setSurface] = useState<"chat" | "operations">("chat");
+  const [surface, setSurface] = useState<PersistedAltaiSurface>(
+    () => persisted.surface ?? "chat",
+  );
+  const [operationsView, setOperationsView] = useState<PersistedOperationsView>(
+    () => persisted.operationsView ?? "overview",
+  );
+  const [workHubView, setWorkHubView] = useState<PersistedWorkHubView>(
+    () => persisted.workHubView ?? "runs",
+  );
   const [operationsNav, setOperationsNav] = useState<
     OpenOperationsPayload | undefined
   >(undefined);
+
+  const selectSurface = useCallback(
+    (next: PersistedAltaiSurface) => {
+      setSurface(next);
+      patchPersistedState(client, { surface: next });
+    },
+    [client],
+  );
+
+  const onOperationsPresentationChange = useCallback(
+    (next: {
+      operationsView: OperationsView;
+      workHubView: WorkHubView;
+    }) => {
+      const opsView = next.operationsView as PersistedOperationsView;
+      const hub = next.workHubView as PersistedWorkHubView;
+      setOperationsView(opsView);
+      setWorkHubView(hub);
+      patchPersistedState(client, {
+        operationsView: opsView,
+        workHubView: hub,
+      });
+    },
+    [client],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -143,7 +195,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     const off = client.onEvent(HOST_STATUS_EVENT, (payload) => {
       if (isHostStatusPayload(payload)) {
         setHostStatus(payload);
-        client.setPersistedState({ hostStatus: payload });
+        patchPersistedState(client, { hostStatus: payload });
       }
     });
     void client
@@ -151,7 +203,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       .then((result) => {
         if (isHostStatusPayload(result)) {
           setHostStatus(result);
-          client.setPersistedState({ hostStatus: result });
+          patchPersistedState(client, { hostStatus: result });
         }
       })
       .catch((error: unknown) => {
@@ -180,10 +232,21 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     return client.onEvent(OPEN_OPERATIONS_EVENT, (payload) => {
       const parsed = parseOpenOperationsPayload(payload);
       if (!parsed) return;
-      setSurface("operations");
+      selectSurface("operations");
       setOperationsNav(parsed);
+      const opsView = parsed.view as PersistedOperationsView;
+      const hub = (parsed.workHubView ?? workHubView) as PersistedWorkHubView;
+      setOperationsView(opsView);
+      if (parsed.workHubView) {
+        setWorkHubView(hub);
+      }
+      patchPersistedState(client, {
+        surface: "operations",
+        operationsView: opsView,
+        ...(parsed.workHubView ? { workHubView: hub } : {}),
+      });
     });
-  }, [client]);
+  }, [client, selectSurface, workHubView]);
 
   return (
     <HostPortsProvider ports={ports} capabilities={capabilities}>
@@ -203,7 +266,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             role="tab"
             aria-selected={surface === "chat"}
             className="altai-view-tab"
-            onClick={() => setSurface("chat")}
+            onClick={() => selectSurface("chat")}
           >
             Chat
           </button>
@@ -212,13 +275,18 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             role="tab"
             aria-selected={surface === "operations"}
             className="altai-view-tab"
-            onClick={() => setSurface("operations")}
+            onClick={() => selectSurface("operations")}
           >
             Operations
           </button>
         </div>
         {surface === "operations" && hostStatus.status === "ready" && !initError ? (
-          <OperationsPanel navigation={operationsNav} />
+          <OperationsPanel
+            navigation={operationsNav}
+            initialView={operationsView}
+            initialWorkHubView={workHubView}
+            onPresentationChange={onOperationsPresentationChange}
+          />
         ) : (
           <AgentUiShell hostStatus={hostStatus} initError={initError} />
         )}
