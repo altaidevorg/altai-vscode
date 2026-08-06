@@ -7,6 +7,7 @@ import {
   DEFAULT_CHAT_STARTERS,
   shouldShowChatStarters,
 } from "./chatEmptyStarterTemplates.js";
+import { formatComposerHintLine } from "./composerHintChrome.js";
 
 export type ChatEmptyStartersProps = {
   emptyHome: boolean;
@@ -36,6 +37,9 @@ export function ChatEmptyStarters({
         density="default"
         onSelect={onSelect}
       />
+      <p className="altai-shell-meta" style={{ padding: "0.5rem 0 0" }}>
+        Composer · {formatComposerHintLine()}
+      </p>
     </div>
   );
 }
