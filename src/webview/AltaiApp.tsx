@@ -36,6 +36,7 @@ import { transcriptLinesFromMessages } from "./sessionTranscript.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
+import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import {
   applyInteractivePrompt,
@@ -648,6 +649,7 @@ function AgentUiShell({
             canListSessions={canListSessions}
             canMessages={canMessages}
           />
+          <ChatProviderStatusChrome />
           <p className="altai-shell-meta">
             Extension {hostStatus.extensionVersion} · UI from @altai/agent-ui
             {activeChatId ? ` · chat ${activeChatId}` : ""}

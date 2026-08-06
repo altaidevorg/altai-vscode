@@ -40,6 +40,7 @@
     "test/unit/permissionModeChrome.test.ts",
     "test/unit/interactivePrompt.test.ts",
     "test/unit/modelPickerChrome.test.ts",
+    "test/unit/providerStatusChrome.test.ts",
     "dist",
     "out",
     "node_modules"
