@@ -488,6 +488,11 @@ describe("createVsCodeHostPorts", () => {
       chat_id: "chat_1",
       keep_user_messages: 1,
     });
+    await ports.sessions.truncateSession("chat_1", "user:0");
+    expect(transport.request).toHaveBeenCalledWith("sessions/truncate", {
+      chat_id: "chat_1",
+      keep_user_messages: 0,
+    });
     await expect(
       ports.sessions.truncateSession("chat_1", "message:2"),
     ).rejects.toThrow(/session_truncate_requires_user_message/);

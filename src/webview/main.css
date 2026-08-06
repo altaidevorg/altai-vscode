@@ -218,6 +218,45 @@ body {
   word-break: break-word;
 }
 
+.altai-chat-bubble-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.altai-chat-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.altai-chat-edit-input {
+  width: 100%;
+  min-height: 3.5rem;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  padding: 0.45rem 0.55rem;
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.altai-chat-edit-input:focus {
+  outline: 1px solid var(--ring);
+  border-color: var(--ring);
+}
+
+.altai-chat-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
 .altai-chat-streaming {
   display: inline-block;
   margin-left: 0.1rem;
