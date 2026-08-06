@@ -4,6 +4,7 @@ import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
   OPEN_CHAT_WITH_SELECTION_EVENT,
+  OPEN_CHAT_WITH_FILE_EVENT,
   OPEN_OPERATIONS_EVENT,
   type HostRequestParams,
   type HostStatusPayload,
@@ -17,6 +18,10 @@ import {
   buildOpenChatWithSelectionPayload,
   type OpenChatWithSelectionPayload,
 } from "../../shared/selectionDeepLink.js";
+import {
+  buildOpenChatWithFilePayload,
+  type OpenChatWithFilePayload,
+} from "../../shared/fileDeepLink.js";
 import { createNonce } from "../../shared/nonce.js";
 import type { HostManager } from "../host/HostManager.js";
 import { getOutputChannel } from "../output.js";
@@ -45,6 +50,8 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   private pendingOperationsOpen: OpenOperationsPayload | undefined;
   /** Queued until the Webview bridge is ready (first panel open). */
   private pendingSelectionAttach: OpenChatWithSelectionPayload | undefined;
+  /** Queued until the Webview bridge is ready (first panel open). */
+  private pendingFileAttach: OpenChatWithFilePayload | undefined;
   private attentionCount = 0;
 
   constructor(
@@ -152,6 +159,10 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       );
       this.pendingSelectionAttach = undefined;
     }
+    if (this.pendingFileAttach) {
+      bridge.postEvent(OPEN_CHAT_WITH_FILE_EVENT, this.pendingFileAttach);
+      this.pendingFileAttach = undefined;
+    }
     getOutputChannel().appendLine("[altai] webview resolved");
   }
 
@@ -235,6 +246,49 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     this.pendingSelectionAttach = payload;
+  }
+
+  /**
+   * Capture the active workspace file URI in Extension Host, open Chat, and
+   * attach it as a file chip (contents stay on host until run/start).
+   */
+  public async openChatWithActiveFile(): Promise<void> {
+    let file: { uri: string; path: string } | null;
+    try {
+      file = (await this.workspaceAdapter.request("getActiveFile")) as {
+        uri: string;
+        path: string;
+      } | null;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "active_file_unavailable";
+      await vscode.window.showErrorMessage(
+        `ALTAI could not read the active file: ${message}`,
+      );
+      return;
+    }
+    if (!file) {
+      await vscode.window.showInformationMessage(
+        "Open a workspace file, then run ALTAI: Ask About Active File.",
+      );
+      return;
+    }
+    const payload = buildOpenChatWithFilePayload({
+      uri: file.uri,
+      path: file.path,
+    });
+    if (!payload) {
+      await vscode.window.showInformationMessage(
+        "Open a workspace file, then run ALTAI: Ask About Active File.",
+      );
+      return;
+    }
+    await vscode.commands.executeCommand("altai.sidePanel.focus");
+    if (this.bridge && !this.bridge.isDisposed) {
+      this.bridge.postEvent(OPEN_CHAT_WITH_FILE_EVENT, payload);
+      return;
+    }
+    this.pendingFileAttach = payload;
   }
 
   private async proxyHostRequest(params: unknown): Promise<unknown> {

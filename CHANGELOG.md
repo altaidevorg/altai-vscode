@@ -70,6 +70,8 @@ sibling `file:` packages until public npm publish.
   opens Chat with the current selection attached as composer context.
 - Shared `WorkspaceTopbarActions` in the shell header opens Operations Work /
   Inbox when those capabilities are available (attention badge included).
+- Editor command **ALTAI: Ask About Active File** (context menu + ⌘/Ctrl+Alt+F)
+  opens Chat with the active workspace file as a URI attachment.
 
 ### Security
 

@@ -77,6 +77,12 @@ export const OPEN_OPERATIONS_EVENT = "operations.open" as const;
  */
 export const OPEN_CHAT_WITH_SELECTION_EVENT = "chat.attachSelection" as const;
 
+/**
+ * Extension Host → Webview: switch to Chat and attach the active workspace
+ * file as a URI composer attachment (no file contents in the event).
+ */
+export const OPEN_CHAT_WITH_FILE_EVENT = "chat.attachFile" as const;
+
 export type OperationsDeepLinkView =
   | "overview"
   | "work"

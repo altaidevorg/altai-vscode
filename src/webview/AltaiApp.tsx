@@ -19,6 +19,7 @@ import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
   OPEN_CHAT_WITH_SELECTION_EVENT,
+  OPEN_CHAT_WITH_FILE_EVENT,
   OPEN_OPERATIONS_EVENT,
   type HostRpcNotificationPayload,
   type HostStatusPayload,
@@ -30,6 +31,10 @@ import {
   parseOpenChatWithSelectionPayload,
   type OpenChatWithSelectionPayload,
 } from "../shared/selectionDeepLink.js";
+import {
+  parseOpenChatWithFilePayload,
+  type OpenChatWithFilePayload,
+} from "../shared/fileDeepLink.js";
 import {
   mergePersistedWebviewState,
   parsePersistedWebviewState,
@@ -225,6 +230,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const [selectionAttach, setSelectionAttach] = useState<
     OpenChatWithSelectionPayload | undefined
   >(undefined);
+  const [fileAttach, setFileAttach] = useState<
+    OpenChatWithFilePayload | undefined
+  >(undefined);
   const [attentionCount, setAttentionCount] = useState(0);
 
   const selectSurface = useCallback(
@@ -403,6 +411,18 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     });
   }, [client, selectSurface]);
 
+  useEffect(() => {
+    return client.onEvent(OPEN_CHAT_WITH_FILE_EVENT, (payload) => {
+      const parsed = parseOpenChatWithFilePayload(payload);
+      if (!parsed) {
+        return;
+      }
+      selectSurface("chat");
+      setFileAttach(parsed);
+      patchPersistedState(client, { surface: "chat" });
+    });
+  }, [client, selectSurface]);
+
   // Clear the badge when the host is not usable so stale counts do not linger.
   useEffect(() => {
     if (hostStatus.status !== "ready" || initError) {
@@ -480,6 +500,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 onSelectionAttachConsumed={() => {
                   setSelectionAttach(undefined);
                 }}
+                fileAttach={fileAttach}
+                onFileAttachConsumed={() => {
+                  setFileAttach(undefined);
+                }}
                 onFocusChat={openChatFromOperations}
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
@@ -495,6 +519,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             selectionAttach={selectionAttach}
             onSelectionAttachConsumed={() => {
               setSelectionAttach(undefined);
+            }}
+            fileAttach={fileAttach}
+            onFileAttachConsumed={() => {
+              setFileAttach(undefined);
             }}
             onFocusChat={openChatFromOperations}
             requestWorkspace={(method, params) =>
@@ -513,6 +541,8 @@ function AgentUiShell({
   chatFocus,
   selectionAttach,
   onSelectionAttachConsumed,
+  fileAttach,
+  onFileAttachConsumed,
   onFocusChat,
   requestWorkspace,
 }: {
@@ -521,6 +551,8 @@ function AgentUiShell({
   chatFocus?: OpenChatFocus;
   selectionAttach?: OpenChatWithSelectionPayload;
   onSelectionAttachConsumed?: () => void;
+  fileAttach?: OpenChatWithFilePayload;
+  onFileAttachConsumed?: () => void;
   onFocusChat: (input: { chatId?: string; label?: string }) => void;
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
 }) {
@@ -680,6 +712,30 @@ function AgentUiShell({
     );
     onSelectionAttachConsumed?.();
   }, [selectionAttach, onSelectionAttachConsumed]);
+
+  const appliedFileKey = useRef<number | null>(null);
+  useEffect(() => {
+    if (!fileAttach) {
+      return;
+    }
+    if (appliedFileKey.current === fileAttach.key) {
+      return;
+    }
+    appliedFileKey.current = fileAttach.key;
+    setContextItems((prev) =>
+      addContextItem(prev, {
+        id: newContextItemId("file"),
+        kind: "file",
+        uri: fileAttach.uri,
+        name: fileAttach.name,
+        path: fileAttach.path,
+      }),
+    );
+    setMessages((prev) =>
+      appendMetaMessage(prev, `Attached active file · ${fileAttach.path}`),
+    );
+    onFileAttachConsumed?.();
+  }, [fileAttach, onFileAttachConsumed]);
 
   useEffect(() => {
     return ports.events.subscribe((event) => {
