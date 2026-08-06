@@ -49,6 +49,11 @@ import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { ChatSettingsHub } from "./ChatSettingsHub.js";
 import {
+  ALTAI_SURFACES,
+  nextAltaiSurface,
+  type AltaiSurfaceId,
+} from "./surfaceTabsChrome.js";
+import {
   buildOpenChatFocus,
   chatFocusStatusLine,
   type OpenChatFocus,
@@ -517,11 +522,36 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             />
           }
         />
-        <div className="altai-view-tabs" role="tablist" aria-label="ALTAI surfaces">
+        <div
+          className="altai-view-tabs"
+          role="tablist"
+          aria-label="ALTAI surfaces"
+          onKeyDown={(event) => {
+            if (
+              event.key !== "ArrowLeft" &&
+              event.key !== "ArrowRight" &&
+              event.key !== "Home" &&
+              event.key !== "End"
+            ) {
+              return;
+            }
+            event.preventDefault();
+            const next = nextAltaiSurface(
+              surface as AltaiSurfaceId,
+              event.key,
+              ALTAI_SURFACES,
+            );
+            selectSurface(next);
+            const btn = document.getElementById(`altai-tab-${next}`);
+            btn?.focus();
+          }}
+        >
           <button
             type="button"
+            id="altai-tab-chat"
             role="tab"
             aria-selected={surface === "chat"}
+            tabIndex={surface === "chat" ? 0 : -1}
             className="altai-view-tab"
             onClick={() => selectSurface("chat")}
           >
@@ -529,8 +559,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
           </button>
           <button
             type="button"
+            id="altai-tab-operations"
             role="tab"
             aria-selected={surface === "operations"}
+            tabIndex={surface === "operations" ? 0 : -1}
             className="altai-view-tab"
             onClick={() => selectSurface("operations")}
           >
@@ -538,8 +570,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
           </button>
           <button
             type="button"
+            id="altai-tab-settings"
             role="tab"
             aria-selected={surface === "settings"}
+            tabIndex={surface === "settings" ? 0 : -1}
             className="altai-view-tab"
             onClick={() => selectSurface("settings")}
           >
