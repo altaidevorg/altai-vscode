@@ -739,4 +739,37 @@ describe("createVsCodeHostPorts", () => {
       { name: "draft", description: null },
     ]);
   });
+
+  it("installs skills when native skills/install is advertised", async () => {
+    const transport = mockTransport(async (method, params) => {
+      if (method === "skills/install") {
+        expect(params).toEqual({ source: "owner/repo#demo" });
+        return {
+          skills: [{ name: "demo", description: "Demo skill", enabled: true }],
+          installed: ["demo"],
+        };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["skills/install"],
+      transport,
+    });
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    const byId = Object.fromEntries(
+      caps.capabilities.map((capability) => [capability.id, capability.availability]),
+    );
+    expect(byId["skills.install"]).toBe("available");
+    await expect(ports.mcpSkills.installSkill("owner/repo#demo")).resolves.toEqual({
+      name: "demo",
+      description: "Demo skill",
+      enabled: true,
+    });
+  });
 });

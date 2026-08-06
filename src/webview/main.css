@@ -841,6 +841,42 @@ body {
   color: var(--muted-foreground);
 }
 
+.altai-skills-status {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+  padding: 0.35rem 0.75rem 0.5rem;
+}
+
+.altai-skills-install {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.35rem 0 0.45rem;
+}
+
+.altai-skills-install-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.altai-skills-install-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.altai-skills-install-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.35rem;
+  background: var(--background, transparent);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  padding: 0.3rem 0.45rem;
+}
+
 .altai-change-review-panel {
   flex-shrink: 0;
   max-height: 40%;

@@ -1,8 +1,9 @@
 /**
- * Capability-gated installed-skills list in Chat footer (read-only).
+ * Capability-gated installed-skills list + optional install form (Chat footer).
  */
 
 import {
+  SurfacePrimaryAction,
   SurfaceSecondaryAction,
   useCapability,
   useHostPorts,
@@ -18,11 +19,15 @@ import {
 export function ChatSkillsStatusChrome() {
   const ports = useHostPorts();
   const canList = useCapability("skills.list");
+  const canInstall = useCapability("skills.install");
   const canShow = canMountSkillsStatus({ skillsList: canList });
   const [skills, setSkills] = useState<SkillView[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
+  const [source, setSource] = useState("");
+  const [installing, setInstalling] = useState(false);
+  const [installMessage, setInstallMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!canShow) {
@@ -57,6 +62,26 @@ export function ChatSkillsStatusChrome() {
     return null;
   }
 
+  async function install() {
+    const trimmed = source.trim();
+    if (!canInstall || !trimmed || installing) {
+      return;
+    }
+    setInstalling(true);
+    setInstallMessage(null);
+    setError(null);
+    try {
+      const skill = await ports.mcpSkills.installSkill(trimmed);
+      setInstallMessage(`Installed ${skill.name}`);
+      setSource("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setInstalling(false);
+    }
+  }
+
   return (
     <section className="altai-skills-status" aria-label="Skills">
       <div className="altai-mcp-status-header">
@@ -86,25 +111,67 @@ export function ChatSkillsStatusChrome() {
           {error}
         </p>
       ) : null}
+      {installMessage ? (
+        <p className="altai-shell-meta" role="status">
+          {installMessage}
+        </p>
+      ) : null}
       {open ? (
-        <ul className="altai-mcp-status-list">
-          {!ready && !error ? (
-            <li className="altai-shell-meta">Loading skills…</li>
-          ) : null}
-          {ready && skills.length === 0 ? (
-            <li className="altai-shell-meta">No skills installed in this workspace.</li>
-          ) : null}
-          {skills.map((skill) => (
-            <li key={skill.name} className="altai-mcp-status-row">
-              <div className="altai-mcp-status-meta">
-                <span className="altai-mcp-status-name">{skill.name}</span>
-                {skill.description ? (
-                  <span className="altai-mcp-status-state">{skill.description}</span>
-                ) : null}
+        <>
+          {canInstall ? (
+            <div className="altai-skills-install">
+              <label className="altai-skills-install-label" htmlFor="altai-skill-source">
+                Install from GitHub
+              </label>
+              <div className="altai-skills-install-row">
+                <input
+                  id="altai-skill-source"
+                  className="altai-skills-install-input"
+                  type="text"
+                  value={source}
+                  placeholder="owner/repo or owner/repo#skill"
+                  disabled={installing}
+                  onChange={(event) => {
+                    setSource(event.target.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void install();
+                    }
+                  }}
+                />
+                <SurfacePrimaryAction
+                  type="button"
+                  disabled={installing || source.trim().length === 0}
+                  onClick={() => {
+                    void install();
+                  }}
+                >
+                  {installing ? "Installing…" : "Install"}
+                </SurfacePrimaryAction>
               </div>
-            </li>
-          ))}
-        </ul>
+            </div>
+          ) : null}
+          <ul className="altai-mcp-status-list">
+            {!ready && !error ? (
+              <li className="altai-shell-meta">Loading skills…</li>
+            ) : null}
+            {ready && skills.length === 0 ? (
+              <li className="altai-shell-meta">No skills installed in this workspace.</li>
+            ) : null}
+            {skills.map((skill) => (
+              <li key={skill.name} className="altai-mcp-status-row">
+                <div className="altai-mcp-status-meta">
+                  <span className="altai-mcp-status-name">{skill.name}</span>
+                  {skill.description ? (
+                    <span className="altai-mcp-status-state">{skill.description}</span>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
     </section>
   );

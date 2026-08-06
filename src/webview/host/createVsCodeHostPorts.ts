@@ -159,6 +159,9 @@ export function createVsCodeHostPorts(
                     hasNativeMethod("skills/list") ||
                       hasNativeMethod("skills/list-all"),
                   ),
+                  "skills.install": nativeAvailability(
+                    hasNativeMethod("skills/install"),
+                  ),
                 }
               : {
                   "runtime.startRun": "deferred",
@@ -202,6 +205,7 @@ export function createVsCodeHostPorts(
                   "mcp.list": "deferred",
                   "mcp.configure": "deferred",
                   "skills.list": "deferred",
+                  "skills.install": "deferred",
                 },
           });
         },
@@ -760,6 +764,22 @@ export function createVsCodeHostPorts(
           }
           requireNativeCapability(hasNativeMethod, "skills/list-all");
           return normalizeSkills(await transport.request("skills/list-all", {}));
+        },
+        async installSkill(source: string): Promise<SkillInfo> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "skills/install");
+          const trimmed = source.trim();
+          if (!trimmed) {
+            throw new Error("invalid_skill_source");
+          }
+          const result = await transport.request("skills/install", {
+            source: trimmed,
+          });
+          const skills = normalizeSkills(result);
+          if (skills.length === 0) {
+            throw new Error("No skills found in that repository.");
+          }
+          return skills[0]!;
         },
       },
     ),
