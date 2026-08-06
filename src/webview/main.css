@@ -218,6 +218,34 @@ body {
   word-break: break-word;
 }
 
+.altai-chat-path {
+  color: var(--primary);
+  font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+  font-size: 0.78rem;
+}
+
+.altai-chat-path.is-static {
+  color: var(--muted-foreground);
+}
+
+.altai-chat-url {
+  color: var(--primary);
+}
+
+.altai-chat-code {
+  display: block;
+  margin: 0.4rem 0;
+  padding: 0.45rem 0.55rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--card) 88%, var(--foreground));
+  font-family: var(--vscode-editor-font-family, ui-monospace, monospace);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  white-space: pre;
+}
+
 .altai-chat-inline-diff {
   margin-top: 0.4rem;
   max-width: 100%;

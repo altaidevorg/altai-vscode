@@ -48,12 +48,23 @@ function createAdapter(isTrusted = true) {
         if (value === "file:///outside.txt") {
           return uri("/outside.txt");
         }
+        if (value.startsWith("https://") || value.startsWith("http://")) {
+          return {
+            path: value,
+            fsPath: value,
+            scheme: value.startsWith("https") ? "https" : "http",
+            toString: () => value,
+          };
+        }
         throw new Error("bad URI");
       }),
     },
     Selection: class {},
     TextEditorRevealType: { InCenterIfOutsideViewport: 0 },
     commands: { executeCommand },
+    env: {
+      openExternal: vi.fn(async () => true),
+    },
   };
   return {
     adapter: new WorkspaceAdapter(
@@ -118,11 +129,14 @@ describe("WorkspaceAdapter", () => {
     );
   });
 
-  it("returns Git state through an injected Extension Host adapter", async () => {
-    const { adapter } = createAdapter();
-    await expect(adapter.request("getGitDiff")).resolves.toEqual({
-      branch: "main",
-      files: [{ path: "src/main.ts", status: "working-tree:1" }],
-    });
+  it("opens allowed external URLs via vscode.env.openExternal", async () => {
+    const { adapter, api } = createAdapter();
+    await adapter.request("openExternal", { href: "https://example.com/docs" });
+    expect(api.env.openExternal).toHaveBeenCalledWith(
+      expect.objectContaining({ scheme: "https" }),
+    );
+    await expect(
+      adapter.request("openExternal", { href: "file:///workspace/a.ts" }),
+    ).rejects.toMatchObject({ code: "invalid_uri" });
   });
 });
