@@ -53,6 +53,7 @@ sibling `file:` packages until public npm publish.
 - Chat message bodies segment absolute paths, `file://` URIs, and fenced code
   blocks; paths open via shared `ChatPathLink` + `workspace.openFile`.
   HTTP(S) links open via Extension Host `openExternal`.
+- `todo_write` (and aliases) tool events render shared `TodoChecklist` cards.
 
 ### Security
 

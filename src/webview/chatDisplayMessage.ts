@@ -5,7 +5,8 @@
  */
 
 import type { AgentEvent } from "@altai/host-contract";
-import type { ContextChip } from "@altai/agent-ui";
+import type { ContextChip, TodoItem } from "@altai/agent-ui";
+import { parseTodoItems, summarizeTodos } from "@altai/agent-ui";
 
 export type ChatDisplayRole =
   | "user"
@@ -32,6 +33,8 @@ export type ChatDisplayMessage = {
   diffOriginalText?: string;
   /** Proposed text for edit_diff rows. */
   diffModifiedText?: string;
+  /** Parsed todo_write / task list items for shared TodoChecklist. */
+  todos?: TodoItem[];
 };
 
 export type SessionMessageLike = {
@@ -237,6 +240,44 @@ export function toolBubbleContent(
   return `Using ${name}…`;
 }
 
+export function isTodoToolName(name: string): boolean {
+  const n = name.toLowerCase().replace(/[\s-]+/g, "_");
+  return (
+    n === "todo_write" ||
+    n === "todowrite" ||
+    n === "update_todos" ||
+    n === "todo" ||
+    n === "todos"
+  );
+}
+
+/** Pull todo_write-style item lists from nested tool event payloads. */
+export function extractTodoToolItems(payload: unknown): TodoItem[] {
+  if (!isRecord(payload)) {
+    return [];
+  }
+  const candidates: unknown[] = [
+    payload.input,
+    payload.args,
+    payload.params,
+    payload,
+  ];
+  if (isRecord(payload.event)) {
+    candidates.unshift(
+      payload.event.input,
+      payload.event.args,
+      payload.event,
+    );
+  }
+  for (const candidate of candidates) {
+    const items = parseTodoItems(candidate);
+    if (items.length > 0) {
+      return items;
+    }
+  }
+  return [];
+}
+
 /**
  * Normalize native `edit_diff` crates (file + before/after) for Open Diff.
  */
@@ -415,15 +456,25 @@ export function applyAgentEventToMessages(
       (typeof body.tool === "string" && body.tool) ||
       "tool";
     const file = extractToolFileTarget(event.payload);
+    const todos = isTodoToolName(name)
+      ? extractTodoToolItems(event.payload)
+      : [];
+    const todoSummary =
+      todos.length > 0 ? summarizeTodos(todos) : null;
+    const content =
+      todoSummary && isTodoToolName(name)
+        ? `Todos · ${todoSummary.done}/${todoSummary.total} done`
+        : toolBubbleContent(name, file.path);
     return pushTrimmed(
       list,
       {
         id: newDisplayMessageId("tool"),
         role: "tool",
-        content: toolBubbleContent(name, file.path),
+        content,
         toolName: name,
         ...(file.uri ? { fileUri: file.uri } : {}),
         ...(file.path ? { filePath: file.path } : {}),
+        ...(todos.length > 0 ? { todos } : {}),
       },
       max,
     );

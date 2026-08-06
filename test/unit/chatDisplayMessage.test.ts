@@ -117,25 +117,26 @@ describe("applyAgentEventToMessages", () => {
     expect(next[0]?.content).toContain("App.tsx");
   });
 
-  it("maps edit_diff events for openDiff", () => {
+  it("maps todo_write tool inputs into TodoChecklist data", () => {
     const event: AgentEvent = {
       type: "tool",
       chatId: "c1",
       runId: "r1",
-      seq: 4,
+      seq: 5,
       payload: {
-        type: "edit_diff",
-        file: "/Users/me/proj/src/App.tsx",
-        before: "a\n",
-        after: "b\n",
-        hunk_id: "h1",
+        type: "tool_call_start",
+        name: "todo_write",
+        input: {
+          items: [
+            { id: "1", content: "Wire ports", status: "completed" },
+            { id: "2", content: "Mount UI", status: "in_progress" },
+          ],
+        },
       },
     };
     const next = applyAgentEventToMessages([], event, { activeChatId: "c1" });
-    expect(next[0]?.toolName).toBe("edit_diff");
-    expect(next[0]?.diffOriginalText).toBe("a\n");
-    expect(next[0]?.diffModifiedText).toBe("b\n");
-    expect(next[0]?.filePath).toBe("/Users/me/proj/src/App.tsx");
+    expect(next[0]?.todos).toHaveLength(2);
+    expect(next[0]?.content).toContain("1/2");
   });
 });
 
