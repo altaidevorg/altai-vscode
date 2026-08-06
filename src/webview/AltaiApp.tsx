@@ -1682,6 +1682,23 @@ function AgentUiShell({
                 <ChatEmptyStarters
                   emptyHome
                   onSelect={(value) => {
+                    const trimmed = value.trim();
+                    if (trimmed.startsWith("/")) {
+                      const outcome = tryRunSlashCommand(trimmed);
+                      if (outcome.kind === "handled") {
+                        void dispatchSlashAction(
+                          outcome.action,
+                          outcome.tail,
+                          outcome.toast,
+                        );
+                        setPrompt("");
+                        return;
+                      }
+                      if (outcome.kind === "send-prompt") {
+                        void submitExpandedPrompt(outcome.prompt, false);
+                        return;
+                      }
+                    }
                     setPrompt(value);
                     setCursor(value.length);
                   }}

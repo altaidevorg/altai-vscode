@@ -45,6 +45,10 @@ export const DEFAULT_CHAT_STARTERS: readonly PromptTemplate[] = [
     value:
       "Inspect this workspace without changing files. Produce a compact codebase map: entry points, major modules, data flow, and conventions.",
   },
+  {
+    label: "List commands (/help)",
+    value: "/help",
+  },
 ];
 
 export function shouldShowChatStarters(input: {
