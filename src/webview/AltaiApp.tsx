@@ -58,6 +58,7 @@ import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
+import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
 import { ChatRunStatusChrome } from "./ChatRunStatusChrome.js";
 import { ChatCheckpointsChrome } from "./ChatCheckpointsChrome.js";
@@ -895,7 +896,16 @@ function AgentUiShell({
           />
           <div className="altai-chat-scroll">
             {showEmptyHome ? (
-              <EmptyState agentName="ALTAI" />
+              <>
+                <EmptyState agentName="ALTAI" />
+                <ChatEmptyStarters
+                  emptyHome
+                  onSelect={(value) => {
+                    setPrompt(value);
+                    setCursor(value.length);
+                  }}
+                />
+              </>
             ) : (
               <ChatMessageList
                 messages={messages}

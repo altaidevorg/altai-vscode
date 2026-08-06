@@ -479,6 +479,23 @@ body {
   color: var(--foreground);
 }
 
+.altai-chat-empty-starters {
+  flex-shrink: 0;
+  max-width: 32rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem 1.25rem;
+}
+
+.altai-chat-empty-starters-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
 .altai-plan-todo-chrome {
   flex-shrink: 0;
   display: flex;

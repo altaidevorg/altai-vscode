@@ -60,6 +60,7 @@ sibling `file:` packages until public npm publish.
   Stop / Dismiss).
 - Plan mode strip (`PlanModeStrip`) when permission mode is plan; sticky
   `TodoSummaryChip` showing the latest `todo_write` checklist.
+- Empty Chat home starter chips (`PromptTemplateGrid`) that fill the composer.
 
 ### Security
 
