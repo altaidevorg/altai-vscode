@@ -138,6 +138,15 @@ export function mergePersistedWebviewState(
       next.composerDraft = draft;
     }
   }
+  if (Object.prototype.hasOwnProperty.call(patch, "activeChatId")) {
+    const id =
+      typeof patch.activeChatId === "string" ? patch.activeChatId.trim() : "";
+    if (!id || id.length > 512) {
+      delete next.activeChatId;
+    } else {
+      next.activeChatId = id;
+    }
+  }
   return next;
 }
 

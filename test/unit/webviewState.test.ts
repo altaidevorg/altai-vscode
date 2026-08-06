@@ -129,4 +129,13 @@ describe("mergePersistedWebviewState", () => {
       ),
     ).toEqual({ surface: "chat" });
   });
+
+  it("clears activeChatId when patch sets empty", () => {
+    expect(
+      mergePersistedWebviewState(
+        { activeChatId: "chat-1", surface: "chat" },
+        { activeChatId: "" },
+      ),
+    ).toEqual({ surface: "chat" });
+  });
 });
