@@ -843,12 +843,13 @@ function normalizeMessages(
 
 /** Native transcripts identify only user turns as valid rewind boundaries. */
 function userTurnFromMessageId(messageId: string): number | null {
-  const match = /^user:([1-9][0-9]*)$/.exec(messageId);
+  // `user:0` keeps nothing (full wipe). `user:N` (N≥1) keeps N user turns.
+  const match = /^user:(\d+)$/.exec(messageId);
   if (!match) {
     return null;
   }
   const userTurn = Number(match[1]);
-  return Number.isSafeInteger(userTurn) ? userTurn : null;
+  return Number.isSafeInteger(userTurn) && userTurn >= 0 ? userTurn : null;
 }
 
 function normalizeModels(value: unknown): ModelInfo[] {

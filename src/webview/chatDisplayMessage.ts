@@ -33,6 +33,20 @@ export function newDisplayMessageId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Assign sequential `user:1`… ids for protocol-compatible edit / truncate. */
+export function renumberUserTurnIds(
+  messages: readonly ChatDisplayMessage[],
+): ChatDisplayMessage[] {
+  let turn = 0;
+  return messages.map((message) => {
+    if (message.role !== "user") {
+      return message;
+    }
+    turn += 1;
+    return { ...message, id: `user:${turn}` };
+  });
+}
+
 /**
  * Map durable session messages into display bubbles (user/assistant only).
  */
@@ -41,7 +55,7 @@ export function displayMessagesFromSession(
   options?: { maxMessages?: number },
 ): ChatDisplayMessage[] {
   const max = options?.maxMessages ?? DEFAULT_MAX;
-  return messages
+  const mapped = messages
     .filter(
       (message) => message.role === "user" || message.role === "assistant",
     )
@@ -54,6 +68,7 @@ export function displayMessagesFromSession(
         content,
       };
     });
+  return renumberUserTurnIds(mapped);
 }
 
 /** Empty home when no conversational content is visible. */
@@ -243,7 +258,7 @@ export function appendUserMessage(
   options?: { maxMessages?: number },
 ): ChatDisplayMessage[] {
   const max = options?.maxMessages ?? DEFAULT_MAX;
-  return pushTrimmed(
+  const withUser = pushTrimmed(
     [...messages],
     {
       id: newDisplayMessageId("user"),
@@ -252,6 +267,7 @@ export function appendUserMessage(
     },
     max,
   );
+  return renumberUserTurnIds(withUser);
 }
 
 export function appendMetaMessage(

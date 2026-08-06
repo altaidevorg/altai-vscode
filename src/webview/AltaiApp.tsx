@@ -45,6 +45,13 @@ import {
   shouldShowChatEmptyHome,
   type ChatDisplayMessage,
 } from "./chatDisplayMessage.js";
+import {
+  canEditUserMessage,
+  parseUserTurnId,
+  truncateBoundaryForEdit,
+  truncateDisplayAfterUserTurn,
+  withStableUserTurnIds,
+} from "./chatMessageEdit.js";
 import { ChatMessageList } from "./ChatMessageList.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
@@ -407,10 +414,13 @@ function AgentUiShell({
   const canStartRun = useCapability("runtime.startRun");
   const canSteer = useCapability("runtime.steerRun");
   const canQueue = useCapability("runtime.queueRun");
+  const canRetry = useCapability("runtime.retryRun");
+  const canTruncate = useCapability("sessions.truncate");
   const canListSessions = useCapability("sessions.list");
   const canMessages = useCapability("sessions.messages");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editingBusy, setEditingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatDisplayMessage[]>([]);
   const [openTabs, setOpenTabs] = useState<
@@ -660,6 +670,76 @@ function AgentUiShell({
     }
   };
 
+  const onEditUserMessage = async (
+    messageId: string,
+    nextContent: string,
+  ): Promise<void> => {
+    const text = nextContent.trim();
+    const turn = parseUserTurnId(messageId);
+    if (
+      !text ||
+      turn === null ||
+      turn < 1 ||
+      !activeChatId ||
+      !canTruncate ||
+      !canStartRun
+    ) {
+      return;
+    }
+    const boundary = truncateBoundaryForEdit(turn);
+    if (boundary === null) {
+      return;
+    }
+    setEditingBusy(true);
+    setError(null);
+    try {
+      if (activeRunId) {
+        await ports.runtime.cancelRun({
+          chatId: activeChatId,
+          runId: activeRunId,
+        });
+        setActiveRunId(null);
+      }
+      await ports.sessions.truncateSession(activeChatId, boundary);
+      setMessages((prev) =>
+        withStableUserTurnIds(truncateDisplayAfterUserTurn(prev, turn)),
+      );
+      const ref = await ports.runtime.startRun({
+        prompt: text,
+        chatId: activeChatId,
+        ...(permissionMode ? { permissionMode } : {}),
+      });
+      setActiveChatId(ref.chatId);
+      setActiveRunId(ref.runId);
+      setMessages((prev) => appendUserMessage(prev, text));
+      setSessionListKey((key) => key + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditingBusy(false);
+    }
+  };
+
+  const onRetry = async (): Promise<void> => {
+    if (!activeChatId || !canRetry) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const ref = await ports.runtime.retryRun({
+        chatId: activeChatId,
+        ...(activeRunId ? { runId: activeRunId } : {}),
+      });
+      setActiveRunId(ref.runId);
+      setMessages((prev) => appendMetaMessage(prev, "Retrying…"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (initError || hostStatus.status !== "ready") {
     return (
       <main className="altai-shell-body">
@@ -682,6 +762,12 @@ function AgentUiShell({
   }
 
   const showEmptyHome = shouldShowChatEmptyHome(messages);
+  const allowUserEdit = canEditUserMessage({
+    role: "user",
+    canTruncate,
+    canStartRun,
+    runActive: Boolean(activeRunId),
+  });
 
   return (
     <main className="altai-shell-body altai-shell-body--chat">
@@ -731,7 +817,18 @@ function AgentUiShell({
             {showEmptyHome ? (
               <EmptyState agentName="ALTAI" />
             ) : (
-              <ChatMessageList messages={messages} />
+              <ChatMessageList
+                messages={messages}
+                canEditUserMessages={allowUserEdit}
+                onEditUserMessage={(messageId, next) => {
+                  void onEditUserMessage(messageId, next);
+                }}
+                canRetry={canRetry && Boolean(activeChatId)}
+                onRetry={() => {
+                  void onRetry();
+                }}
+                editingBusy={editingBusy || busy}
+              />
             )}
             {error ? (
               <p className="altai-chat-error" role="alert">

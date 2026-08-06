@@ -36,6 +36,8 @@ sibling `file:` packages until public npm publish.
   mapping fixed for nested `agent_message` envelopes (stream coalescing).
 - Active-run composer follow-up: shared `ComposerFollowupBar` for Steer /
   Queue when host capabilities advertise them (⌘/Ctrl+Enter steers).
+- User message Edit + resend (truncate + startRun) and assistant Retry hover
+  actions when host capabilities allow.
 
 ### Security
 
