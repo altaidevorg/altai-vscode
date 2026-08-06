@@ -48,6 +48,7 @@ import {
 import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
 import { formatDiagnosticClipboardText } from "./waitShellChrome.js";
+import { isEscapeDismissKey } from "./chatKeyboardChrome.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { ChatSettingsHub } from "./ChatSettingsHub.js";
@@ -774,6 +775,24 @@ function AgentUiShell({
   const [runWarningMessage, setRunWarningMessage] = useState<string | null>(
     null,
   );
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!isEscapeDismissKey(event)) {
+        return;
+      }
+      if (!error && !runBlockedMessage && !runWarningMessage) {
+        return;
+      }
+      setError(null);
+      setRunBlockedMessage(null);
+      setRunWarningMessage(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [error, runBlockedMessage, runWarningMessage]);
   const [runDetailsDismissed, setRunDetailsDismissed] = useState(false);
   const [changeReviewOpen, setChangeReviewOpen] = useState(false);
   const [lastReplayRunId, setLastReplayRunId] = useState<string | null>(null);
