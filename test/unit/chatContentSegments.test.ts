@@ -5,6 +5,7 @@ import {
   segmentChatContent,
   segmentTextWithLinks,
 } from "../../src/webview/chatContentSegments.js";
+import { hrefToFilePath, isWebHref } from "../../src/webview/chatHref.js";
 
 describe("segmentChatContent", () => {
   it("keeps plain text", () => {
@@ -49,5 +50,13 @@ describe("helpers", () => {
   it("classifies URLs and file URIs", () => {
     expect(isHttpUrl("https://x.test")).toBe(true);
     expect(fileUriToPath("file:///Users/a/b.ts")).toBe("/Users/a/b.ts");
+  });
+
+  it("re-exports shared chatHref helpers", () => {
+    expect(isWebHref("https://x.test")).toBe(true);
+    expect(hrefToFilePath("docs/a.md", "/ws")).toBe("/ws/docs/a.md");
+    expect(hrefToFilePath("file:///C:/Users/a/b.ts", null)).toBe(
+      "C:/Users/a/b.ts",
+    );
   });
 });

@@ -3,6 +3,8 @@
  * for clickable rendering (Desktop streamdown parity — light host version).
  */
 
+import { hrefToFilePath, isWebHref } from "@altai/agent-ui";
+
 export type ChatContentSegment =
   | { kind: "text"; text: string }
   | { kind: "path"; text: string; path: string }
@@ -76,25 +78,18 @@ export function segmentTextWithLinks(text: string): ChatContentSegment[] {
   return out.length > 0 ? out : [{ kind: "text", text }];
 }
 
+/** Path segment links only treat http(s) tokens as external URLs. */
 export function isHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value.trim());
+  const trimmed = value.trim();
+  return isWebHref(trimmed) && /^https?:/i.test(trimmed);
 }
 
 /** Convert file:// URI to a local path form preferred by pathToFileUri reverse. */
 export function fileUriToPath(value: string): string | null {
-  if (!value.startsWith("file:")) {
+  if (!/^file:/i.test(value.trim())) {
     return null;
   }
-  try {
-    const url = new URL(value);
-    let path = decodeURIComponent(url.pathname);
-    if (/^\/[A-Za-z]:\//.test(path)) {
-      path = path.slice(1);
-    }
-    return path;
-  } catch {
-    return value.replace(/^file:\/\//i, "");
-  }
+  return hrefToFilePath(value, null);
 }
 
 function stripTrailingPunctuation(token: string): string {
