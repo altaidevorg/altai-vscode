@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseAttentionReportParams } from "../../src/shared/attention.js";
+import {
+  attentionStatusBarCommand,
+  parseAttentionReportParams,
+} from "../../src/shared/attention.js";
 
 describe("parseAttentionReportParams", () => {
   it("accepts non-negative finite counts", () => {
@@ -13,5 +16,13 @@ describe("parseAttentionReportParams", () => {
     expect(parseAttentionReportParams({ count: -1 })).toBeNull();
     expect(parseAttentionReportParams({ count: "2" })).toBeNull();
     expect(parseAttentionReportParams({})).toBeNull();
+  });
+});
+
+describe("attentionStatusBarCommand", () => {
+  it("routes to inbox when there is attention", () => {
+    expect(attentionStatusBarCommand(0)).toBe("altai.openOperations");
+    expect(attentionStatusBarCommand(1)).toBe("altai.openOperationsInbox");
+    expect(attentionStatusBarCommand(3.2)).toBe("altai.openOperationsInbox");
   });
 });
