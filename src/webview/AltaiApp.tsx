@@ -4,6 +4,7 @@ import {
   ComposerPrimaryRow,
   ComposerShell,
   ComposerTextArea,
+  detectSlashOrSnippetTrigger,
   EmptyState,
   HostPortsProvider,
   SurfaceEmptyState,
@@ -97,10 +98,24 @@ import {
   type SlashCommandHandle,
 } from "./ChatComposerSlash.js";
 import {
+  ChatComposerSnippet,
+  type SnippetHandle,
+} from "./ChatComposerSnippet.js";
+import {
   tryRunSlashCommand,
   type SlashCommandMeta,
   type SlashHostAction,
 } from "./composerSlashCommands.js";
+import {
+  addPickedSnippet,
+  composePromptWithSnippets,
+  DEFAULT_SNIPPETS,
+  insertSnippetHandle,
+  mergeSnippetCatalogs,
+  parseWorkspaceSnippetsJson,
+  removePickedSnippet,
+  type Snippet,
+} from "./composerSnippets.js";
 import {
   addContextItem,
   composeRunPrompt,
@@ -108,6 +123,7 @@ import {
   toContextChips,
   type ComposerContextItem,
 } from "./composerContext.js";
+import { pathToFileUri } from "./chatHref.js";
 import {
   resolveComposerSubmitMode,
 } from "./composerFollowupChrome.js";
@@ -629,6 +645,8 @@ function AgentUiShell({
   const canSelectModel = useCapability("models.select");
   const canGetSettings = useCapability("settings.get");
   const canSetPermission = useCapability("interactive.permissionModes");
+  const canWorkspaceInfo = useCapability("workspace.info");
+  const canReadWorkspaceFile = useCapability("workspace.readFile");
   const canModelConfigRow = canMountModelPicker({
     list: canListModels,
     select: canSelectModel,
@@ -661,9 +679,14 @@ function AgentUiShell({
     null,
   );
   const [contextItems, setContextItems] = useState<ComposerContextItem[]>([]);
+  const [snippetCatalog, setSnippetCatalog] = useState<Snippet[]>(() => [
+    ...DEFAULT_SNIPPETS,
+  ]);
+  const [pickedSnippets, setPickedSnippets] = useState<Snippet[]>([]);
   const [cursor, setCursor] = useState(0);
   const atMentionRef = useRef<AtMentionHandle | null>(null);
   const slashRef = useRef<SlashCommandHandle | null>(null);
+  const snippetRef = useRef<SnippetHandle | null>(null);
   const [pendingApprovals, setPendingApprovals] = useState<
     PendingToolApproval[]
   >([]);
@@ -691,6 +714,43 @@ function AgentUiShell({
       return [...prev, { id, title: title?.trim() || "New chat" }].slice(-8);
     });
   }, []);
+
+  // Built-in snippets + optional workspace `.altai/snippets.json`.
+  useEffect(() => {
+    if (!canWorkspaceInfo || !canReadWorkspaceFile) {
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const info = await ports.workspace.getWorkspace();
+        const root = info.roots[0];
+        if (!root || cancelled) {
+          return;
+        }
+        const pathJoiner = root.includes("\\") ? "\\" : "/";
+        const snipPath = `${root.replace(/[\\/]$/, "")}${pathJoiner}.altai${pathJoiner}snippets.json`;
+        const fileUri = root.startsWith("file:")
+          ? `${root.replace(/\/$/, "")}/.altai/snippets.json`
+          : pathToFileUri(snipPath);
+        const file = await ports.workspace.readFile(fileUri);
+        if (cancelled) {
+          return;
+        }
+        const workspaceSnips = parseWorkspaceSnippetsJson(file.text);
+        if (workspaceSnips.length > 0) {
+          setSnippetCatalog(
+            mergeSnippetCatalogs(DEFAULT_SNIPPETS, workspaceSnips),
+          );
+        }
+      } catch {
+        // Missing file or no workspace is fine — keep defaults.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ports, canWorkspaceInfo, canReadWorkspaceFile]);
 
   useEffect(() => {
     if (!chatFocus) {
@@ -927,12 +987,15 @@ function AgentUiShell({
 
   const onSubmit = async (preferSteer = false): Promise<void> => {
     const text = prompt.trim();
-    if ((!text && contextItems.length === 0) || busy) {
+    if (
+      (!text && contextItems.length === 0 && pickedSnippets.length === 0) ||
+      busy
+    ) {
       return;
     }
 
     // Whole-line slash commands (no attachment payload required).
-    if (text.startsWith("/") && contextItems.length === 0) {
+    if (text.startsWith("/") && contextItems.length === 0 && pickedSnippets.length === 0) {
       const outcome = tryRunSlashCommand(text);
       if (outcome.kind === "handled") {
         setBusy(true);
@@ -953,7 +1016,22 @@ function AgentUiShell({
       }
     }
 
-    await submitExpandedPrompt(text, preferSteer);
+    // Expand #snippet tokens (and picked chips) before context blocks.
+    const withSnippets = composePromptWithSnippets(
+      text,
+      snippetCatalog,
+      pickedSnippets,
+    );
+    const displayText =
+      text ||
+      (pickedSnippets.length > 0
+        ? pickedSnippets.map((s) => `#${s.handle}`).join(" ")
+        : undefined);
+    await submitExpandedPrompt(
+      withSnippets.prompt,
+      preferSteer,
+      displayText,
+    );
   };
 
   const dispatchSlashAction = async (
@@ -1060,10 +1138,12 @@ function AgentUiShell({
   const submitExpandedPrompt = async (
     text: string,
     preferSteer: boolean,
+    displayText?: string,
   ): Promise<void> => {
     if ((!text && contextItems.length === 0) || busy) {
       return;
     }
+    const shown = (displayText ?? text).trim() || text.trim();
     const mode = resolveComposerSubmitMode({
       hasActiveRun: Boolean(activeRunId && activeChatId),
       canStartRun,
@@ -1099,9 +1179,10 @@ function AgentUiShell({
           runId: activeRunId,
           prompt: text,
         });
-        setMessages((prev) => appendUserMessage(prev, text));
+        setMessages((prev) => appendUserMessage(prev, shown));
         setMessages((prev) => appendMetaMessage(prev, "Steer sent"));
         setPrompt("");
+        setPickedSnippets([]);
         return;
       }
 
@@ -1126,15 +1207,20 @@ function AgentUiShell({
       }
       rememberTab(ref.chatId);
       setMessages((prev) =>
-        appendUserMessage(prev, text || "Please review the attached context.", {
-          chips,
-        }),
+        appendUserMessage(
+          prev,
+          shown || "Please review the attached context.",
+          {
+            chips,
+          },
+        ),
       );
       if (mode === "queue") {
         setMessages((prev) => appendMetaMessage(prev, "Queued next run"));
       }
       setPrompt("");
       setContextItems([]);
+      setPickedSnippets([]);
       setSessionListKey((key) => key + 1);
       if (ref.chatId !== activeChatId) {
         onFocusChat({ chatId: ref.chatId });
@@ -1454,6 +1540,12 @@ function AgentUiShell({
                   <ChatComposerContext
                     items={contextItems}
                     onChange={setContextItems}
+                    snippets={pickedSnippets}
+                    onRemoveSnippet={(id) => {
+                      setPickedSnippets((prev) =>
+                        removePickedSnippet(prev, id),
+                      );
+                    }}
                     disabled={busy}
                   />
                   <ChatComposerAtMention
@@ -1474,6 +1566,38 @@ function AgentUiShell({
                       const next = `/${command.name} `;
                       setPrompt(next);
                       setCursor(next.length);
+                    }}
+                  />
+                  <ChatComposerSnippet
+                    prompt={prompt}
+                    cursor={cursor}
+                    catalog={snippetCatalog}
+                    disabled={busy}
+                    handleRef={snippetRef}
+                    onPickSnippet={(snippet: Snippet) => {
+                      const trigger = detectSlashOrSnippetTrigger(
+                        prompt,
+                        cursor,
+                      );
+                      if (trigger && trigger.prefix === "#") {
+                        const next = insertSnippetHandle(
+                          prompt,
+                          trigger,
+                          snippet.handle,
+                        );
+                        setPrompt(next);
+                        setCursor(trigger.start + snippet.handle.length + 2);
+                      } else {
+                        const next =
+                          prompt.trimEnd().length > 0
+                            ? `${prompt.trimEnd()} #${snippet.handle} `
+                            : `#${snippet.handle} `;
+                        setPrompt(next);
+                        setCursor(next.length);
+                      }
+                      setPickedSnippets((prev) =>
+                        addPickedSnippet(prev, snippet),
+                      );
                     }}
                   />
                   <ComposerTextArea
@@ -1506,7 +1630,7 @@ function AgentUiShell({
                           ? "Follow up — Enter queues · ⌘/Ctrl+Enter steers"
                           : "Describe what should change…"
                         : canStartRun
-                          ? "Describe what should change… Type / for commands, @ for files"
+                          ? "Describe what should change… / commands · # snippets · @ files"
                           : "Start run capability unavailable"
                     }
                     disabled={
@@ -1516,6 +1640,12 @@ function AgentUiShell({
                     }
                     rows={2}
                     onKeyDown={(event) => {
+                      if (snippetRef.current?.isOpen()) {
+                        if (snippetRef.current.handleKeyDown(event.key)) {
+                          event.preventDefault();
+                          return;
+                        }
+                      }
                       if (slashRef.current?.isOpen()) {
                         if (slashRef.current.handleKeyDown(event.key)) {
                           event.preventDefault();
@@ -1543,7 +1673,11 @@ function AgentUiShell({
                 </div>
                 <ChatComposerFollowup
                   hasActiveRun={Boolean(activeRunId && activeChatId)}
-                  hasPrompt={Boolean(prompt.trim() || contextItems.length > 0)}
+                  hasPrompt={Boolean(
+                    prompt.trim() ||
+                      contextItems.length > 0 ||
+                      pickedSnippets.length > 0,
+                  )}
                   onSteer={() => void onSubmit(true)}
                   onQueue={() => void onSubmit(false)}
                 />
