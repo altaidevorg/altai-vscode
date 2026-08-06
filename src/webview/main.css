@@ -479,6 +479,32 @@ body {
   color: var(--foreground);
 }
 
+.altai-run-status-chrome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0.75rem 0.35rem;
+}
+
+.altai-run-blocked-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.altai-run-blocked-dismiss {
+  align-self: flex-end;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.altai-run-blocked-dismiss:hover {
+  color: var(--foreground);
+}
+
 .altai-chat-footer {
   display: flex;
   flex-direction: column;
