@@ -3,7 +3,13 @@
  * User bubbles support inline edit + resend when the host allows truncate.
  */
 
-import { ContextChips, HoverActionButton, useCapability, useHostPorts } from "@altai/agent-ui";
+import {
+  ContextChips,
+  HoverActionButton,
+  UnifiedDiffPreview,
+  useCapability,
+  useHostPorts,
+} from "@altai/agent-ui";
 import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 
@@ -174,6 +180,15 @@ export function ChatMessageList({
                     </span>
                   ) : null}
                 </p>
+                {message.diffOriginalText !== undefined &&
+                message.diffModifiedText !== undefined ? (
+                  <div className="altai-chat-inline-diff">
+                    <UnifiedDiffPreview
+                      original={message.diffOriginalText}
+                      proposed={message.diffModifiedText}
+                    />
+                  </div>
+                ) : null}
               </>
             )}
             {(showEdit || showRetry || showOpenFile || showOpenDiff) &&
