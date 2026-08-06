@@ -76,6 +76,9 @@ export function registerCommands(
       channel.appendLine(
         `  workspaceTrusted=${isWorkspaceTrusted() ? "yes" : "no"}`,
       );
+      channel.appendLine(`  remoteName=${vscode.env.remoteName ?? "(local)"}`);
+      channel.appendLine(`  appHost=${vscode.env.appHost}`);
+      channel.appendLine(`  uiKind=${vscode.env.uiKind}`);
       channel.appendLine(
         `  resolvedPath=${hostManager.getResolvedPath() ?? "(none)"}`,
       );

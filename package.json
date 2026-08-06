@@ -21,10 +21,17 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
       "description": "ALTAI does not start the native agent host until the workspace is trusted."
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "ALTAI needs a real filesystem on the (remote) machine to run the native agent host."
     }
   },
   "contributes": {
@@ -130,7 +137,8 @@
     "build:webview": "node scripts/build-webview.mjs",
     "build": "npm run build:extension && npm run build:webview",
     "guard:architecture": "node scripts/guard-architecture.mjs",
-    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run guard:architecture",
+    "verify:package": "node scripts/verify-package-contents.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run guard:architecture && npm run verify:package",
     "package": "npm run verify && vsce package --no-dependencies",
     "watch": "node scripts/build-extension.mjs --watch & node scripts/build-webview.mjs --watch",
     "vscode:prepublish": "npm run build"

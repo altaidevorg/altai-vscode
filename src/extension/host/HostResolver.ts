@@ -8,6 +8,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { HostDiagnosticCode, type HostDiagnostic } from "./HostDiagnostics.js";
+import { nativeHostFileName } from "./nativeTargets.js";
 
 export const AGENT_HOST_PATH_ENV = "ALTAI_AGENT_HOST_PATH";
 
@@ -56,7 +57,7 @@ export function resolveHostBinary(options: HostResolverOptions): ResolveHostResu
 
   const arch = options.arch ?? process.arch;
   const platformKey = `${platform}-${arch}`;
-  const fileName = platform === "win32" ? "altai-agent-host.exe" : "altai-agent-host";
+  const fileName = nativeHostFileName(platform);
   const packaged = path.join(
     options.extensionPath,
     "resources",
