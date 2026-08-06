@@ -360,6 +360,33 @@ body {
   margin-bottom: 0.35rem;
 }
 
+.altai-composer-open-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.altai-composer-open-attachment {
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+}
+
+.altai-composer-open-attachment:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.altai-composer-open-attachment:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .altai-composer-context-row {
   display: flex;
   align-items: center;

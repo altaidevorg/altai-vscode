@@ -21,6 +21,7 @@ import {
   addContextItem,
   basenamePath,
   countLines,
+  listOpenableContextItems,
   newContextItemId,
   removeContextItem,
   toComposerAttachFiles,
@@ -43,12 +44,15 @@ export function ChatComposerContext({
   const canSelection = useCapability("workspace.selection");
   const canGitDiff = useCapability("workspace.gitDiff");
   const canTerminal = useCapability("workspace.terminalContext");
+  const canOpenFile = useCapability("workspace.openFile");
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const show =
     canActiveFile || canSelection || canGitDiff || canTerminal;
+  const openable = canOpenFile ? listOpenableContextItems(items) : [];
 
   const pushError = useCallback((err: unknown) => {
     setError(err instanceof Error ? err.message : String(err));
@@ -191,6 +195,37 @@ export function ChatComposerContext({
         commands={[]}
         onRemoveCommand={() => {}}
       />
+      {openable.length > 0 ? (
+        <div
+          className="altai-composer-open-attachments"
+          role="group"
+          aria-label="Open attached files"
+        >
+          {openable.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="altai-composer-open-attachment"
+              title={`Open ${item.label}`}
+              disabled={disabled || busy || openingId !== null}
+              onClick={() => {
+                setOpeningId(item.id);
+                setError(null);
+                void ports.workspace
+                  .openFile(item.uri)
+                  .catch((err: unknown) => {
+                    pushError(err);
+                  })
+                  .finally(() => {
+                    setOpeningId(null);
+                  });
+              }}
+            >
+              {openingId === item.id ? "Opening…" : `Open ${item.label}`}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="altai-composer-context-row">
         <ComposerToolbarIcon
           title="Attach context"
