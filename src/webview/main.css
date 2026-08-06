@@ -308,6 +308,10 @@ body {
   color: var(--destructive);
 }
 
+.altai-at-mention {
+  margin-bottom: 0.35rem;
+}
+
 .altai-composer-context {
   display: flex;
   flex-direction: column;

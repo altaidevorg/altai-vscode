@@ -40,6 +40,8 @@ sibling `file:` packages until public npm publish.
   actions when host capabilities allow.
 - Chat composer context attach: active file (URI attachment), editor
   selection, git working-tree diff, and terminal context with shared chips.
+- Composer `@file` picker: type `@` + query to search workspace files and
+  attach a match (keyboard navigable).
 
 ### Security
 

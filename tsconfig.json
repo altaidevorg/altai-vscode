@@ -46,6 +46,7 @@
     "test/unit/composerFollowupChrome.test.ts",
     "test/unit/chatMessageEdit.test.ts",
     "test/unit/composerContext.test.ts",
+    "test/unit/composerAtMention.test.ts",
     "dist",
     "out",
     "node_modules"

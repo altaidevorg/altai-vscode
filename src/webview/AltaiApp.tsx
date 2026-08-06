@@ -61,6 +61,10 @@ import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
 import { ChatComposerContext } from "./ChatComposerContext.js";
 import {
+  ChatComposerAtMention,
+  type AtMentionHandle,
+} from "./ChatComposerAtMention.js";
+import {
   composeRunPrompt,
   toContextChips,
   type ComposerContextItem,
@@ -441,6 +445,8 @@ function AgentUiShell({
     null,
   );
   const [contextItems, setContextItems] = useState<ComposerContextItem[]>([]);
+  const [cursor, setCursor] = useState(0);
+  const atMentionRef = useRef<AtMentionHandle | null>(null);
   const [pendingApprovals, setPendingApprovals] = useState<
     PendingToolApproval[]
   >([]);
@@ -882,16 +888,46 @@ function AgentUiShell({
                     onChange={setContextItems}
                     disabled={busy}
                   />
+                  <ChatComposerAtMention
+                    prompt={prompt}
+                    cursor={cursor}
+                    items={contextItems}
+                    onChangePrompt={setPrompt}
+                    onChangeItems={setContextItems}
+                    disabled={busy}
+                    handleRef={atMentionRef}
+                  />
                   <ComposerTextArea
                     value={prompt}
-                    onChange={(event) => setPrompt(event.target.value)}
+                    onChange={(event) => {
+                      setPrompt(event.target.value);
+                      setCursor(event.target.selectionStart ?? 0);
+                    }}
+                    onSelect={(event) => {
+                      setCursor(
+                        (event.target as HTMLTextAreaElement).selectionStart ??
+                          0,
+                      );
+                    }}
+                    onClick={(event) => {
+                      setCursor(
+                        (event.target as HTMLTextAreaElement).selectionStart ??
+                          0,
+                      );
+                    }}
+                    onKeyUp={(event) => {
+                      setCursor(
+                        (event.target as HTMLTextAreaElement).selectionStart ??
+                          0,
+                      );
+                    }}
                     placeholder={
                       activeRunId
                         ? canQueue || canSteer
                           ? "Follow up — Enter queues · ⌘/Ctrl+Enter steers"
                           : "Describe what should change…"
                         : canStartRun
-                          ? "Describe what should change… Attach files or selection"
+                          ? "Describe what should change… Type @ to attach a file"
                           : "Start run capability unavailable"
                     }
                     disabled={
@@ -901,6 +937,14 @@ function AgentUiShell({
                     }
                     rows={2}
                     onKeyDown={(event) => {
+                      if (atMentionRef.current?.isOpen()) {
+                        if (
+                          atMentionRef.current.handleKeyDown(event.key)
+                        ) {
+                          event.preventDefault();
+                          return;
+                        }
+                      }
                       if (
                         event.key === "Enter" &&
                         !event.shiftKey &&
