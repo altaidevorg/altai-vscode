@@ -129,6 +129,7 @@ sibling `file:` packages until public npm publish.
   pointer to Run Diagnostics.
 - Empty home shows composer affordance hint: `/` commands · `#` snippets ·
   `@` files.
+- Operations new-automation form offers the same skill chips as new-task runs.
 
 ### Security
 
