@@ -15,6 +15,8 @@ import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatSkillsStatusChrome } from "./ChatSkillsStatusChrome.js";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
+import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
+import { formatDiagnosticClipboardText } from "./waitShellChrome.js";
 import { canMountModelPicker } from "./modelPickerChrome.js";
 import { listSettingsHubSections } from "./settingsHubChrome.js";
 
@@ -24,6 +26,7 @@ export type ChatSettingsHubProps = {
   extensionVersion?: string;
   hostStatusLabel?: string;
   diagnosticCode?: string;
+  hostMessage?: string;
   requestWorkspace?: (method: string, params?: unknown) => Promise<unknown>;
 };
 
@@ -31,6 +34,7 @@ export function ChatSettingsHub({
   extensionVersion,
   hostStatusLabel,
   diagnosticCode,
+  hostMessage,
   requestWorkspace,
 }: ChatSettingsHubProps) {
   const canProvider = useCapability("settings.providerStatus");
@@ -54,6 +58,11 @@ export function ChatSettingsHub({
     canSkills,
   });
   const recoveryActions = listRecoveryActions({ diagnosticCode });
+  const clipboardText = formatDiagnosticClipboardText({
+    diagnosticCode,
+    message: hostMessage,
+    recoveryHint: recoveryHintForDiagnosticCode(diagnosticCode),
+  });
 
   return (
     <section className="altai-settings-hub" aria-label="ALTAI settings">
@@ -127,6 +136,20 @@ export function ChatSettingsHub({
               flexWrap: "wrap",
             }}
           >
+            {clipboardText ? (
+              <SurfaceSecondaryAction
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard
+                    ?.writeText(clipboardText)
+                    .catch(() => {
+                      /* clipboard may be denied */
+                    });
+                }}
+              >
+                Copy diagnostic
+              </SurfaceSecondaryAction>
+            ) : null}
             {recoveryActions.map((action) => (
               <SurfaceSecondaryAction
                 key={action.command}

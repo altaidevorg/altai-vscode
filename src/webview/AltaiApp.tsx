@@ -625,6 +625,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 extensionVersion={hostStatus.extensionVersion}
                 hostStatusLabel={hostStatus.status}
                 diagnosticCode={hostStatus.diagnosticCode}
+                hostMessage={hostStatus.message}
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
                 }
@@ -794,26 +795,39 @@ function AgentUiShell({
   const [runWarningMessage, setRunWarningMessage] = useState<string | null>(
     null,
   );
+  const [runDetailsDismissed, setRunDetailsDismissed] = useState(false);
+  const [changeReviewOpen, setChangeReviewOpen] = useState(false);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!isEscapeDismissKey(event)) {
         return;
       }
-      if (!error && !runBlockedMessage && !runWarningMessage) {
+      if (error || runBlockedMessage || runWarningMessage) {
+        setError(null);
+        setRunBlockedMessage(null);
+        setRunWarningMessage(null);
         return;
       }
-      setError(null);
-      setRunBlockedMessage(null);
-      setRunWarningMessage(null);
+      if (changeReviewOpen) {
+        setChangeReviewOpen(false);
+        return;
+      }
+      if (!runDetailsDismissed) {
+        setRunDetailsDismissed(true);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [error, runBlockedMessage, runWarningMessage]);
-  const [runDetailsDismissed, setRunDetailsDismissed] = useState(false);
-  const [changeReviewOpen, setChangeReviewOpen] = useState(false);
+  }, [
+    error,
+    runBlockedMessage,
+    runWarningMessage,
+    changeReviewOpen,
+    runDetailsDismissed,
+  ]);
   const [lastReplayRunId, setLastReplayRunId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatDisplayMessage[]>([]);
   const [openTabs, setOpenTabs] = useState<
