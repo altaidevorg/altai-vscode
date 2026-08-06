@@ -34,6 +34,8 @@ sibling `file:` packages until public npm publish.
   onto VS Code theme variables so agent-ui classes render in the webview.
 - Structured Chat message cards and shared `ChatTabStrip`, with run/event
   mapping fixed for nested `agent_message` envelopes (stream coalescing).
+- Active-run composer follow-up: shared `ComposerFollowupBar` for Steer /
+  Queue when host capabilities advertise them (⌘/Ctrl+Enter steers).
 
 ### Security
 

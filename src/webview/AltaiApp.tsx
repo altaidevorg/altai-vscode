@@ -51,6 +51,10 @@ import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
+import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
+import {
+  resolveComposerSubmitMode,
+} from "./composerFollowupChrome.js";
 import {
   applyInteractivePrompt,
   interactivePromptFromAgentEvent,
@@ -401,6 +405,8 @@ function AgentUiShell({
   const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
   const canStartRun = useCapability("runtime.startRun");
+  const canSteer = useCapability("runtime.steerRun");
+  const canQueue = useCapability("runtime.queueRun");
   const canListSessions = useCapability("sessions.list");
   const canMessages = useCapability("sessions.messages");
   const [prompt, setPrompt] = useState("");
@@ -428,6 +434,8 @@ function AgentUiShell({
   );
   const activeChatIdRef = useRef<string | null>(activeChatId);
   activeChatIdRef.current = activeChatId;
+  const activeRunIdRef = useRef<string | null>(activeRunId);
+  activeRunIdRef.current = activeRunId;
 
   const rememberTab = useCallback((id: string, title?: string) => {
     setOpenTabs((prev) => {
@@ -511,6 +519,36 @@ function AgentUiShell({
         }),
       );
 
+      // Clear active-run bookkeeping when this chat's run ends.
+      if (
+        event.type === "lifecycle" &&
+        event.chatId &&
+        event.chatId === activeChatIdRef.current &&
+        event.runId === activeRunIdRef.current
+      ) {
+        const body =
+          event.payload &&
+          typeof event.payload === "object" &&
+          !Array.isArray(event.payload)
+            ? (event.payload as Record<string, unknown>)
+            : {};
+        const crateType =
+          (typeof body.type === "string" && body.type) ||
+          (body.event &&
+            typeof body.event === "object" &&
+            body.event &&
+            typeof (body.event as { type?: unknown }).type === "string" &&
+            (body.event as { type: string }).type) ||
+          "";
+        if (
+          crateType === "run_terminated" ||
+          crateType === "run_cancelled" ||
+          body.outcome !== undefined
+        ) {
+          setActiveRunId(null);
+        }
+      }
+
       const promptEvent = interactivePromptFromAgentEvent(event);
       if (!promptEvent) {
         return;
@@ -540,23 +578,60 @@ function AgentUiShell({
     setPendingClarification(null);
   }, [activeChatId]);
 
-  const onSubmit = async (): Promise<void> => {
+  const onSubmit = async (preferSteer = false): Promise<void> => {
     const text = prompt.trim();
-    if (!text || busy || !canStartRun) {
+    if (!text || busy) {
       return;
     }
+    const mode = resolveComposerSubmitMode({
+      hasActiveRun: Boolean(activeRunId && activeChatId),
+      canStartRun,
+      canSteer,
+      canQueue,
+      hasPrompt: true,
+      preferSteer,
+    });
+
+    if (mode === "start" && !canStartRun) {
+      return;
+    }
+    if (mode === "steer" && (!canSteer || !activeChatId || !activeRunId)) {
+      return;
+    }
+    if (mode === "queue" && !canQueue) {
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
+      if (mode === "steer" && activeChatId && activeRunId) {
+        await ports.runtime.steerRun({
+          chatId: activeChatId,
+          runId: activeRunId,
+          prompt: text,
+        });
+        setMessages((prev) => appendUserMessage(prev, text));
+        setMessages((prev) => appendMetaMessage(prev, "Steer sent"));
+        setPrompt("");
+        return;
+      }
+
       const ref = await ports.runtime.startRun({
         prompt: text,
         ...(activeChatId ? { chatId: activeChatId } : {}),
         ...(permissionMode ? { permissionMode } : {}),
+        ...(mode === "queue" ? { queue: true } : {}),
       });
       setActiveChatId(ref.chatId);
-      setActiveRunId(ref.runId);
+      if (mode !== "queue") {
+        setActiveRunId(ref.runId);
+      }
       rememberTab(ref.chatId);
       setMessages((prev) => appendUserMessage(prev, text));
+      if (mode === "queue") {
+        setMessages((prev) => appendMetaMessage(prev, "Queued next run"));
+      }
       setPrompt("");
       setSessionListKey((key) => key + 1);
       if (ref.chatId !== activeChatId) {
@@ -684,11 +759,19 @@ function AgentUiShell({
                     value={prompt}
                     onChange={(event) => setPrompt(event.target.value)}
                     placeholder={
-                      canStartRun
-                        ? "Describe what should change…"
-                        : "Start run capability unavailable"
+                      activeRunId
+                        ? canQueue || canSteer
+                          ? "Follow up — Enter queues · ⌘/Ctrl+Enter steers"
+                          : "Describe what should change…"
+                        : canStartRun
+                          ? "Describe what should change…"
+                          : "Start run capability unavailable"
                     }
-                    disabled={!canStartRun || busy}
+                    disabled={
+                      busy ||
+                      (!canStartRun &&
+                        !(activeRunId && (canSteer || canQueue)))
+                    }
                     rows={2}
                     onKeyDown={(event) => {
                       if (
@@ -697,11 +780,17 @@ function AgentUiShell({
                         !event.nativeEvent.isComposing
                       ) {
                         event.preventDefault();
-                        void onSubmit();
+                        void onSubmit(event.metaKey || event.ctrlKey);
                       }
                     }}
                   />
                 </div>
+                <ChatComposerFollowup
+                  hasActiveRun={Boolean(activeRunId && activeChatId)}
+                  hasPrompt={Boolean(prompt.trim())}
+                  onSteer={() => void onSubmit(true)}
+                  onQueue={() => void onSubmit(false)}
+                />
                 <ComposerPrimaryRow
                   tools={
                     <>
@@ -726,9 +815,18 @@ function AgentUiShell({
                       <button
                         type="submit"
                         className="altai-composer-submit"
-                        disabled={!canStartRun || busy || !prompt.trim()}
+                        disabled={
+                          busy ||
+                          !prompt.trim() ||
+                          (!canStartRun &&
+                            !(activeRunId && (canSteer || canQueue)))
+                        }
                       >
-                        {busy ? "Starting…" : "Send"}
+                        {busy
+                          ? "Working…"
+                          : activeRunId && canQueue
+                            ? "Queue"
+                            : "Send"}
                       </button>
                     </>
                   }
