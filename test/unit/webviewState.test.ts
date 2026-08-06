@@ -67,11 +67,17 @@ describe("parsePersistedWebviewState", () => {
   it("drops unknown surface or operations routes", () => {
     expect(
       parsePersistedWebviewState({
-        surface: "settings",
+        surface: "agents",
         operationsView: "agents",
         workHubView: "cron",
       }),
     ).toEqual({});
+  });
+
+  it("accepts settings surface", () => {
+    expect(parsePersistedWebviewState({ surface: "settings" })).toEqual({
+      surface: "settings",
+    });
   });
 });
 

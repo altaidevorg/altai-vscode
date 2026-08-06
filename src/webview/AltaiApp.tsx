@@ -46,6 +46,7 @@ import {
 } from "../shared/webviewState.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
+import { ChatSettingsHub } from "./ChatSettingsHub.js";
 import {
   buildOpenChatFocus,
   chatFocusStatusLine,
@@ -533,6 +534,15 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
           >
             Operations
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={surface === "settings"}
+            className="altai-view-tab"
+            onClick={() => selectSurface("settings")}
+          >
+            Settings
+          </button>
         </div>
         {hostStatus.status === "ready" && !initError ? (
           surface === "operations" ? (
@@ -545,6 +555,11 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               onOpenChat={openChatFromOperations}
               focusedChatId={chatFocus?.chatId ?? null}
             />
+          ) : surface === "settings" ? (
+            <>
+              <OperationsAttentionReporter onCount={reportAttentionCount} />
+              <ChatSettingsHub />
+            </>
           ) : (
             <>
               <OperationsAttentionReporter onCount={reportAttentionCount} />

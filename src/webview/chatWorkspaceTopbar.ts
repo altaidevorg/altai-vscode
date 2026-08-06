@@ -24,14 +24,14 @@ export function canMountWorkspaceTopbar(flags: WorkspaceTopbarFlags): boolean {
 }
 
 export function workspaceTopbarWorkOpen(
-  surface: "chat" | "operations",
+  surface: "chat" | "operations" | "settings",
   operationsView: string,
 ): boolean {
   return surface === "operations" && operationsView === "work";
 }
 
 export function workspaceTopbarInboxOpen(
-  surface: "chat" | "operations",
+  surface: "chat" | "operations" | "settings",
   operationsView: string,
 ): boolean {
   return surface === "operations" && operationsView === "inbox";
