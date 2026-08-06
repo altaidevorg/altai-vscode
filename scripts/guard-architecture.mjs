@@ -55,13 +55,12 @@ for (const file of [...webviewSources, ...sharedSources]) {
   }
 }
 
-const forbiddenUiNames = [
-  "AiSidePanel",
-  "AiChatView",
-  "AiInputBar",
-  "WorkHubPanel",
-  "NotificationInboxPanel",
-];
+/**
+ * Hosts may import and mount shared `@altai/agent-ui` surfaces. Block only a
+ * local reimplementation that would fork the product UI.
+ */
+const localUiDefinition =
+  /(?:export\s+)?(?:async\s+)?function\s+(AiSidePanel|AiChatView|AiInputBar|WorkHubPanel|NotificationInboxPanel)\b|(?:export\s+)?const\s+(AiSidePanel|AiChatView|AiInputBar|WorkHubPanel|NotificationInboxPanel)\s*=|(?:export\s+)?class\s+(AiSidePanel|AiChatView|AiInputBar|WorkHubPanel|NotificationInboxPanel)\b/;
 
 const allSources = await walk(path.join(root, "src"), (f) =>
   /\.(ts|tsx|js|jsx|css)$/.test(f),
@@ -69,12 +68,12 @@ const allSources = await walk(path.join(root, "src"), (f) =>
 
 for (const file of allSources) {
   const text = await readFile(file, "utf8");
-  for (const name of forbiddenUiNames) {
-    if (text.includes(name)) {
-      failures.push(
-        `${path.relative(root, file)}: contains copied ALTAI UI symbol "${name}"`,
-      );
-    }
+  const match = text.match(localUiDefinition);
+  if (match) {
+    const name = match[1] ?? match[2] ?? match[3] ?? "unknown";
+    failures.push(
+      `${path.relative(root, file)}: contains copied ALTAI UI symbol "${name}"`,
+    );
   }
 }
 

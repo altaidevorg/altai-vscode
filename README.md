@@ -17,13 +17,18 @@ this repository.
 
 ## Status
 
-TASK-008 / V3: Webview renders `@altai/agent-ui` (HostPortsProvider + surface
-chrome) with capability gating. Full chat (sessions / runs / streaming) is
-TASK-009. Native host manager from TASK-006 remains trust-gated.
+CHAT + host ports (V4–V6): capability-gated session/run, Work, Inbox, MCP,
+settings, and interactive review routes proxy through the trusted native host.
+
+Operations (V7): Chat/Operations surface tabs mount shared
+`OperationsNavigationShell`. Overview aggregates Work/Inbox ports; Work /
+Runs / Inbox domain lists enable only when the host advertises the matching
+capabilities. Canonical CP-17 projections and full Tailwind visual parity are
+follow-on work.
 
 Local installs expect a sibling checkout of `altai-app` at
 `../altai-app-main` so `file:` package links resolve (packages are not on npm
-yet).
+yet). Keep that checkout near `main` so A7+ `@altai/agent-ui` exports resolve.
 
 See the [engineering plan](docs/ENGINEERING_PLAN.md) and
 [protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md).
