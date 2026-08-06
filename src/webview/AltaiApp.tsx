@@ -163,6 +163,19 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     [client],
   );
 
+  const reportAttentionCount = useCallback(
+    (count: number) => {
+      void client
+        .request("operations.reportAttention", {
+          params: { count },
+        })
+        .catch(() => {
+          /* Status-bar badge is best-effort presentation. */
+        });
+    },
+    [client],
+  );
+
   useEffect(() => {
     let cancelled = false;
     void ports.runtime
@@ -286,6 +299,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             initialView={operationsView}
             initialWorkHubView={workHubView}
             onPresentationChange={onOperationsPresentationChange}
+            onAttentionCountChange={reportAttentionCount}
           />
         ) : (
           <AgentUiShell hostStatus={hostStatus} initError={initError} />

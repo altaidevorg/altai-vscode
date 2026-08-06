@@ -18,6 +18,7 @@ import { getOutputChannel } from "../output.js";
 import { WebviewBridge } from "./WebviewBridge.js";
 import { getWebviewHtml } from "./webviewHtml.js";
 import type { WorkspaceAdapter } from "../vscode/WorkspaceAdapter.js";
+import { parseAttentionReportParams } from "../../shared/attention.js";
 
 const MAX_RUN_ATTACHMENTS = 4;
 const MAX_RUN_ATTACHMENT_BYTES = 1_500_000;
@@ -37,11 +38,13 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   private removeNotificationListener: (() => void) | undefined;
   /** Queued until the Webview bridge is ready (first panel open). */
   private pendingOperationsOpen: OpenOperationsPayload | undefined;
+  private attentionCount = 0;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
     private readonly hostManager: HostManager,
     private readonly workspaceAdapter: WorkspaceAdapter,
+    private readonly onAttentionCountChange?: (count: number) => void,
   ) {}
 
   resolveWebviewView(
@@ -92,6 +95,17 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     bridge.registerHandler("workspace.request", (params) =>
       this.proxyWorkspaceRequest(params),
     );
+    bridge.registerHandler("operations.reportAttention", (params) => {
+      const count = parseAttentionReportParams(params);
+      if (count === null) {
+        throw Object.assign(new Error("invalid_attention_report"), {
+          code: "invalid_params",
+        });
+      }
+      this.attentionCount = count;
+      this.onAttentionCountChange?.(count);
+      return { count };
+    });
 
     const onNotification = (notification: {
       method: string;
