@@ -63,6 +63,9 @@ sibling `file:` packages until public npm publish.
 - Empty Chat home starter chips (`PromptTemplateGrid`) that fill the composer.
 - Composer attachments with a workspace URI expose Open actions via
   `workspace.openFile` (file + selection with uri).
+- Shared `ComposerConfigRow` hosts the model picker; compact
+  `ProviderConnectBanner` appears above the composer when no provider is
+  connected (Connect routes secrets through Extension Host).
 
 ### Security
 

@@ -52,3 +52,40 @@ export function providerStatusCopy(provider: ProviderStatus): string {
   }
   return provider.connected ? "Connected" : "Not connected";
 }
+
+/** True when at least one provider reports connected credentials. */
+export function hasConnectedProvider(
+  providers: readonly ProviderStatus[],
+): boolean {
+  return providers.some((provider) => provider.connected);
+}
+
+/**
+ * Compact connect banner belongs above the composer when status is ready and
+ * no usable provider connection is available yet.
+ */
+export function shouldShowProviderConnectBanner(input: {
+  providerStatus: boolean;
+  ready: boolean;
+  providers: readonly ProviderStatus[];
+}): boolean {
+  return (
+    input.providerStatus &&
+    input.ready &&
+    !hasConnectedProvider(input.providers)
+  );
+}
+
+/**
+ * Prefer a disconnected (or errored) provider for Connect. Returns null when
+ * the host reported no providers at all.
+ */
+export function firstConnectableProvider(
+  providers: readonly ProviderStatus[],
+): ProviderStatus | null {
+  if (providers.length === 0) {
+    return null;
+  }
+  const sorted = sortProvidersForDisplay(providers);
+  return sorted.find((provider) => !provider.connected) ?? sorted[0] ?? null;
+}
