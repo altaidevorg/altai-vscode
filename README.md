@@ -114,11 +114,27 @@ Useful scripts:
 | `npm run build` | Bundle extension host + webview |
 | `npm run guard:architecture` | Ban host imports / copied UI symbols |
 | `npm run verify:package` | Manifest + built assets + native host layout audit |
+| `npm run package:target` | Stage one OS/arch + native host, emit target VSIX |
 | `npm run verify` | All of the above (including package audit) |
 
 Remote workspaces (SSH, WSL, Dev Containers): the extension declares
 `extensionKind: workspace` so the native agent host runs on the **remote**
 machine next to the workspace filesystem — not as a UI-only local extension.
+
+### Target VSIX packaging
+
+Release packages ship **one** native host per artifact
+(`resources/native/<target>/altai-agent-host[.exe]` + `.sha256`):
+
+```bash
+npm run build
+npm run package:target -- --target=darwin-arm64 --host=/path/to/altai-agent-host
+# → altai-0.1.0-darwin-arm64.vsix
+```
+
+Supported targets: `darwin-arm64`, `darwin-x64`, `linux-x64`, `win32-x64`.
+Staging lands in `.package/<target>/`. Use `--skip-verify` only when verify
+already passed and you are iterating on packaging.
 
 ## Architecture
 
