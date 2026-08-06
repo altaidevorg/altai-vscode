@@ -50,12 +50,18 @@ describe("parsePersistedWebviewState", () => {
         surface: "operations",
         operationsView: "work",
         workHubView: "runs",
+        activeChatId: "chat-42",
       }),
     ).toEqual({
       surface: "operations",
       operationsView: "work",
       workHubView: "runs",
+      activeChatId: "chat-42",
     });
+  });
+
+  it("drops empty activeChatId", () => {
+    expect(parsePersistedWebviewState({ activeChatId: "" })).toEqual({});
   });
 
   it("drops unknown surface or operations routes", () => {
