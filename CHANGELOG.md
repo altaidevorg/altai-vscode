@@ -38,7 +38,9 @@ sibling `file:` packages until public npm publish.
 - Run details token chip accumulates host `usage` events (prompt +
   completion totals) instead of a static "live" placeholder.
 - Skills status strip lists workspace-installed skills when the host
-  advertises `skills/list` (`skills.list` capability).
+  advertises `skills/list` (`skills.list` capability). Install from GitHub
+  (`owner/repo` or `owner/repo#skill`) when the host advertises
+  `skills/install` (`skills.install`).
 - Multi-root workspaces: project chip opens a QuickPick to pick the agent
   target folder, then reveals it in Explorer.
 - Structured Chat message cards and shared `ChatTabStrip`, with run/event
