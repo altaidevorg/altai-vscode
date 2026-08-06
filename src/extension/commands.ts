@@ -18,6 +18,9 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.openSidePanel", async () => {
       await vscode.commands.executeCommand("altai.sidePanel.focus");
     }),
+    vscode.commands.registerCommand("altai.askAboutSelection", async () => {
+      await provider.openChatWithSelection();
+    }),
     vscode.commands.registerCommand("altai.openOperations", async () => {
       await provider.openOperations({ view: "overview" });
     }),

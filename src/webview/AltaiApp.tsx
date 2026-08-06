@@ -18,11 +18,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
+  OPEN_CHAT_WITH_SELECTION_EVENT,
   OPEN_OPERATIONS_EVENT,
   type HostRpcNotificationPayload,
   type HostStatusPayload,
   type OpenOperationsPayload,
 } from "../shared/messages.js";
+import {
+  parseOpenChatWithSelectionPayload,
+  type OpenChatWithSelectionPayload,
+} from "../shared/selectionDeepLink.js";
 import {
   mergePersistedWebviewState,
   parsePersistedWebviewState,
@@ -73,7 +78,9 @@ import {
   type AtMentionHandle,
 } from "./ChatComposerAtMention.js";
 import {
+  addContextItem,
   composeRunPrompt,
+  newContextItemId,
   toContextChips,
   type ComposerContextItem,
 } from "./composerContext.js";
@@ -209,6 +216,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
         ? buildOpenChatFocus({ chatId: persisted.activeChatId }, 0)
         : undefined,
   );
+  const [selectionAttach, setSelectionAttach] = useState<
+    OpenChatWithSelectionPayload | undefined
+  >(undefined);
 
   const selectSurface = useCallback(
     (next: PersistedAltaiSurface) => {
@@ -346,6 +356,18 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     });
   }, [client, selectSurface, workHubView]);
 
+  useEffect(() => {
+    return client.onEvent(OPEN_CHAT_WITH_SELECTION_EVENT, (payload) => {
+      const parsed = parseOpenChatWithSelectionPayload(payload);
+      if (!parsed) {
+        return;
+      }
+      selectSurface("chat");
+      setSelectionAttach(parsed);
+      patchPersistedState(client, { surface: "chat" });
+    });
+  }, [client, selectSurface]);
+
   // Clear the badge when the host is not usable so stale counts do not linger.
   useEffect(() => {
     if (hostStatus.status !== "ready" || initError) {
@@ -403,6 +425,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 hostStatus={hostStatus}
                 initError={initError}
                 chatFocus={chatFocus}
+                selectionAttach={selectionAttach}
+                onSelectionAttachConsumed={() => {
+                  setSelectionAttach(undefined);
+                }}
                 onFocusChat={openChatFromOperations}
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
@@ -415,6 +441,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             hostStatus={hostStatus}
             initError={initError}
             chatFocus={chatFocus}
+            selectionAttach={selectionAttach}
+            onSelectionAttachConsumed={() => {
+              setSelectionAttach(undefined);
+            }}
             onFocusChat={openChatFromOperations}
             requestWorkspace={(method, params) =>
               transport.requestWorkspace(method, params)
@@ -430,12 +460,16 @@ function AgentUiShell({
   hostStatus,
   initError,
   chatFocus,
+  selectionAttach,
+  onSelectionAttachConsumed,
   onFocusChat,
   requestWorkspace,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
   chatFocus?: OpenChatFocus;
+  selectionAttach?: OpenChatWithSelectionPayload;
+  onSelectionAttachConsumed?: () => void;
   onFocusChat: (input: { chatId?: string; label?: string }) => void;
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
 }) {
@@ -567,6 +601,34 @@ function AgentUiShell({
       cancelled = true;
     };
   }, [chatFocus, canMessages, ports, rememberTab]);
+
+  const appliedSelectionKey = useRef<number | null>(null);
+  useEffect(() => {
+    if (!selectionAttach) {
+      return;
+    }
+    if (appliedSelectionKey.current === selectionAttach.key) {
+      return;
+    }
+    appliedSelectionKey.current = selectionAttach.key;
+    setContextItems((prev) =>
+      addContextItem(prev, {
+        id: newContextItemId("selection"),
+        kind: "selection",
+        uri: selectionAttach.uri,
+        path: selectionAttach.path,
+        text: selectionAttach.text,
+        lines: selectionAttach.lines,
+      }),
+    );
+    setMessages((prev) =>
+      appendMetaMessage(
+        prev,
+        `Attached editor selection · ${selectionAttach.path}`,
+      ),
+    );
+    onSelectionAttachConsumed?.();
+  }, [selectionAttach, onSelectionAttachConsumed]);
 
   useEffect(() => {
     return ports.events.subscribe((event) => {

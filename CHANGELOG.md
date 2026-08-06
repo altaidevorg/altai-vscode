@@ -66,6 +66,8 @@ sibling `file:` packages until public npm publish.
 - Shared `ComposerConfigRow` hosts the model picker; compact
   `ProviderConnectBanner` appears above the composer when no provider is
   connected (Connect routes secrets through Extension Host).
+- Editor command **ALTAI: Ask About Selection** (context menu + ⌘/Ctrl+Alt+A)
+  opens Chat with the current selection attached as composer context.
 
 ### Security
 
