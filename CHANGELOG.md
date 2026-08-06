@@ -146,6 +146,7 @@ sibling `file:` packages until public npm publish.
 - Wait shell Copy diagnostic button builds a plain-text host recovery report.
 - Clearing Chat focus removes `activeChatId` from Webview presentation state
   instead of leaving an empty string.
+- Chat error banner is dismissible without clearing the draft or transcript.
 
 ### Security
 
