@@ -128,6 +128,10 @@ export function createVsCodeHostPorts(
                   "workspace.terminalContext": "available",
                   "review.checkpoints": nativeAvailability(hasNativeMethod("checkpoints/list")),
                   "review.restoreCheckpoint": nativeAvailability(hasNativeMethod("checkpoints/restore")),
+                  "review.editProposal": nativeAvailability(
+                    hasNativeMethod("review/proposals/apply") &&
+                      hasNativeMethod("review/proposals/deny"),
+                  ),
                   "work.taskRuns": nativeAvailability(
                     ["work/tasks/list", "work/tasks/create", "work/tasks/cancel", "work/tasks/retry", "work/tasks/remove"].every(hasNativeMethod),
                   ),
@@ -191,6 +195,7 @@ export function createVsCodeHostPorts(
                   "workspace.terminalContext": "deferred",
                   "review.checkpoints": "deferred",
                   "review.restoreCheckpoint": "deferred",
+                  "review.editProposal": "deferred",
                   "work.taskRuns": "deferred",
                   "work.automations": "deferred",
                   "mcp.list": "deferred",
@@ -523,6 +528,46 @@ export function createVsCodeHostPorts(
         async restoreCheckpoint(checkpointId) {
           requireReady(isHostReady);
           await transport.request("checkpoints/restore", { id: checkpointId });
+        },
+        async applyEditProposal(
+          proposalId,
+          input?: {
+            path?: string;
+            kind?: string;
+            originalContent?: string;
+            proposedContent?: string;
+            chatId?: string;
+            runId?: string;
+          },
+        ) {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "review/proposals/apply");
+          const id = proposalId.trim();
+          if (!id) {
+            throw new Error("invalid_proposal_id");
+          }
+          await transport.request("review/proposals/apply", {
+            id,
+            ...(input?.path ? { path: input.path } : {}),
+            ...(input?.kind ? { kind: input.kind } : {}),
+            ...(input?.originalContent !== undefined
+              ? { original_content: input.originalContent }
+              : {}),
+            ...(input?.proposedContent !== undefined
+              ? { proposed_content: input.proposedContent }
+              : {}),
+            ...(input?.chatId ? { chat_id: input.chatId } : {}),
+            ...(input?.runId ? { run_id: input.runId } : {}),
+          });
+        },
+        async denyEditProposal(proposalId) {
+          requireReady(isHostReady);
+          requireNativeCapability(hasNativeMethod, "review/proposals/deny");
+          const id = proposalId.trim();
+          if (!id) {
+            throw new Error("invalid_proposal_id");
+          }
+          await transport.request("review/proposals/deny", { id });
         },
       },
     ),

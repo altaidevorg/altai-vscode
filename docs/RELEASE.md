@@ -7,6 +7,10 @@ For architecture and compatibility pins see
 [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md) and
 [PROTOCOL_COMPATIBILITY.md](PROTOCOL_COMPATIBILITY.md).
 
+For the multi-repo program that unblocks Apply/Deny, shared UI extract, npm
+publish, Marketplace, MCP/skills, usage meters, and CI foundations see
+[UNLOCK_PLAN.md](UNLOCK_PLAN.md).
+
 ## Channels
 
 | Channel | Audience | Distribution | Exit criteria |

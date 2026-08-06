@@ -5,6 +5,10 @@
 - Upstream repositories: `altaidevorg/altai-app`, `altaidevorg/isanagent`
 - License: Apache-2.0
 
+- [FEATURE_MATRIX.md](FEATURE_MATRIX.md) — channel status snapshot
+- [UNLOCK_PLAN.md](UNLOCK_PLAN.md) — multi-repo plan to unlock Apply/Deny, full
+  shared UI extract, MCP/skills, usage meters, npm/Marketplace, and CI foundations
+
 ## 1. Objective
 
 Build a production VS Code extension that renders the same ALTAI chat UI and
