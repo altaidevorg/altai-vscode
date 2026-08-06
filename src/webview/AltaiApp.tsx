@@ -33,6 +33,7 @@ import {
   type OpenChatFocus,
 } from "./openChatDeepLink.js";
 import { transcriptLinesFromMessages } from "./sessionTranscript.js";
+import { ChatSessionList } from "./ChatSessionList.js";
 import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
@@ -164,9 +165,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       const focus = buildOpenChatFocus(input);
       setChatFocus(focus);
       selectSurface("chat");
-      if (focus.chatId) {
-        patchPersistedState(client, { activeChatId: focus.chatId });
-      }
+      // Empty string clears focus so parse/getState drop the field on read.
+      patchPersistedState(client, {
+        activeChatId: focus.chatId ?? "",
+      });
     },
     [client, selectSurface],
   );
@@ -343,6 +345,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 hostStatus={hostStatus}
                 initError={initError}
                 chatFocus={chatFocus}
+                onFocusChat={openChatFromOperations}
               />
             </>
           )
@@ -351,6 +354,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             hostStatus={hostStatus}
             initError={initError}
             chatFocus={chatFocus}
+            onFocusChat={openChatFromOperations}
           />
         )}
       </div>
@@ -362,10 +366,12 @@ function AgentUiShell({
   hostStatus,
   initError,
   chatFocus,
+  onFocusChat,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
   chatFocus?: OpenChatFocus;
+  onFocusChat: (input: { chatId?: string; label?: string }) => void;
 }) {
   const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
@@ -380,6 +386,7 @@ function AgentUiShell({
     () => chatFocus?.chatId ?? null,
   );
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [sessionListKey, setSessionListKey] = useState(0);
   const appliedFocus = useRef<{ key: number; withTranscript: boolean } | null>(
     null,
   );
@@ -464,6 +471,10 @@ function AgentUiShell({
       setActiveRunId(ref.runId);
       setLines((prev) => [...prev, `You: ${text}`]);
       setPrompt("");
+      setSessionListKey((key) => key + 1);
+      if (ref.chatId !== activeChatId) {
+        onFocusChat({ chatId: ref.chatId });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -508,65 +519,81 @@ function AgentUiShell({
   }
 
   return (
-    <main className="altai-shell-body">
-      <div className="altai-chat-log" role="log" aria-live="polite">
-        {lines.length === 0 ? (
-          <p className="altai-shell-meta">
-            Host ready. Send a prompt to start a run (TASK-009 vertical slice).
-          </p>
-        ) : (
-          lines.map((line, index) => (
-            <p key={`${index}:${line.slice(0, 24)}`} className="altai-chat-line">
-              {line}
-            </p>
-          ))
-        )}
-      </div>
-      {error ? (
-        <p className="altai-chat-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      <form
-        className="altai-chat-composer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void onSubmit();
-        }}
-      >
-        <textarea
-          className="altai-chat-input"
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          placeholder={
-            canStartRun ? "Ask ALTAI…" : "Start run capability unavailable"
-          }
-          disabled={!canStartRun || busy}
-          rows={3}
+    <main className="altai-shell-body altai-shell-body--chat">
+      <div className="altai-chat-layout">
+        <ChatSessionList
+          activeChatId={activeChatId}
+          onFocusSession={onFocusChat}
+          refreshKey={sessionListKey}
         />
-        <div className="altai-chat-actions">
-          <button type="submit" disabled={!canStartRun || busy || !prompt.trim()}>
-            {busy ? "Starting…" : "Send"}
-          </button>
-          <button
-            type="button"
-            disabled={!activeRunId || busy}
-            onClick={() => void onCancel()}
+        <div className="altai-chat-main">
+          <div className="altai-chat-log" role="log" aria-live="polite">
+            {lines.length === 0 ? (
+              <p className="altai-shell-meta">
+                Host ready. Send a prompt to start a run (TASK-009 vertical
+                slice).
+              </p>
+            ) : (
+              lines.map((line, index) => (
+                <p
+                  key={`${index}:${line.slice(0, 24)}`}
+                  className="altai-chat-line"
+                >
+                  {line}
+                </p>
+              ))
+            )}
+          </div>
+          {error ? (
+            <p className="altai-chat-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <form
+            className="altai-chat-composer"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void onSubmit();
+            }}
           >
-            Cancel
-          </button>
+            <textarea
+              className="altai-chat-input"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder={
+                canStartRun ? "Ask ALTAI…" : "Start run capability unavailable"
+              }
+              disabled={!canStartRun || busy}
+              rows={3}
+            />
+            <div className="altai-chat-actions">
+              <button
+                type="submit"
+                disabled={!canStartRun || busy || !prompt.trim()}
+              >
+                {busy ? "Starting…" : "Send"}
+              </button>
+              <button
+                type="button"
+                disabled={!activeRunId || busy}
+                onClick={() => void onCancel()}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+          <CapabilityList
+            canInitialize={canInitialize}
+            canStartRun={canStartRun}
+            canListSessions={canListSessions}
+            canMessages={canMessages}
+          />
+          <p className="altai-shell-meta">
+            Extension {hostStatus.extensionVersion} · UI from @altai/agent-ui
+            {activeChatId ? ` · chat ${activeChatId}` : ""}
+          </p>
         </div>
-      </form>
-      <CapabilityList
-        canInitialize={canInitialize}
-        canStartRun={canStartRun}
-        canListSessions={canListSessions}
-        canMessages={canMessages}
-      />
-      <p className="altai-shell-meta">
-        Extension {hostStatus.extensionVersion} · UI from @altai/agent-ui
-        {activeChatId ? ` · chat ${activeChatId}` : ""}
-      </p>
+      </div>
     </main>
   );
 }
