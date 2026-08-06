@@ -6,6 +6,7 @@
 import {
   SurfaceEmptyState,
   SurfaceHeader,
+  SurfaceSecondaryAction,
   useCapability,
 } from "@altai/agent-ui";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
@@ -13,6 +14,7 @@ import { ChatMcpStatusChrome } from "./ChatMcpStatusChrome.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatSkillsStatusChrome } from "./ChatSkillsStatusChrome.js";
+import { listRecoveryActions } from "./hostRecoveryActions.js";
 import { canMountModelPicker } from "./modelPickerChrome.js";
 import { listSettingsHubSections } from "./settingsHubChrome.js";
 
@@ -21,11 +23,13 @@ export { listSettingsHubSections } from "./settingsHubChrome.js";
 export type ChatSettingsHubProps = {
   extensionVersion?: string;
   hostStatusLabel?: string;
+  requestWorkspace?: (method: string, params?: unknown) => Promise<unknown>;
 };
 
 export function ChatSettingsHub({
   extensionVersion,
   hostStatusLabel,
+  requestWorkspace,
 }: ChatSettingsHubProps) {
   const canProvider = useCapability("settings.providerStatus");
   const canListModels = useCapability("models.list");
@@ -47,6 +51,7 @@ export function ChatSettingsHub({
     canMcp,
     canSkills,
   });
+  const recoveryActions = listRecoveryActions();
 
   return (
     <section className="altai-settings-hub" aria-label="ALTAI settings">
@@ -110,9 +115,39 @@ export function ChatSettingsHub({
           {extensionVersion?.trim() ? extensionVersion.trim() : "unknown"}
         </p>
         {hostStatusLabel ? <p>Host · {hostStatusLabel}</p> : null}
-        <p>Use ALTAI: Run Diagnostics for compatibility pins and recovery hints.</p>
+        {requestWorkspace ? (
+          <div
+            className="altai-ops-create-bar"
+            style={{
+              paddingTop: "0.5rem",
+              display: "flex",
+              gap: "0.5rem",
+              flexWrap: "wrap",
+            }}
+          >
+            {recoveryActions.map((action) => (
+              <SurfaceSecondaryAction
+                key={action.command}
+                type="button"
+                onClick={() => {
+                  void requestWorkspace("executeAltaiCommand", {
+                    command: action.command,
+                  }).catch(() => {
+                    /* allowlisted; failures surface in Extension Host */
+                  });
+                }}
+              >
+                {action.label}
+              </SurfaceSecondaryAction>
+            ))}
+          </div>
+        ) : (
+          <p>
+            Use ALTAI: Run Diagnostics for compatibility pins and recovery
+            hints.
+          </p>
+        )}
       </div>
     </section>
   );
 }
-
