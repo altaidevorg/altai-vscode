@@ -29,7 +29,8 @@ matching Work/Runs/Inbox domain when that capability is available. Metric
 tiles on Overview also navigate to the matching domain (host-wrapped
 `InspectorMetric` until shared metric `onOpen` lands). Task runs and inbox
 items can open Chat and focus a known owner conversation when `chatId` is
-present. Presentation
+present; when `sessions.messages` is available the host loads that conversation's
+transcript into the chat log. Presentation
 (Chat vs Operations, secondary route, Work hub strip, active chat id) survives
 Webview reload via getState/setState, including Runs/Scheduled toggles on the
 Work hub. Active

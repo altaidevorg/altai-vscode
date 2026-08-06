@@ -32,6 +32,7 @@ import {
   chatFocusStatusLine,
   type OpenChatFocus,
 } from "./openChatDeepLink.js";
+import { transcriptLinesFromMessages } from "./sessionTranscript.js";
 import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
@@ -370,6 +371,7 @@ function AgentUiShell({
   const canInitialize = useCapability("runtime.initialize");
   const canStartRun = useCapability("runtime.startRun");
   const canListSessions = useCapability("sessions.list");
+  const canMessages = useCapability("sessions.messages");
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -378,25 +380,60 @@ function AgentUiShell({
     () => chatFocus?.chatId ?? null,
   );
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
-  const lastFocusKey = useRef<number | null>(null);
+  const appliedFocus = useRef<{ key: number; withTranscript: boolean } | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (!chatFocus || lastFocusKey.current === chatFocus.key) {
+    if (!chatFocus) {
       return;
     }
-    lastFocusKey.current = chatFocus.key;
+    const needTranscript = Boolean(chatFocus.chatId && canMessages);
+    if (
+      appliedFocus.current?.key === chatFocus.key &&
+      appliedFocus.current.withTranscript === needTranscript
+    ) {
+      return;
+    }
+    appliedFocus.current = {
+      key: chatFocus.key,
+      withTranscript: needTranscript,
+    };
     if (chatFocus.chatId) {
       setActiveChatId(chatFocus.chatId);
       setActiveRunId(null);
     }
-    setLines((prev) => {
-      const status = chatFocusStatusLine(chatFocus);
-      if (prev[prev.length - 1] === status) {
-        return prev;
-      }
-      return [...prev.slice(-200), status];
-    });
-  }, [chatFocus]);
+
+    const status = chatFocusStatusLine(chatFocus);
+    const chatId = chatFocus.chatId;
+
+    if (!chatId || !canMessages) {
+      setLines([status]);
+      return;
+    }
+
+    let cancelled = false;
+    setLines([status, "Loading transcript…"]);
+    void ports.sessions
+      .listMessages(chatId)
+      .then((messages) => {
+        if (cancelled) {
+          return;
+        }
+        setLines([status, ...transcriptLinesFromMessages(messages)]);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        setLines([status, `Transcript unavailable · ${message}`]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [chatFocus, canMessages, ports]);
 
   useEffect(() => {
     return ports.events.subscribe((event) => {
@@ -464,6 +501,7 @@ function AgentUiShell({
           canInitialize={canInitialize}
           canStartRun={canStartRun}
           canListSessions={canListSessions}
+          canMessages={canMessages}
         />
       </main>
     );
@@ -523,6 +561,7 @@ function AgentUiShell({
         canInitialize={canInitialize}
         canStartRun={canStartRun}
         canListSessions={canListSessions}
+        canMessages={canMessages}
       />
       <p className="altai-shell-meta">
         Extension {hostStatus.extensionVersion} · UI from @altai/agent-ui
@@ -536,10 +575,12 @@ function CapabilityList({
   canInitialize,
   canStartRun,
   canListSessions,
+  canMessages = false,
 }: {
   canInitialize: boolean;
   canStartRun: boolean;
   canListSessions: boolean;
+  canMessages?: boolean;
 }) {
   return (
     <ul className="altai-capability-list" aria-label="Host capabilities">
@@ -558,6 +599,15 @@ function CapabilityList({
         enabled={canListSessions}
         detail={
           canListSessions ? "Proxied to sessions/list" : "Waiting for host ready"
+        }
+      />
+      <CapabilityRow
+        label="Session messages"
+        enabled={canMessages}
+        detail={
+          canMessages
+            ? "Load transcript on Operations → Chat open"
+            : "Waiting for host ready"
         }
       />
     </ul>
