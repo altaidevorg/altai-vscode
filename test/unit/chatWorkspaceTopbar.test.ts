@@ -28,6 +28,14 @@ describe("canMountWorkspaceTopbar", () => {
         inbox: true,
       }),
     ).toBe(true);
+    expect(
+      canMountWorkspaceTopbar({
+        taskRuns: false,
+        automations: false,
+        inbox: false,
+        inspector: true,
+      }),
+    ).toBe(true);
   });
 });
 

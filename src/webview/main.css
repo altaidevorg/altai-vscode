@@ -775,6 +775,79 @@ body {
   gap: 0.25rem;
 }
 
+.altai-mcp-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
+
+.altai-mcp-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.altai-mcp-status-toggle {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+
+.altai-mcp-status-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.altai-mcp-status-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.altai-mcp-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.altai-mcp-status-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.altai-mcp-status-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.altai-mcp-status-state {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+}
+
+.altai-change-review-panel {
+  flex-shrink: 0;
+  max-height: 40%;
+  overflow: auto;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
 /* —— Surface tabs —— */
 .altai-view-tabs {
   display: flex;
