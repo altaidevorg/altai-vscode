@@ -127,6 +127,8 @@ sibling `file:` packages until public npm publish.
 - Empty-home starters include `#pr` and `#testplan` snippet shortcuts.
 - Settings About section shows extension version and host status, plus a
   pointer to Run Diagnostics.
+- Empty home shows composer affordance hint: `/` commands · `#` snippets ·
+  `@` files.
 
 ### Security
 
