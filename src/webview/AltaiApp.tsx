@@ -1738,9 +1738,26 @@ function AgentUiShell({
               </>
             )}
             {error ? (
-              <p className="altai-chat-error" role="alert">
-                {error}
-              </p>
+              <div
+                className="altai-chat-error"
+                role="alert"
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "0.5rem",
+                  justifyContent: "space-between",
+                }}
+              >
+                <p style={{ margin: 0, flex: 1 }}>{error}</p>
+                <SurfaceSecondaryAction
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                  }}
+                >
+                  Dismiss
+                </SurfaceSecondaryAction>
+              </div>
             ) : null}
             <ChatRunStatusChrome
               messages={messages}
