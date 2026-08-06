@@ -58,6 +58,8 @@ sibling `file:` packages until public npm publish.
   `edit_diff` rows and `RunBlockedBanner` on terminal run failures.
 - Shared `RunRecoveryActions` when retry/steer/warn apply (Retry / Steer /
   Stop / Dismiss).
+- Plan mode strip (`PlanModeStrip`) when permission mode is plan; sticky
+  `TodoSummaryChip` showing the latest `todo_write` checklist.
 
 ### Security
 
