@@ -234,3 +234,46 @@ export function toContextChips(
     return { kind: "terminal", name: item.name, lines: item.lines };
   });
 }
+
+/**
+ * URI that can open in the editor for an attachment (file or selection with uri).
+ * Diff/terminal context stays text-only.
+ */
+export function resolveContextOpenUri(
+  item: ComposerContextItem,
+): string | null {
+  if (item.kind === "file" && item.uri.trim()) {
+    return item.uri;
+  }
+  if (item.kind === "selection" && item.uri && item.uri.trim()) {
+    return item.uri;
+  }
+  return null;
+}
+
+export type OpenableContextItem = {
+  id: string;
+  label: string;
+  uri: string;
+};
+
+/** Attachments the host can open with workspace.openFile. */
+export function listOpenableContextItems(
+  items: readonly ComposerContextItem[],
+): OpenableContextItem[] {
+  const out: OpenableContextItem[] = [];
+  for (const item of items) {
+    const uri = resolveContextOpenUri(item);
+    if (!uri) {
+      continue;
+    }
+    const label =
+      item.kind === "file"
+        ? item.name
+        : item.kind === "selection"
+          ? basenamePath(item.path)
+          : item.id;
+    out.push({ id: item.id, label, uri });
+  }
+  return out;
+}

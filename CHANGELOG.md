@@ -61,6 +61,8 @@ sibling `file:` packages until public npm publish.
 - Plan mode strip (`PlanModeStrip`) when permission mode is plan; sticky
   `TodoSummaryChip` showing the latest `todo_write` checklist.
 - Empty Chat home starter chips (`PromptTemplateGrid`) that fill the composer.
+- Composer attachments with a workspace URI expose Open actions via
+  `workspace.openFile` (file + selection with uri).
 
 ### Security
 

@@ -6,7 +6,9 @@ import {
   composeRunPrompt,
   countLines,
   formatTextContextBlocks,
+  listOpenableContextItems,
   removeContextItem,
+  resolveContextOpenUri,
   toContextChips,
   toRunAttachments,
   type ComposerContextItem,
@@ -65,5 +67,29 @@ describe("composerContext helpers", () => {
       { kind: "file", name: "a.ts", lines: 0 },
       { kind: "selection", source: "editor", lines: 2 },
     ]);
+  });
+
+  it("resolves openable context URIs", () => {
+    expect(resolveContextOpenUri(sampleFile)).toBe("file:///tmp/proj/a.ts");
+    expect(resolveContextOpenUri(sampleSelection)).toBeNull();
+    expect(
+      resolveContextOpenUri({
+        ...sampleSelection,
+        uri: "file:///tmp/proj/a.ts",
+      }),
+    ).toBe("file:///tmp/proj/a.ts");
+    expect(
+      listOpenableContextItems([
+        sampleFile,
+        sampleSelection,
+        {
+          id: "d1",
+          kind: "diff",
+          name: "diff",
+          text: "x",
+          lines: 1,
+        },
+      ]),
+    ).toEqual([{ id: "f1", label: "a.ts", uri: "file:///tmp/proj/a.ts" }]);
   });
 });
