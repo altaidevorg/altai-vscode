@@ -37,6 +37,8 @@ sibling `file:` packages until public npm publish.
   One-shot apply sends path/content; writes stay on the Rust host.
 - Run details token chip accumulates host `usage` events (prompt +
   completion totals) instead of a static "live" placeholder.
+- Skills status strip lists workspace-installed skills when the host
+  advertises `skills/list` (`skills.list` capability).
 - Structured Chat message cards and shared `ChatTabStrip`, with run/event
   mapping fixed for nested `agent_message` envelopes (stream coalescing).
 - Active-run composer follow-up: shared `ComposerFollowupBar` for Steer /

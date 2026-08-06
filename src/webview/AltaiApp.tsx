@@ -76,6 +76,7 @@ import { ChatShellTopbar } from "./ChatShellTopbar.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import { ChatProjectTargetChrome } from "./ChatProjectTargetChrome.js";
 import { ChatMcpStatusChrome } from "./ChatMcpStatusChrome.js";
+import { ChatSkillsStatusChrome } from "./ChatSkillsStatusChrome.js";
 import { ChatChangeReviewPanel } from "./ChatChangeReviewPanel.js";
 import { ChatReplayChrome } from "./ChatReplayChrome.js";
 import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
@@ -1466,6 +1467,7 @@ function AgentUiShell({
           <div className="altai-chat-footer">
             <ChatProviderStatusChrome />
             <ChatMcpStatusChrome />
+            <ChatSkillsStatusChrome />
             <p className="altai-shell-meta">
               Extension {hostStatus.extensionVersion}
               {activeChatId ? ` · chat ${activeChatId}` : ""}

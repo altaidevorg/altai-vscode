@@ -706,4 +706,37 @@ describe("createVsCodeHostPorts", () => {
       locked.review.applyEditProposal("x", { path: "a", proposedContent: "b" }),
     ).rejects.toThrow(/capability_unavailable|review\/proposals\/apply/);
   });
+
+  it("lists skills when native skills/list is advertised", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "skills/list") {
+        return {
+          skills: [
+            { name: "review", description: "PR review", enabled: true },
+            { name: "draft", description: null },
+          ],
+        };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["skills/list"],
+      transport,
+    });
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    const byId = Object.fromEntries(
+      caps.capabilities.map((capability) => [capability.id, capability.availability]),
+    );
+    expect(byId["skills.list"]).toBe("available");
+    await expect(ports.mcpSkills.listSkills()).resolves.toEqual([
+      { name: "review", description: "PR review", enabled: true },
+      { name: "draft", description: null },
+    ]);
+  });
 });
