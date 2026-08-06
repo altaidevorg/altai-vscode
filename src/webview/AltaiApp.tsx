@@ -594,7 +594,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
           ) : surface === "settings" ? (
             <>
               <OperationsAttentionReporter onCount={reportAttentionCount} />
-              <ChatSettingsHub />
+              <ChatSettingsHub
+                extensionVersion={hostStatus.extensionVersion}
+                hostStatusLabel={hostStatus.status}
+              />
             </>
           ) : (
             <>

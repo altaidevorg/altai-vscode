@@ -18,7 +18,15 @@ import { listSettingsHubSections } from "./settingsHubChrome.js";
 
 export { listSettingsHubSections } from "./settingsHubChrome.js";
 
-export function ChatSettingsHub() {
+export type ChatSettingsHubProps = {
+  extensionVersion?: string;
+  hostStatusLabel?: string;
+};
+
+export function ChatSettingsHub({
+  extensionVersion,
+  hostStatusLabel,
+}: ChatSettingsHubProps) {
   const canProvider = useCapability("settings.providerStatus");
   const canListModels = useCapability("models.list");
   const canSelectModel = useCapability("models.select");
@@ -95,6 +103,16 @@ export function ChatSettingsHub() {
           ) : null}
         </div>
       )}
+      <div className="altai-settings-hub-about space-y-1 border-t border-border-subtle p-3 text-[11px] text-muted-foreground">
+        <h3 className="font-semibold text-foreground">About</h3>
+        <p>
+          Extension{" "}
+          {extensionVersion?.trim() ? extensionVersion.trim() : "unknown"}
+        </p>
+        {hostStatusLabel ? <p>Host · {hostStatusLabel}</p> : null}
+        <p>Use ALTAI: Run Diagnostics for compatibility pins and recovery hints.</p>
+      </div>
     </section>
   );
 }
+

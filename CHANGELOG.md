@@ -125,6 +125,8 @@ sibling `file:` packages until public npm publish.
 - Surface tabs (Chat / Operations / Settings) support roving tabindex and
   arrow / Home / End keyboard navigation.
 - Empty-home starters include `#pr` and `#testplan` snippet shortcuts.
+- Settings About section shows extension version and host status, plus a
+  pointer to Run Diagnostics.
 
 ### Security
 
