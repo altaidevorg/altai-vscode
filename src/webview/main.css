@@ -251,6 +251,14 @@ body {
   max-width: 100%;
 }
 
+.altai-chat-todos {
+  margin-top: 0.45rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--card) 90%, var(--foreground));
+}
+
 .altai-chat-bubble-actions {
   display: flex;
   flex-wrap: wrap;

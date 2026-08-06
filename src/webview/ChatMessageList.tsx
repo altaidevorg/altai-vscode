@@ -3,7 +3,7 @@
  * User bubbles support inline edit + resend when the host allows truncate.
  */
 
-import { ContextChips, HoverActionButton, UnifiedDiffPreview, useCapability, useHostPorts } from "@altai/agent-ui";
+import { ContextChips, HoverActionButton, TodoChecklist, UnifiedDiffPreview, useCapability, useHostPorts } from "@altai/agent-ui";
 import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 import { ChatMessageContent } from "./ChatMessageContent.js";
@@ -182,6 +182,11 @@ export function ChatMessageList({
                       original={message.diffOriginalText}
                       proposed={message.diffModifiedText}
                     />
+                  </div>
+                ) : null}
+                {message.todos && message.todos.length > 0 ? (
+                  <div className="altai-chat-todos">
+                    <TodoChecklist items={message.todos} dense />
                   </div>
                 ) : null}
               </>
