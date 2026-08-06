@@ -22,6 +22,7 @@ import type {
   TaskRunInfo,
 } from "@altai/host-contract";
 import { useEffect, useMemo, useState } from "react";
+import { OperationsCreateTaskForm } from "./OperationsCreateTaskForm.js";
 import {
   automationScheduleUiLabel,
   mapTaskRunUiStatus,
@@ -35,6 +36,18 @@ type TaskRunActions = {
   onStop: (id: string) => void;
   onRemove: (id: string) => void;
   busyId?: string | null;
+  canCreate?: boolean;
+  createOpen?: boolean;
+  createBusy?: boolean;
+  createError?: string | null;
+  createInitialTitle?: string;
+  onCreateOpen?: () => void;
+  onCreateClose?: () => void;
+  onCreateSubmit?: (draft: {
+    title: string;
+    prompt: string;
+  }) => void | Promise<void>;
+  onReuse?: (title: string) => void;
 };
 
 type AutomationActions = {
@@ -200,17 +213,37 @@ function TaskRunsList({
   actions: TaskRunActions;
   title: string;
 }) {
+  const createBar =
+    actions.canCreate &&
+    actions.onCreateOpen &&
+    actions.onCreateClose &&
+    actions.onCreateSubmit ? (
+      <OperationsCreateTaskForm
+        open={Boolean(actions.createOpen)}
+        busy={actions.createBusy}
+        error={actions.createError}
+        initialTitle={actions.createInitialTitle ?? ""}
+        onOpen={actions.onCreateOpen}
+        onClose={actions.onCreateClose}
+        onSubmit={actions.onCreateSubmit}
+      />
+    ) : null;
+
   if (taskRuns.length === 0) {
     return (
-      <SurfaceEmptyState
-        title="No task runs"
-        description="Background executions created through Work will appear here."
-      />
+      <div className="altai-ops-domain-body">
+        {createBar}
+        <SurfaceEmptyState
+          title="No task runs"
+          description="Create a background task to run agent work without taking over chat."
+        />
+      </div>
     );
   }
 
   return (
     <div className="altai-ops-domain-body">
+      {createBar}
       <SurfaceListGroup title={title} count={taskRuns.length}>
         {taskRuns.map((run) => {
           const active = taskRunIsActive(run.status);
@@ -228,7 +261,7 @@ function TaskRunsList({
                 /* Session focus is a later chat/host bridge. */
               }}
               onReuse={() => {
-                /* Reuse prompt requires createTaskRun input flow. */
+                actions.onReuse?.(run.title);
               }}
               onRetry={
                 run.status === "failed" || run.status === "cancelled"

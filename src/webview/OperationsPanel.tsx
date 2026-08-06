@@ -81,6 +81,10 @@ export function OperationsPanel({
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createInitialTitle, setCreateInitialTitle] = useState("");
 
   const flags = useMemo(
     () => ({
@@ -102,7 +106,12 @@ export function OperationsPanel({
     setWorkHubView(
       resolveDeepLinkWorkHubView(navigation.workHubView, flags),
     );
-  }, [navigation, flags]);
+    if (navigation.composeTask && canTaskRuns) {
+      setCreateOpen(true);
+      setCreateError(null);
+      setCreateInitialTitle(navigation.draftTitle ?? "");
+    }
+  }, [navigation, flags, canTaskRuns]);
 
   useEffect(() => {
     if (!availableViews.includes(view)) {
@@ -116,6 +125,13 @@ export function OperationsPanel({
       workHubView,
     });
   }, [view, workHubView, onPresentationChange]);
+
+  // Close the create form when leaving task-run capable routes or losing the capability.
+  useEffect(() => {
+    if (!canTaskRuns || (view !== "work" && view !== "runs")) {
+      setCreateOpen(false);
+    }
+  }, [canTaskRuns, view]);
 
   const load = useCallback(async () => {
     // Capabilities are null until runtime.initialize completes; the effect
@@ -211,6 +227,42 @@ export function OperationsPanel({
     [ports.work, withBusy],
   );
 
+  const openCreate = useCallback((title = "") => {
+    setCreateInitialTitle(title);
+    setCreateError(null);
+    setCreateOpen(true);
+    if (view !== "work" && view !== "runs") {
+      setView(canTaskRuns ? "runs" : "work");
+      setWorkHubView("runs");
+    }
+  }, [view, canTaskRuns]);
+
+  const closeCreate = useCallback(() => {
+    setCreateOpen(false);
+    setCreateError(null);
+    setCreateInitialTitle("");
+  }, []);
+
+  const submitCreate = useCallback(
+    async (draft: { title: string; prompt: string }) => {
+      setCreateBusy(true);
+      setCreateError(null);
+      try {
+        await ports.work.createTaskRun(draft);
+        setCreateOpen(false);
+        setCreateInitialTitle("");
+        await load();
+      } catch (error) {
+        setCreateError(
+          error instanceof Error ? error.message : String(error),
+        );
+      } finally {
+        setCreateBusy(false);
+      }
+    },
+    [ports.work, load],
+  );
+
   const onMarkInboxSeen = useCallback(
     (id: string) => {
       void withBusy(id, () => ports.inbox.markNotificationSeen(id));
@@ -223,6 +275,15 @@ export function OperationsPanel({
     onRetry: onRetryTask,
     onStop: onStopTask,
     onRemove: onRemoveTask,
+    canCreate: canTaskRuns,
+    createOpen,
+    createBusy,
+    createError,
+    createInitialTitle,
+    onCreateOpen: () => openCreate(""),
+    onCreateClose: closeCreate,
+    onCreateSubmit: submitCreate,
+    onReuse: (title: string) => openCreate(title),
   };
 
   useEffect(() => {

@@ -54,6 +54,18 @@ export function parseOpenOperationsPayload(
     }
     payload.workHubView = record.workHubView as OperationsDeepLinkWorkHubView;
   }
+  if (record.composeTask !== undefined) {
+    if (typeof record.composeTask !== "boolean") {
+      return null;
+    }
+    payload.composeTask = record.composeTask;
+  }
+  if (record.draftTitle !== undefined) {
+    if (typeof record.draftTitle !== "string") {
+      return null;
+    }
+    payload.draftTitle = record.draftTitle;
+  }
   return payload;
 }
 
@@ -61,6 +73,8 @@ export function buildOpenOperationsPayload(input: {
   view?: OperationsDeepLinkView;
   workHubView?: OperationsDeepLinkWorkHubView;
   key?: number;
+  composeTask?: boolean;
+  draftTitle?: string;
 }): OpenOperationsPayload {
   const payload: OpenOperationsPayload = {
     key: input.key ?? Date.now(),
@@ -68,6 +82,12 @@ export function buildOpenOperationsPayload(input: {
   };
   if (input.workHubView) {
     payload.workHubView = input.workHubView;
+  }
+  if (input.composeTask) {
+    payload.composeTask = true;
+  }
+  if (input.draftTitle !== undefined && input.draftTitle.length > 0) {
+    payload.draftTitle = input.draftTitle;
   }
   return payload;
 }

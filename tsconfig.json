@@ -31,6 +31,7 @@
     "test/unit/operationsOverview.test.ts",
     "test/unit/operationsRoutes.test.ts",
     "test/unit/operationsDeepLink.test.ts",
+    "test/unit/taskRunDraft.test.ts",
     "dist",
     "out",
     "node_modules"

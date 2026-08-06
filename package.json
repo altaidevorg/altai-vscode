@@ -69,6 +69,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.openOperationsNewTask",
+        "title": "ALTAI: New Operations Task",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openOperationsInbox",
         "title": "ALTAI: Open Operations Inbox",
         "category": "ALTAI"

@@ -23,6 +23,13 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.openOperationsRuns", async () => {
       await provider.openOperations({ view: "runs" });
     }),
+    vscode.commands.registerCommand("altai.openOperationsNewTask", async () => {
+      await provider.openOperations({
+        view: "runs",
+        workHubView: "runs",
+        composeTask: true,
+      });
+    }),
     vscode.commands.registerCommand("altai.openOperationsInbox", async () => {
       await provider.openOperations({ view: "inbox" });
     }),
