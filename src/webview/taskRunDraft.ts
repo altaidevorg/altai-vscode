@@ -40,3 +40,39 @@ export function validateTaskRunDraft(input: {
   }
   return { ok: true, draft: { title, prompt } };
 }
+
+/** Toggle skill name selection for create-task chips (max 12). */
+export function toggleTaskSkillSelection(
+  selected: readonly string[],
+  skillName: string,
+): string[] {
+  const name = skillName.trim();
+  if (!name) {
+    return [...selected];
+  }
+  if (selected.includes(name)) {
+    return selected.filter((s) => s !== name);
+  }
+  return [...selected, name].slice(-12);
+}
+
+/**
+ * Append selected skill names to the instruction so the host can honor them
+ * without a dedicated skills field on createTaskRun.
+ */
+export function composeTaskPromptWithSkills(
+  prompt: string,
+  skillNames: readonly string[],
+): string {
+  const body = prompt.trim();
+  const skills = skillNames.map((s) => s.trim()).filter(Boolean);
+  if (skills.length === 0) {
+    return body;
+  }
+  const block = [
+    "<skills>",
+    ...skills.map((name) => `  <skill name="${name}" />`),
+    "</skills>",
+  ].join("\n");
+  return `${body}\n\n${block}`.trim();
+}

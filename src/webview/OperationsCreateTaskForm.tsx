@@ -1,6 +1,7 @@
 /**
  * Host-owned create-task form for Operations Work/Runs.
  * Uses shared primary/secondary action chrome; transport stays on ports.
+ * Optional skill chips when `skills.list` is advertised.
  */
 
 import {
@@ -8,9 +9,16 @@ import {
   PromptEditorSection,
   SurfacePrimaryAction,
   SurfaceSecondaryAction,
+  TaskSkillChips,
+  useCapability,
+  useHostPorts,
 } from "@altai/agent-ui";
-import { useEffect, useState } from "react";
-import { validateTaskRunDraft } from "./taskRunDraft.js";
+import { useCallback, useEffect, useState } from "react";
+import {
+  composeTaskPromptWithSkills,
+  toggleTaskSkillSelection,
+  validateTaskRunDraft,
+} from "./taskRunDraft.js";
 
 const TEMPLATES = [
   {
@@ -40,6 +48,8 @@ export type OperationsCreateTaskFormProps = {
   onSubmit: (draft: { title: string; prompt: string }) => void | Promise<void>;
 };
 
+type SkillOption = { name: string; description?: string | null };
+
 export function OperationsCreateTaskForm({
   open,
   busy = false,
@@ -49,17 +59,41 @@ export function OperationsCreateTaskForm({
   onClose,
   onSubmit,
 }: OperationsCreateTaskFormProps) {
+  const ports = useHostPorts();
+  const canListSkills = useCapability("skills.list");
   const [title, setTitle] = useState(initialTitle);
   const [prompt, setPrompt] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [skills, setSkills] = useState<SkillOption[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+
+  const loadSkills = useCallback(async () => {
+    if (!canListSkills) {
+      setSkills([]);
+      return;
+    }
+    try {
+      const next = await ports.mcpSkills.listSkills();
+      setSkills(
+        next.map((skill) => ({
+          name: skill.name,
+          ...(skill.description ? { description: skill.description } : {}),
+        })),
+      );
+    } catch {
+      setSkills([]);
+    }
+  }, [ports, canListSkills]);
 
   useEffect(() => {
     if (open) {
       setTitle(initialTitle);
       setPrompt("");
       setLocalError(null);
+      setSelectedSkills([]);
+      void loadSkills();
     }
-  }, [open, initialTitle]);
+  }, [open, initialTitle, loadSkills]);
 
   if (!open) {
     return (
@@ -79,7 +113,11 @@ export function OperationsCreateTaskForm({
       className="altai-ops-create-form"
       onSubmit={(event) => {
         event.preventDefault();
-        const validated = validateTaskRunDraft({ title, prompt });
+        const withSkills = composeTaskPromptWithSkills(prompt, selectedSkills);
+        const validated = validateTaskRunDraft({
+          title,
+          prompt: withSkills,
+        });
         if (!validated.ok) {
           setLocalError(validated.error);
           return;
@@ -120,6 +158,15 @@ export function OperationsCreateTaskForm({
         rows={6}
         size="task"
       />
+      {canListSkills && skills.length > 0 ? (
+        <TaskSkillChips
+          skills={skills}
+          selected={selectedSkills}
+          onToggle={(name) => {
+            setSelectedSkills((prev) => toggleTaskSkillSelection(prev, name));
+          }}
+        />
+      ) : null}
       <CreateFormActions
         onCancel={onClose}
         submitLabel={busy ? "Creating…" : "Create task"}
