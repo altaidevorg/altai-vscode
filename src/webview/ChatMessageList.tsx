@@ -3,7 +3,7 @@
  * User bubbles support inline edit + resend when the host allows truncate.
  */
 
-import { ContextChips, HoverActionButton } from "@altai/agent-ui";
+import { ContextChips, HoverActionButton, useCapability, useHostPorts } from "@altai/agent-ui";
 import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 
@@ -16,6 +16,7 @@ export type ChatMessageListProps = {
   canRetry?: boolean;
   onRetry?: () => void;
   editingBusy?: boolean;
+  onOpenFileError?: (message: string) => void;
 };
 
 function roleLabel(role: ChatDisplayMessage["role"]): string {
@@ -42,9 +43,13 @@ export function ChatMessageList({
   canRetry = false,
   onRetry,
   editingBusy = false,
+  onOpenFileError,
 }: ChatMessageListProps) {
+  const ports = useHostPorts();
+  const canOpenFile = useCapability("workspace.openFile");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [openingId, setOpeningId] = useState<string | null>(null);
 
   const lastAssistantId = [...messages]
     .reverse()
@@ -71,6 +76,11 @@ export function ChatMessageList({
           message.id === lastAssistantId &&
           canRetry &&
           Boolean(onRetry) &&
+          !message.streaming;
+        const showOpenFile =
+          message.role === "tool" &&
+          canOpenFile &&
+          Boolean(message.fileUri) &&
           !message.streaming;
 
         return (
@@ -159,7 +169,7 @@ export function ChatMessageList({
                 </p>
               </>
             )}
-            {(showEdit || showRetry) && !isEditing ? (
+            {(showEdit || showRetry || showOpenFile) && !isEditing ? (
               <footer className="altai-chat-bubble-actions">
                 {showEdit ? (
                   <HoverActionButton
@@ -180,6 +190,35 @@ export function ChatMessageList({
                     onClick={() => onRetry?.()}
                   >
                     Retry
+                  </HoverActionButton>
+                ) : null}
+                {showOpenFile ? (
+                  <HoverActionButton
+                    title={
+                      message.filePath
+                        ? `Open ${message.filePath}`
+                        : "Open file"
+                    }
+                    disabled={openingId === message.id}
+                    onClick={() => {
+                      const uri = message.fileUri;
+                      if (!uri) {
+                        return;
+                      }
+                      setOpeningId(message.id);
+                      void ports.workspace
+                        .openFile(uri)
+                        .catch((err: unknown) => {
+                          onOpenFileError?.(
+                            err instanceof Error ? err.message : String(err),
+                          );
+                        })
+                        .finally(() => {
+                          setOpeningId(null);
+                        });
+                    }}
+                  >
+                    {openingId === message.id ? "Opening…" : "Open"}
                   </HoverActionButton>
                 ) : null}
               </footer>

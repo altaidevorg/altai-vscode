@@ -4,6 +4,8 @@ import {
   applyAgentEventToMessages,
   displayMessagesFromSession,
   shouldShowChatEmptyHome,
+  extractToolFileTarget,
+  pathToFileUri,
   textFromAgentEvent,
 } from "../../src/webview/chatDisplayMessage.js";
 import type { AgentEvent } from "@altai/host-contract";
@@ -91,6 +93,41 @@ describe("applyAgentEventToMessages", () => {
       text: "nested ok",
       done: false,
     });
+  });
+
+  it("maps tool starts with file path metadata", () => {
+    const event: AgentEvent = {
+      type: "tool",
+      chatId: "c1",
+      runId: "r1",
+      seq: 3,
+      payload: {
+        type: "tool_call_start",
+        name: "edit",
+        input: { path: "/Users/me/proj/src/App.tsx" },
+      },
+    };
+    const next = applyAgentEventToMessages([], event, { activeChatId: "c1" });
+    expect(next).toHaveLength(1);
+    expect(next[0]?.role).toBe("tool");
+    expect(next[0]?.toolName).toBe("edit");
+    expect(next[0]?.filePath).toBe("/Users/me/proj/src/App.tsx");
+    expect(next[0]?.fileUri).toBe("file:///Users/me/proj/src/App.tsx");
+    expect(next[0]?.content).toContain("App.tsx");
+  });
+});
+
+describe("extractToolFileTarget", () => {
+  it("finds nested path and builds file URIs", () => {
+    expect(
+      extractToolFileTarget({
+        event: { input: { file_path: "/tmp/a.ts" } },
+      }),
+    ).toEqual({
+      path: "/tmp/a.ts",
+      uri: "file:///tmp/a.ts",
+    });
+    expect(pathToFileUri("/tmp/x.ts")).toBe("file:///tmp/x.ts");
   });
 });
 

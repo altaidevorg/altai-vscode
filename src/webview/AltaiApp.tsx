@@ -861,6 +861,9 @@ function AgentUiShell({
                   void onRetry();
                 }}
                 editingBusy={editingBusy || busy}
+                onOpenFileError={(message) => {
+                  setError(message);
+                }}
               />
             )}
             {error ? (
