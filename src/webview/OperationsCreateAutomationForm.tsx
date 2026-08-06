@@ -1,6 +1,7 @@
 /**
  * Host-owned create-automation form for Operations Work / Scheduled.
  * Shared action chrome; transport stays on ports.createAutomation.
+ * Optional skill chips when `skills.list` is advertised (parity with task form).
  */
 
 import {
@@ -8,13 +9,20 @@ import {
   PromptEditorSection,
   SurfacePrimaryAction,
   SurfaceSecondaryAction,
+  TaskSkillChips,
+  useCapability,
+  useHostPorts,
 } from "@altai/agent-ui";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AUTOMATION_INTERVAL_PRESETS,
   validateAutomationDraft,
   type AutomationDraft,
 } from "./automationDraft.js";
+import {
+  composeTaskPromptWithSkills,
+  toggleTaskSkillSelection,
+} from "./taskRunDraft.js";
 
 const TEMPLATES = [
   {
@@ -44,6 +52,8 @@ export type OperationsCreateAutomationFormProps = {
   onSubmit: (draft: AutomationDraft) => void | Promise<void>;
 };
 
+type SkillOption = { name: string; description?: string | null };
+
 export function OperationsCreateAutomationForm({
   open,
   busy = false,
@@ -53,6 +63,8 @@ export function OperationsCreateAutomationForm({
   onClose,
   onSubmit,
 }: OperationsCreateAutomationFormProps) {
+  const ports = useHostPorts();
+  const canListSkills = useCapability("skills.list");
   const [title, setTitle] = useState(initialTitle);
   const [prompt, setPrompt] = useState("");
   const [scheduleKind, setScheduleKind] = useState<"once" | "every">("every");
@@ -61,6 +73,26 @@ export function OperationsCreateAutomationForm({
   );
   const [onceAt, setOnceAt] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
+  const [skills, setSkills] = useState<SkillOption[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+
+  const loadSkills = useCallback(async () => {
+    if (!canListSkills) {
+      setSkills([]);
+      return;
+    }
+    try {
+      const next = await ports.mcpSkills.listSkills();
+      setSkills(
+        next.map((skill) => ({
+          name: skill.name,
+          ...(skill.description ? { description: skill.description } : {}),
+        })),
+      );
+    } catch {
+      setSkills([]);
+    }
+  }, [ports, canListSkills]);
 
   useEffect(() => {
     if (open) {
@@ -70,8 +102,10 @@ export function OperationsCreateAutomationForm({
       setEveryMs(AUTOMATION_INTERVAL_PRESETS[1].everyMs);
       setOnceAt("");
       setLocalError(null);
+      setSelectedSkills([]);
+      void loadSkills();
     }
-  }, [open, initialTitle]);
+  }, [open, initialTitle, loadSkills]);
 
   if (!open) {
     return (
@@ -94,9 +128,10 @@ export function OperationsCreateAutomationForm({
           scheduleKind === "once" && onceAt
             ? new Date(onceAt).toISOString()
             : onceAt;
+        const withSkills = composeTaskPromptWithSkills(prompt, selectedSkills);
         const validated = validateAutomationDraft({
           title,
-          prompt,
+          prompt: withSkills,
           scheduleKind,
           onceAt: onceIso,
           everyMs,
@@ -190,6 +225,15 @@ export function OperationsCreateAutomationForm({
         rows={6}
         size="task"
       />
+      {canListSkills && skills.length > 0 ? (
+        <TaskSkillChips
+          skills={skills}
+          selected={selectedSkills}
+          onToggle={(name) => {
+            setSelectedSkills((prev) => toggleTaskSkillSelection(prev, name));
+          }}
+        />
+      ) : null}
       <CreateFormActions
         onCancel={onClose}
         submitLabel={busy ? "Creating…" : "Create automation"}
