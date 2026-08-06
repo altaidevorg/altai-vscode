@@ -9,6 +9,7 @@ import type { ContextChip, TodoItem } from "@altai/agent-ui";
 import {
   looksLikePath,
   pathToFileUri,
+  renumberUserTurnIds,
   toolBubbleContent,
 } from "@altai/agent-ui";
 import {
@@ -21,6 +22,9 @@ export { isTodoToolName } from "./todoToolParse.js";
 
 /** Shared path / tool presentation helpers (Wave 4 / A6.16). */
 export { looksLikePath, pathToFileUri, toolBubbleContent } from "@altai/agent-ui";
+
+/** Shared user-turn renumbering (Wave 4 / A6.19). */
+export { renumberUserTurnIds } from "@altai/agent-ui";
 
 export type ChatDisplayRole =
   | "user"
@@ -61,20 +65,6 @@ const DEFAULT_MAX = 200;
 
 export function newDisplayMessageId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-/** Assign sequential `user:1`… ids for protocol-compatible edit / truncate. */
-export function renumberUserTurnIds(
-  messages: readonly ChatDisplayMessage[],
-): ChatDisplayMessage[] {
-  let turn = 0;
-  return messages.map((message) => {
-    if (message.role !== "user") {
-      return message;
-    }
-    turn += 1;
-    return { ...message, id: `user:${turn}` };
-  });
 }
 
 /**
