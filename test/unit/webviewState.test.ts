@@ -138,4 +138,18 @@ describe("mergePersistedWebviewState", () => {
       ),
     ).toEqual({ surface: "chat" });
   });
+
+  it("accepts and clears preferredRootUri", () => {
+    expect(
+      parsePersistedWebviewState({
+        preferredRootUri: "file:///workspace/pkg",
+      }),
+    ).toEqual({ preferredRootUri: "file:///workspace/pkg" });
+    expect(
+      mergePersistedWebviewState(
+        { preferredRootUri: "file:///a", surface: "chat" },
+        { preferredRootUri: "" },
+      ),
+    ).toEqual({ surface: "chat" });
+  });
 });

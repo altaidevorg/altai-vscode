@@ -308,6 +308,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     [client],
   );
 
+  const onPreferredRootUriChange = useCallback(
+    (uri: string | null) => {
+      patchPersistedState(client, { preferredRootUri: uri ?? "" });
+    },
+    [client],
+  );
+
   const openChatFromOperations = useCallback(
     (input: { chatId?: string; label?: string }) => {
       const focus = buildOpenChatFocus(input);
@@ -653,6 +660,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                   client.getPersistedState().composerDraft ?? ""
                 }
                 onComposerDraftChange={onComposerDraftChange}
+                initialPreferredRootUri={
+                  client.getPersistedState().preferredRootUri ?? null
+                }
+                onPreferredRootUriChange={onPreferredRootUriChange}
               />
             </>
           )
@@ -684,6 +695,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               client.getPersistedState().composerDraft ?? ""
             }
             onComposerDraftChange={onComposerDraftChange}
+            initialPreferredRootUri={
+              client.getPersistedState().preferredRootUri ?? null
+            }
+            onPreferredRootUriChange={onPreferredRootUriChange}
           />
         )}
       </div>
@@ -708,6 +723,8 @@ function AgentUiShell({
   requestWorkspace,
   initialComposerDraft = "",
   onComposerDraftChange,
+  initialPreferredRootUri = null,
+  onPreferredRootUriChange,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
@@ -732,6 +749,8 @@ function AgentUiShell({
   /** Restored unsent composer text (presentation only). */
   initialComposerDraft?: string;
   onComposerDraftChange?: (draft: string) => void;
+  initialPreferredRootUri?: string | null;
+  onPreferredRootUriChange?: (uri: string | null) => void;
 }) {
   const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
@@ -1838,7 +1857,11 @@ function AgentUiShell({
           </div>
           <div className="altai-chat-composer-dock">
             <ChatProviderConnectBanner />
-            <ChatProjectTargetChrome requestWorkspace={requestWorkspace} />
+            <ChatProjectTargetChrome
+              requestWorkspace={requestWorkspace}
+              initialPreferredRootUri={initialPreferredRootUri}
+              onPreferredRootUriChange={onPreferredRootUriChange}
+            />
             <form
               className="altai-chat-composer-form"
               onSubmit={(event) => {

@@ -33,6 +33,10 @@ export type PersistedWebviewState = {
    * Capped on parse/write so getState stays small.
    */
   composerDraft?: string;
+  /**
+   * Multi-root Explorer/display preference only — does not rebind agent host roots.
+   */
+  preferredRootUri?: string;
 };
 
 /** Max characters retained for the reloadable composer draft. */
@@ -59,6 +63,27 @@ export function normalizeComposerDraft(
     return undefined;
   }
   return capped;
+}
+
+/** Max length for preferred multi-root URI presentation state. */
+export const MAX_PREFERRED_ROOT_URI_CHARS = 1_024;
+
+export function normalizePreferredRootUri(
+  value: unknown,
+  maxChars: number = MAX_PREFERRED_ROOT_URI_CHARS,
+): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > maxChars) {
+    return undefined;
+  }
+  // Presentation URI only; reject control characters.
+  if (/[\u0000-\u001F]/.test(trimmed)) {
+    return undefined;
+  }
+  return trimmed;
 }
 
 const SURFACES = new Set<PersistedAltaiSurface>([
@@ -120,6 +145,10 @@ export function parsePersistedWebviewState(
   if (draft !== undefined) {
     next.composerDraft = draft;
   }
+  const preferred = normalizePreferredRootUri(record.preferredRootUri);
+  if (preferred !== undefined) {
+    next.preferredRootUri = preferred;
+  }
 
   return next;
 }
@@ -145,6 +174,14 @@ export function mergePersistedWebviewState(
       delete next.activeChatId;
     } else {
       next.activeChatId = id;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "preferredRootUri")) {
+    const preferred = normalizePreferredRootUri(patch.preferredRootUri);
+    if (preferred === undefined) {
+      delete next.preferredRootUri;
+    } else {
+      next.preferredRootUri = preferred;
     }
   }
   return next;
