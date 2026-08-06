@@ -1,4 +1,5 @@
 import {
+  ChatTabStrip,
   ComposerPrimaryRow,
   ComposerShell,
   ComposerTextArea,
@@ -36,7 +37,15 @@ import {
   chatFocusStatusLine,
   type OpenChatFocus,
 } from "./openChatDeepLink.js";
-import { transcriptLinesFromMessages } from "./sessionTranscript.js";
+import {
+  appendMetaMessage,
+  appendUserMessage,
+  applyAgentEventToMessages,
+  displayMessagesFromSession,
+  shouldShowChatEmptyHome,
+  type ChatDisplayMessage,
+} from "./chatDisplayMessage.js";
+import { ChatMessageList } from "./ChatMessageList.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
@@ -55,7 +64,6 @@ import {
   type HostRpcTransport,
 } from "./host/createVsCodeHostPorts.js";
 import type { PermissionMode } from "@altai/host-contract";
-import { chatLineKind, shouldShowChatEmptyHome } from "./chatLineKind.js";
 
 export type AltaiAppProps = {
   client: WebviewClient;
@@ -398,7 +406,10 @@ function AgentUiShell({
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lines, setLines] = useState<string[]>([]);
+  const [messages, setMessages] = useState<ChatDisplayMessage[]>([]);
+  const [openTabs, setOpenTabs] = useState<
+    Array<{ id: string; title: string }>
+  >([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(
     () => chatFocus?.chatId ?? null,
   );
@@ -418,6 +429,21 @@ function AgentUiShell({
   const activeChatIdRef = useRef<string | null>(activeChatId);
   activeChatIdRef.current = activeChatId;
 
+  const rememberTab = useCallback((id: string, title?: string) => {
+    setOpenTabs((prev) => {
+      const existing = prev.find((tab) => tab.id === id);
+      if (existing) {
+        if (title && existing.title !== title) {
+          return prev.map((tab) =>
+            tab.id === id ? { ...tab, title } : tab,
+          );
+        }
+        return prev;
+      }
+      return [...prev, { id, title: title?.trim() || "New chat" }].slice(-8);
+    });
+  }, []);
+
   useEffect(() => {
     if (!chatFocus) {
       return;
@@ -436,72 +462,73 @@ function AgentUiShell({
     if (chatFocus.chatId) {
       setActiveChatId(chatFocus.chatId);
       setActiveRunId(null);
+      rememberTab(chatFocus.chatId, chatFocus.label);
     }
 
     const status = chatFocusStatusLine(chatFocus);
     const chatId = chatFocus.chatId;
 
-    if (!chatId || !canMessages) {
-      setLines([status]);
+    if (!chatId) {
+      // New / cleared chat — empty home until the user sends.
+      setMessages([]);
+      return;
+    }
+    if (!canMessages) {
+      setMessages(appendMetaMessage([], status));
       return;
     }
 
     let cancelled = false;
-    setLines([status, "Loading transcript…"]);
+    setMessages(appendMetaMessage([], "Loading transcript…"));
     void ports.sessions
       .listMessages(chatId)
-      .then((messages) => {
+      .then((sessionMessages) => {
         if (cancelled) {
           return;
         }
-        setLines([status, ...transcriptLinesFromMessages(messages)]);
+        setMessages(displayMessagesFromSession(sessionMessages));
       })
       .catch((err: unknown) => {
         if (cancelled) {
           return;
         }
         const message = err instanceof Error ? err.message : String(err);
-        setLines([status, `Transcript unavailable · ${message}`]);
+        setMessages(
+          appendMetaMessage([], `Transcript unavailable · ${message}`),
+        );
       });
 
     return () => {
       cancelled = true;
     };
-  }, [chatFocus, canMessages, ports]);
+  }, [chatFocus, canMessages, ports, rememberTab]);
 
   useEffect(() => {
     return ports.events.subscribe((event) => {
-      const summary =
-        typeof event.payload === "object" &&
-        event.payload &&
-        "text" in (event.payload as object) &&
-        typeof (event.payload as { text?: unknown }).text === "string"
-          ? (event.payload as { text: string }).text
-          : `${event.type} · seq ${event.seq}`;
-      setLines((prev) => [...prev.slice(-200), summary]);
+      setMessages((prev) =>
+        applyAgentEventToMessages(prev, event, {
+          activeChatId: activeChatIdRef.current,
+        }),
+      );
 
-      const prompt = interactivePromptFromAgentEvent(event);
-      if (!prompt) {
+      const promptEvent = interactivePromptFromAgentEvent(event);
+      if (!promptEvent) {
         return;
       }
       const currentChat = activeChatIdRef.current;
-      if (currentChat && prompt.chatId !== currentChat) {
+      if (currentChat && promptEvent.chatId !== currentChat) {
         return;
       }
-      if (prompt.kind === "tool") {
+      if (promptEvent.kind === "tool") {
         setPendingApprovals((prev) =>
-          applyInteractivePrompt(prev, null, prompt).approvals,
+          applyInteractivePrompt(prev, null, promptEvent).approvals,
         );
       } else {
-        setPendingClarification(prompt);
-        if (prompt.content) {
-          setLines((prev) => {
-            const line = `ALTAI: ${prompt.content}`;
-            if (prev[prev.length - 1] === line) {
-              return prev;
-            }
-            return [...prev.slice(-200), line];
-          });
+        setPendingClarification(promptEvent);
+        if (promptEvent.content) {
+          setMessages((prev) =>
+            appendMetaMessage(prev, `ALTAI: ${promptEvent.content}`),
+          );
         }
       }
     });
@@ -528,7 +555,8 @@ function AgentUiShell({
       });
       setActiveChatId(ref.chatId);
       setActiveRunId(ref.runId);
-      setLines((prev) => [...prev, `You: ${text}`]);
+      rememberTab(ref.chatId);
+      setMessages((prev) => appendUserMessage(prev, text));
       setPrompt("");
       setSessionListKey((key) => key + 1);
       if (ref.chatId !== activeChatId) {
@@ -550,7 +578,8 @@ function AgentUiShell({
         chatId: activeChatId,
         runId: activeRunId,
       });
-      setLines((prev) => [...prev, "Run cancelled"]);
+      setMessages((prev) => appendMetaMessage(prev, "Run cancelled"));
+      setActiveRunId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -577,40 +606,57 @@ function AgentUiShell({
     );
   }
 
-  const showEmptyHome = shouldShowChatEmptyHome(lines);
+  const showEmptyHome = shouldShowChatEmptyHome(messages);
 
   return (
     <main className="altai-shell-body altai-shell-body--chat">
       <div className="altai-chat-layout">
         <ChatSessionList
           activeChatId={activeChatId}
-          onFocusSession={onFocusChat}
+          onFocusSession={(input) => {
+            if (input.chatId) {
+              rememberTab(input.chatId, input.label);
+            }
+            onFocusChat(input);
+          }}
           refreshKey={sessionListKey}
         />
         <div className="altai-chat-main">
+          {openTabs.length > 0 ? (
+            <ChatTabStrip
+              tabs={openTabs}
+              activeId={activeChatId}
+              onSelect={(id) => {
+                const tab = openTabs.find((item) => item.id === id);
+                onFocusChat({ chatId: id, label: tab?.title });
+              }}
+              onClose={(id) => {
+                setOpenTabs((prev) => prev.filter((tab) => tab.id !== id));
+                if (id === activeChatId) {
+                  const remaining = openTabs.filter((tab) => tab.id !== id);
+                  const next = remaining[remaining.length - 1];
+                  if (next) {
+                    onFocusChat({ chatId: next.id, label: next.title });
+                  } else {
+                    setActiveChatId(null);
+                    setMessages([]);
+                    onFocusChat({});
+                  }
+                }
+              }}
+              onNewChat={() => {
+                setActiveChatId(null);
+                setActiveRunId(null);
+                setMessages([]);
+                onFocusChat({});
+              }}
+            />
+          ) : null}
           <div className="altai-chat-scroll">
             {showEmptyHome ? (
               <EmptyState agentName="ALTAI" />
             ) : (
-              <div className="altai-chat-log" role="log" aria-live="polite">
-                {lines.map((line, index) => {
-                  const kind = chatLineKind(line);
-                  return (
-                    <p
-                      key={`${index}:${line.slice(0, 24)}`}
-                      className={
-                        kind === "user"
-                          ? "altai-chat-line altai-chat-line--user"
-                          : kind === "meta"
-                            ? "altai-chat-line altai-chat-line--meta"
-                            : "altai-chat-line altai-chat-line--agent"
-                      }
-                    >
-                      {line}
-                    </p>
-                  );
-                })}
-              </div>
+              <ChatMessageList messages={messages} />
             )}
             {error ? (
               <p className="altai-chat-error" role="alert">

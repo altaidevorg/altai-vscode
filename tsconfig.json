@@ -42,6 +42,7 @@
     "test/unit/modelPickerChrome.test.ts",
     "test/unit/providerStatusChrome.test.ts",
     "test/unit/chatUiChrome.test.ts",
+    "test/unit/chatDisplayMessage.test.ts",
     "dist",
     "out",
     "node_modules"
