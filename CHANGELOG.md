@@ -120,6 +120,7 @@ sibling `file:` packages until public npm publish.
   the Settings surface.
 - Host wait shell surfaces diagnostic recovery hints (same copy as
   `ALTAI: Run Diagnostics`) when `host.status` carries a diagnostic code.
+- Chat user/assistant messages offer Copy on hover when text is complete.
 
 ### Security
 

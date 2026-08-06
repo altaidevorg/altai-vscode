@@ -56,6 +56,7 @@
     "test/unit/chatEmptyStarterTemplates.test.ts",
     "test/unit/runInspectorChrome.test.ts",
     "test/unit/transcriptGroupChrome.test.ts",
+    "test/unit/messageCopyChrome.test.ts",
     "dist",
     "out",
     "node_modules"
