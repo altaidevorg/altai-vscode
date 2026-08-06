@@ -1,12 +1,22 @@
 #!/usr/bin/env node
 /**
- * Gate: package version has CHANGELOG section + RELEASE.md checklist skeleton.
+ * Gate: package version has CHANGELOG section + RELEASE.md checklist skeleton
+ * + required internal-channel docs/assets on disk.
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+const REQUIRED_PATHS = [
+  "CHANGELOG.md",
+  "docs/RELEASE.md",
+  "docs/FEATURE_MATRIX.md",
+  "docs/SECURITY.md",
+  "docs/PROTOCOL_COMPATIBILITY.md",
+  "media/altai-icon.png",
+];
 
 const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
 const version = pkg.version;
@@ -20,6 +30,20 @@ if (typeof version !== "string" || !/^\d+\.\d+\.\d+/.test(version)) {
   findings.push({
     code: "version_invalid",
     message: `package version is not semver: ${version}`,
+  });
+}
+
+if (pkg.preview !== true) {
+  findings.push({
+    code: "preview_flag",
+    message: 'package.json "preview" must be true for the internal channel',
+  });
+}
+
+if (pkg.icon !== "media/altai-icon.png") {
+  findings.push({
+    code: "icon_missing",
+    message: 'package.json "icon" must be "media/altai-icon.png"',
   });
 }
 
@@ -42,7 +66,10 @@ const requiredSections = [
   "Versioning rules",
 ];
 for (const title of requiredSections) {
-  const re = new RegExp(`^## ${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "m");
+  const re = new RegExp(
+    `^## ${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`,
+    "m",
+  );
   if (!re.test(release)) {
     findings.push({
       code: "release_section_missing",
@@ -60,6 +87,15 @@ for (const token of ["npm run verify", "package:target", "verify:vsix"]) {
   }
 }
 
+for (const relative of REQUIRED_PATHS) {
+  if (!existsSync(path.join(root, relative))) {
+    findings.push({
+      code: "internal_doc_missing",
+      message: `required path missing: ${relative}`,
+    });
+  }
+}
+
 if (findings.length > 0) {
   console.error("Release docs check failed:");
   for (const f of findings) {
@@ -68,4 +104,4 @@ if (findings.length > 0) {
   process.exit(1);
 }
 
-console.log(`Release docs check passed (version ${version}).`);
+console.log(`Release docs check passed (version ${version}, internal preview).`);

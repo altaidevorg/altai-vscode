@@ -25,17 +25,21 @@ sibling `file:` packages until public npm publish.
   `npm run verify`.
 - Diagnostics: `ALTAI: Run Diagnostics` with recovery hints per host failure
   code; workspace `extensionKind` for Remote SSH / WSL / Dev Containers.
+- Marketplace **preview** metadata, 128×128 icon, feature matrix, and security
+  summary docs for the internal channel.
 
 ### Security
 
 - Provider credentials never enter the Webview; native host is not started for
   untrusted workspaces.
 - Packaged host integrity: optional `.sha256` sidecar verified at resolve time.
+- Secret-pattern and license scans run in `npm run verify`.
 
 ### Notes
 
 - Packaged `altai-agent-host` binaries are not yet release-pinned; local debug
   uses `ALTAI_AGENT_HOST_PATH` (see [docs/RELEASE.md](docs/RELEASE.md)).
 - Protocol major remains `1` (`stdio-via-altai-cli-serve`).
+- Shared UI packages remain `file:` linked until npm publish.
 
 [0.1.0]: https://github.com/altaidevorg/altai-vscode/releases/tag/v0.1.0

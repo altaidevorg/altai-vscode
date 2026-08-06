@@ -17,8 +17,9 @@ this repository.
 
 ## Status
 
-CHAT + host ports (V4–V6): capability-gated session/run, Work, Inbox, MCP,
-settings, and interactive review routes proxy through the trusted native host.
+**Internal preview (0.1.0).** CHAT + host ports (V4–V6): capability-gated
+session/run, Work, Inbox, MCP, settings, and interactive review routes proxy
+through the trusted native host.
 
 Operations (V7): Chat/Operations surface tabs mount shared
 `OperationsNavigationShell`. Overview aggregates Work/Inbox ports; Work /
@@ -53,6 +54,7 @@ a New task composer (createTaskRun)
 and Scheduled offers a New automation composer (createAutomation). Command
 palette includes **ALTAI: New Operations Task** and **New Operations Automation**.
 Canonical CP-17 projections and full Tailwind visual parity are follow-on work.
+See the [feature matrix](docs/FEATURE_MATRIX.md) for internal vs alpha gaps.
 
 Local installs expect a sibling checkout of `altai-app` at
 `../altai-app-main` so `file:` package links resolve (packages are not on npm
@@ -69,7 +71,9 @@ See the [engineering plan](docs/ENGINEERING_PLAN.md) and
   non-negotiable architecture rules.
 - [Protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md) — pinned extension,
   protocol, shared-package, and native-host versions.
+- [Feature matrix](docs/FEATURE_MATRIX.md) — internal channel surface status.
 - [Release guide](docs/RELEASE.md) — internal / alpha / beta / stable checklist.
+- [Security and privacy](docs/SECURITY.md) — trust, secrets, host, logging.
 - [Changelog](CHANGELOG.md) — shipped user-visible changes per version.
 
 ## Develop

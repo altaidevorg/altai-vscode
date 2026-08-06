@@ -6,6 +6,8 @@ export type ReleaseDocsInput = {
   version: string;
   changelogMarkdown: string;
   releaseMarkdown: string;
+  /** Relative paths that must exist on disk for the internal channel. */
+  presentPaths?: readonly string[];
 };
 
 export type ReleaseDocsFinding = {
@@ -35,6 +37,16 @@ export const REQUIRED_RELEASE_SECTIONS = [
   "Pre-release checklist",
   "Commands",
   "Versioning rules",
+] as const;
+
+/** Required repo docs/assets for the internal channel close-out. */
+export const REQUIRED_INTERNAL_DOCS = [
+  "CHANGELOG.md",
+  "docs/RELEASE.md",
+  "docs/FEATURE_MATRIX.md",
+  "docs/SECURITY.md",
+  "docs/PROTOCOL_COMPATIBILITY.md",
+  "media/altai-icon.png",
 ] as const;
 
 export function releaseDocHasRequiredSections(
@@ -77,13 +89,24 @@ export function auditReleaseDocs(
     });
   }
 
-  // Checklist must mention verify and package:target so release SOP stays executable.
   for (const token of ["npm run verify", "package:target", "verify:vsix"]) {
     if (!input.releaseMarkdown.includes(token)) {
       findings.push({
         code: "release_command_missing",
         message: `docs/RELEASE.md must document \`${token}\``,
       });
+    }
+  }
+
+  if (input.presentPaths) {
+    const present = new Set(input.presentPaths);
+    for (const required of REQUIRED_INTERNAL_DOCS) {
+      if (!present.has(required)) {
+        findings.push({
+          code: "internal_doc_missing",
+          message: `required internal-channel path missing: ${required}`,
+        });
+      }
     }
   }
 
