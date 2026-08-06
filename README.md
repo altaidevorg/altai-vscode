@@ -115,6 +115,7 @@ Useful scripts:
 | `npm run guard:architecture` | Ban host imports / copied UI symbols |
 | `npm run verify:package` | Manifest + built assets + native host layout audit |
 | `npm run package:target` | Stage one OS/arch + native host, emit target VSIX |
+| `npm run verify:vsix` | Audit a packaged `.vsix` for single-target host layout |
 | `npm run verify` | All of the above (including package audit) |
 
 Remote workspaces (SSH, WSL, Dev Containers): the extension declares
@@ -135,6 +136,16 @@ npm run package:target -- --target=darwin-arm64 --host=/path/to/altai-agent-host
 Supported targets: `darwin-arm64`, `darwin-x64`, `linux-x64`, `win32-x64`.
 Staging lands in `.package/<target>/`. Use `--skip-verify` only when verify
 already passed and you are iterating on packaging.
+
+Audit a produced artifact:
+
+```bash
+npm run verify:vsix -- --vsix=altai-0.1.0-linux-x64.vsix --target=linux-x64
+```
+
+CI (`package.yml`) builds fixture VSIX artifacts for every supported target on
+`main` and packaging-related PRs (real signed host binaries land with release
+pinning).
 
 ## Architecture
 
