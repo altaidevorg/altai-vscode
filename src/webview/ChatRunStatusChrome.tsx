@@ -1,10 +1,11 @@
 /**
- * Capability-adjacent Chat chrome: change-review and run-blocked banners.
+ * Capability-adjacent Chat chrome: change-review, blocked, and recovery strips.
  */
 
 import {
   ChangeReviewBanner,
   RunBlockedBanner,
+  RunRecoveryActions,
   useCapability,
   useHostPorts,
 } from "@altai/agent-ui";
@@ -13,20 +14,38 @@ import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 import {
   countPendingEditDiffs,
   lastEditDiffMessage,
+  recoveryCopy,
   shouldShowChangeReviewBanner,
+  shouldShowRunRecovery,
 } from "./chatRunChrome.js";
 
 export type ChatRunStatusChromeProps = {
   messages: readonly ChatDisplayMessage[];
   runBlockedMessage: string | null;
+  runWarningMessage?: string | null;
+  canRetry?: boolean;
+  canSteer?: boolean;
+  hasActiveRun?: boolean;
   onDismissBlocked?: () => void;
+  onDismissWarning?: () => void;
+  onRetry?: () => void;
+  onSteer?: () => void;
+  onStop?: () => void;
   onOpenFileError?: (message: string) => void;
 };
 
 export function ChatRunStatusChrome({
   messages,
   runBlockedMessage,
+  runWarningMessage = null,
+  canRetry = false,
+  canSteer = false,
+  hasActiveRun = false,
   onDismissBlocked,
+  onDismissWarning,
+  onRetry,
+  onSteer,
+  onStop,
   onOpenFileError,
 }: ChatRunStatusChromeProps) {
   const ports = useHostPorts();
@@ -34,14 +53,51 @@ export function ChatRunStatusChrome({
   const [opening, setOpening] = useState(false);
   const queueLen = countPendingEditDiffs(messages);
   const showReview = shouldShowChangeReviewBanner(queueLen);
+  const recoveryFlags = {
+    blockedMessage: runBlockedMessage,
+    warningMessage: runWarningMessage,
+    canRetry,
+    canSteer,
+    hasActiveRun,
+  };
+  const showRecovery = shouldShowRunRecovery(recoveryFlags);
+  const showStaticBlocked =
+    Boolean(runBlockedMessage) && !showRecovery;
+  const copy = recoveryCopy(recoveryFlags);
 
-  if (!showReview && !runBlockedMessage) {
+  if (!showReview && !showRecovery && !showStaticBlocked) {
     return null;
   }
 
   return (
     <div className="altai-run-status-chrome" aria-label="Run status">
-      {runBlockedMessage ? (
+      {showRecovery ? (
+        <RunRecoveryActions
+          warning={copy.warning}
+          title={copy.title}
+          detail={copy.detail}
+          canContinue={false}
+          canRetry={canRetry && Boolean(onRetry)}
+          onContinue={() => {}}
+          onRetry={() => {
+            onRetry?.();
+          }}
+          onSteer={() => {
+            onSteer?.();
+          }}
+          onStop={() => {
+            onStop?.();
+          }}
+          onDismiss={() => {
+            if (copy.warning) {
+              onDismissWarning?.();
+            } else {
+              onDismissBlocked?.();
+            }
+          }}
+        />
+      ) : null}
+      {showStaticBlocked && runBlockedMessage ? (
         <div className="altai-run-blocked-wrap">
           <RunBlockedBanner message={runBlockedMessage} />
           {onDismissBlocked ? (
@@ -63,7 +119,7 @@ export function ChatRunStatusChrome({
             if (!target) {
               return;
             }
-    const el = document.getElementById(`altai-msg-${target.id}`);
+            const el = document.getElementById(`altai-msg-${target.id}`);
             el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 
             if (
