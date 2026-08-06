@@ -152,6 +152,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     view?: OperationsDeepLinkView;
     workHubView?: OperationsDeepLinkWorkHubView;
     composeTask?: boolean;
+    composeAutomation?: boolean;
     draftTitle?: string;
   }): Promise<void> {
     const payload = buildOpenOperationsPayload({
@@ -160,6 +161,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
         ? { workHubView: input.workHubView }
         : {}),
       ...(input?.composeTask ? { composeTask: true } : {}),
+      ...(input?.composeAutomation ? { composeAutomation: true } : {}),
       ...(input?.draftTitle !== undefined && input.draftTitle.length > 0
         ? { draftTitle: input.draftTitle }
         : {}),

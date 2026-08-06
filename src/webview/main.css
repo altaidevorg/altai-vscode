@@ -296,6 +296,33 @@ body {
   border-color: var(--ring);
 }
 
+.altai-ops-create-fieldset {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0;
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+
+.altai-ops-create-legend {
+  padding: 0;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  width: 100%;
+}
+
+.altai-ops-create-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
 .altai-ops-row-action {
   border: 1px solid var(--border);
   border-radius: 0.3rem;

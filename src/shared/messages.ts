@@ -86,6 +86,8 @@ export type OpenOperationsPayload = {
   workHubView?: OperationsDeepLinkWorkHubView;
   /** Open the new-task composer on Work/Runs surfaces. */
   composeTask?: boolean;
+  /** Open the new-automation composer on Work/Scheduled. */
+  composeAutomation?: boolean;
   /** Prefill title when composing (e.g. TaskRunCard reuse). */
   draftTitle?: string;
 };

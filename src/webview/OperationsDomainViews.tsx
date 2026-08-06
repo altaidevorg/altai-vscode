@@ -22,6 +22,8 @@ import type {
   TaskRunInfo,
 } from "@altai/host-contract";
 import { useEffect, useMemo, useState } from "react";
+import type { AutomationDraft } from "./automationDraft.js";
+import { OperationsCreateAutomationForm } from "./OperationsCreateAutomationForm.js";
 import { OperationsCreateTaskForm } from "./OperationsCreateTaskForm.js";
 import {
   automationScheduleUiLabel,
@@ -55,6 +57,14 @@ type AutomationActions = {
   onPause: (id: string) => void;
   onDelete: (id: string) => void;
   busyId?: string | null;
+  canCreate?: boolean;
+  createOpen?: boolean;
+  createBusy?: boolean;
+  createError?: string | null;
+  createInitialTitle?: string;
+  onCreateOpen?: () => void;
+  onCreateClose?: () => void;
+  onCreateSubmit?: (draft: AutomationDraft) => void | Promise<void>;
 };
 
 type InboxActions = {
@@ -287,17 +297,37 @@ function AutomationsList({
   automations: AutomationInfo[];
   actions: AutomationActions;
 }) {
+  const createBar =
+    actions.canCreate &&
+    actions.onCreateOpen &&
+    actions.onCreateClose &&
+    actions.onCreateSubmit ? (
+      <OperationsCreateAutomationForm
+        open={Boolean(actions.createOpen)}
+        busy={actions.createBusy}
+        error={actions.createError}
+        initialTitle={actions.createInitialTitle ?? ""}
+        onOpen={actions.onCreateOpen}
+        onClose={actions.onCreateClose}
+        onSubmit={actions.onCreateSubmit}
+      />
+    ) : null;
+
   if (automations.length === 0) {
     return (
-      <SurfaceEmptyState
-        title="No scheduled work"
-        description="Automations and recurring agent jobs will appear here."
-      />
+      <div className="altai-ops-domain-body">
+        {createBar}
+        <SurfaceEmptyState
+          title="No scheduled work"
+          description="Automations and recurring agent jobs will appear here."
+        />
+      </div>
     );
   }
 
   return (
     <div className="altai-ops-domain-body">
+      {createBar}
       <SurfaceListGroup title="Scheduled" count={automations.length}>
         {automations.map((item) => (
           <AutomationCard

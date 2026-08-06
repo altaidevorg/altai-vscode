@@ -74,6 +74,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.openOperationsNewAutomation",
+        "title": "ALTAI: New Operations Automation",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openOperationsInbox",
         "title": "ALTAI: Open Operations Inbox",
         "category": "ALTAI"
