@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { validateTaskRunDraft } from "../../src/webview/taskRunDraft.js";
+import {
+  composeTaskPromptWithSkills,
+  toggleTaskSkillSelection,
+  validateTaskRunDraft,
+} from "../../src/webview/taskRunDraft.js";
 import {
   buildOpenOperationsPayload,
   parseOpenOperationsPayload,
@@ -25,6 +29,34 @@ describe("validateTaskRunDraft", () => {
     expect(validateTaskRunDraft({ title: "t", prompt: "  " })).toMatchObject({
       ok: false,
     });
+  });
+});
+
+describe("task skill selection", () => {
+  it("toggles and caps at twelve", () => {
+    expect(toggleTaskSkillSelection([], " dig ")).toEqual(["dig"]);
+    expect(toggleTaskSkillSelection(["dig"], "dig")).toEqual([]);
+    const many = Array.from({ length: 13 }, (_, i) => `s${i}`);
+    let selected: string[] = [];
+    for (const name of many) {
+      selected = toggleTaskSkillSelection(selected, name);
+    }
+    expect(selected).toHaveLength(12);
+    expect(selected[0]).toBe("s1");
+  });
+
+  it("appends skill blocks to the prompt", () => {
+    expect(composeTaskPromptWithSkills("fix it", ["pr-review", "tests"])).toBe(
+      [
+        "fix it",
+        "",
+        "<skills>",
+        '  <skill name="pr-review" />',
+        '  <skill name="tests" />',
+        "</skills>",
+      ].join("\n"),
+    );
+    expect(composeTaskPromptWithSkills("hi", [])).toBe("hi");
   });
 });
 

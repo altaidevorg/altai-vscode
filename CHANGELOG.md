@@ -112,6 +112,8 @@ sibling `file:` packages until public npm publish.
 - Transcript collapses consecutive tool rows (≥2 Read / Web / Ran / Tools) into
   shared `TranscriptToolGroup` chrome.
 - MCP status: Enable/Disable when `mcp.configure` is available (alongside Restart).
+- Operations new-task form: optional skill chips when `skills.list` is available
+  (selected skills append `<skills>` blocks to the instruction).
 
 ### Security
 
