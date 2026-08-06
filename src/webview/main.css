@@ -401,6 +401,43 @@ body {
   cursor: not-allowed;
 }
 
+.altai-checkpoint-chrome {
+  position: relative;
+  display: inline-flex;
+}
+
+.altai-checkpoint-popover {
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  z-index: 30;
+  width: min(20rem, calc(100vw - 1.5rem));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--popover, var(--card));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.altai-checkpoint-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+  padding: 0.35rem 0.5rem;
+}
+
+.altai-checkpoint-close {
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.altai-checkpoint-close:hover {
+  color: var(--foreground);
+}
+
 .altai-chat-footer {
   display: flex;
   flex-direction: column;

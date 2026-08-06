@@ -44,6 +44,8 @@ sibling `file:` packages until public npm publish.
   attach a match (keyboard navigable).
 - Composer compact control: shared `CompactNowControl` calls
   `runtime.compactContext` when the host advertises the capability.
+- Edit checkpoints: shared `CheckpointMenuPanel` lists native checkpoints and
+  restores when `review.checkpoints` / `review.restoreCheckpoint` allow it.
 
 ### Security
 

@@ -1165,11 +1165,23 @@ function normalizeCheckpoints(value: unknown, chatId: string): CheckpointInfo[] 
       typeof item.created_ms === "number" && Number.isFinite(item.created_ms)
         ? new Date(item.created_ms).toISOString()
         : new Date(0).toISOString();
+    // Host contract only has optional label; native rows include path + tool.
+    // Prefer path (basename UX) and pair with tool label when both exist.
+    const path =
+      typeof item.path === "string" && item.path.trim() ? item.path.trim() : undefined;
+    const tool =
+      typeof item.label === "string" && item.label.trim()
+        ? item.label.trim()
+        : undefined;
+    const label =
+      path && tool && path !== tool
+        ? `${path} · ${tool}`
+        : path || tool || undefined;
     return {
       id: item.id,
       chatId,
       createdAt,
-      ...(typeof item.label === "string" ? { label: item.label } : {}),
+      ...(label ? { label } : {}),
     };
   });
 }
