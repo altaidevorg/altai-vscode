@@ -69,6 +69,8 @@ See the [engineering plan](docs/ENGINEERING_PLAN.md) and
   non-negotiable architecture rules.
 - [Protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md) — pinned extension,
   protocol, shared-package, and native-host versions.
+- [Release guide](docs/RELEASE.md) — internal / alpha / beta / stable checklist.
+- [Changelog](CHANGELOG.md) — shipped user-visible changes per version.
 
 ## Develop
 
@@ -116,8 +118,9 @@ Useful scripts:
 | `npm run verify:package` | Manifest + built assets + native host layout audit |
 | `npm run verify:vsix` | Audit a packaged `.vsix` for single-target host layout |
 | `npm run verify:security` | Secret pattern scan + direct dependency license audit |
+| `npm run verify:release-docs` | CHANGELOG version section + RELEASE.md checklist gate |
 | `npm run package:target` | Stage one OS/arch + native host, emit target VSIX |
-| `npm run verify` | All of the above (including package + security audit) |
+| `npm run verify` | All of the above (including package + security + release docs) |
 
 Remote workspaces (SSH, WSL, Dev Containers): the extension declares
 `extensionKind: workspace` so the native agent host runs on the **remote**
