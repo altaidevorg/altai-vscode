@@ -12,3 +12,8 @@ coverage/
 .env.*
 !.env.example
 .wip-snapshot/
+# Staged real hosts (PIN.json is tracked)
+resources/native/*/altai-agent-host
+resources/native/*/altai-agent-host.exe
+resources/native/*/*.sha256
+

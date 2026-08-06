@@ -1,0 +1,6 @@
+{
+  "agentHost": "0.1.0-cli-stdio",
+  "protocolMajor": 1,
+  "sourcePackage": "altai-cli",
+  "notes": "Packaged binary is altai-cli built with serve --stdio. Stage via npm run stage:native-host."
+}

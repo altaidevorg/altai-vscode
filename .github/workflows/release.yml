@@ -1,0 +1,123 @@
+name: release
+
+# Alpha+ packaging with a real altai-cli host staged as altai-agent-host.
+# Fixture packaging remains in package.yml for fast PR feedback.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package-real-host:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            host_name: altai-agent-host
+          - os: macos-14
+            target: darwin-arm64
+            host_name: altai-agent-host
+          - os: macos-13
+            target: darwin-x64
+            host_name: altai-agent-host
+          - os: windows-latest
+            target: win32-x64
+            host_name: altai-agent-host.exe
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout altai-vscode
+        uses: actions/checkout@v4
+        with:
+          path: altai-vscode
+
+      - name: Checkout altai-app
+        uses: actions/checkout@v4
+        with:
+          repository: altaidevorg/altai-app
+          path: altai-app-main
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: altai-vscode/package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: altai-app-main/src-tauri -> target
+          shared-key: altai-cli-${{ matrix.target }}
+
+      - name: Install JS deps and build extension
+        working-directory: altai-vscode
+        run: |
+          npm ci
+          npm run build
+          npm run verify:package
+          npm run verify:security
+          npm run verify:release-docs
+          npm run verify:host-pin
+
+      - name: Build and stage real host
+        working-directory: altai-vscode
+        env:
+          ALTAI_APP_ROOT: ${{ github.workspace }}/altai-app-main
+        run: |
+          git -C "$ALTAI_APP_ROOT" rev-parse --short HEAD > /tmp/altai-app-rev
+          export ALTAI_APP_REVISION="$(cat /tmp/altai-app-rev)"
+          node scripts/build-and-stage-host.mjs --target=${{ matrix.target }}
+          test -f "resources/native/${{ matrix.target }}/${{ matrix.host_name }}"
+          test -f "resources/native/${{ matrix.target }}/${{ matrix.host_name }}.sha256"
+
+      - name: Package target VSIX
+        working-directory: altai-vscode
+        run: |
+          npm run package:target -- \
+            --target=${{ matrix.target }} \
+            --host="resources/native/${{ matrix.target }}/${{ matrix.host_name }}" \
+            --skip-verify \
+            --out-dir=artifacts
+          VSIX="artifacts/altai-$(node -p "require('./package.json').version")-${{ matrix.target }}.vsix"
+          test -f "$VSIX"
+          node scripts/verify-vsix.mjs --vsix="$VSIX" --target=${{ matrix.target }}
+
+      - name: Upload alpha VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: altai-real-${{ matrix.target }}
+          path: |
+            altai-vscode/artifacts/*.vsix
+            altai-vscode/resources/native/PIN.json
+            altai-vscode/resources/native/${{ matrix.target }}/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-marketplace:
+    needs: package-real-host
+    if: ${{ github.event_name == 'workflow_dispatch' && vars.ALTAI_PUBLISH_MARKETPLACE == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip unless secrets present
+        run: |
+          if [ -z "${{ secrets.VSCE_PAT }}" ]; then
+            echo "VSCE_PAT not configured; skipping Marketplace publish."
+            exit 0
+          fi
+          echo "Marketplace publish is gated on human ops with VSCE_PAT + ALTAI_PUBLISH_MARKETPLACE."
+          echo "Download alpha artifacts from this run and publish with:"
+          echo "  npx vsce publish --packagePath <vsix> --pre-release"

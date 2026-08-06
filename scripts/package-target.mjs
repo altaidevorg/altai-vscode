@@ -173,6 +173,13 @@ for (const entry of entries) {
   cpSync(from, path.join(stagingDir, entry), { recursive: true });
 }
 
+// Include PIN.json (no host binaries from workspace unless staged into target).
+const pinSrc = path.join(root, "resources", "native", "PIN.json");
+if (existsSync(pinSrc)) {
+  mkdirSync(path.join(stagingDir, "resources", "native"), { recursive: true });
+  copyFileSync(pinSrc, path.join(stagingDir, "resources", "native", "PIN.json"));
+}
+
 // Drop source maps from the staged tree (vsce !dist/** tends to re-include them).
 stripSourceMaps(path.join(stagingDir, "dist"));
 

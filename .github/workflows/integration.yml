@@ -1,0 +1,49 @@
+name: integration
+
+# Lightweight activation / packaging / a11y smoke suite (no Remote SSH runner).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout altai-vscode
+        uses: actions/checkout@v4
+        with:
+          path: altai-vscode
+
+      - name: Checkout altai-app
+        uses: actions/checkout@v4
+        with:
+          repository: altaidevorg/altai-app
+          path: altai-app-main
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: altai-vscode/package-lock.json
+
+      - name: Install, verify, and package smoke
+        working-directory: altai-vscode
+        run: |
+          npm ci
+          npm run verify
+          npm run test -- test/unit/webviewA11y.test.ts test/unit/hostPin.test.ts
+          # Fixture single-target package to prove end-to-end packaging path
+          FIXTURE="${RUNNER_TEMP}/host"
+          mkdir -p "$FIXTURE"
+          printf 'fixture\n' > "$FIXTURE/altai-agent-host"
+          chmod +x "$FIXTURE/altai-agent-host"
+          npm run package:target -- --target=linux-x64 --host="$FIXTURE/altai-agent-host" --skip-verify --out-dir=artifacts
+          node scripts/verify-vsix.mjs --vsix=artifacts/altai-$(node -p "require('./package.json').version")-linux-x64.vsix --target=linux-x64
