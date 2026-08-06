@@ -32,8 +32,11 @@ const SUPPORTED = new Set([
   "win32-x64",
 ]);
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
+const rootArg = args.find((a) => a.startsWith("--root="));
+const root = rootArg
+  ? path.resolve(rootArg.slice("--root=".length))
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const requireNative =
   process.env.ALTAI_REQUIRE_NATIVE_HOST === "1" ||
   args.includes("--require-native");

@@ -9,15 +9,16 @@ docs/**
 .github/**
 **/*.ts
 **/*.tsx
-**/*.map
 **/tsconfig*.json
 vitest.config.ts
 eslint.config.mjs
 .gitignore
 .npmrc
 node_modules/**
-!dist/**
 out/**
 *.vsix
 **/*.test.ts
 coverage/
+# Re-include built assets after broader ignores, then drop maps.
+!dist/**
+**/*.map

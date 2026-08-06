@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "publisher": "altaidevorg",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/altaidevorg/altai-vscode.git"
+  },
   "engines": {
     "vscode": "^1.90.0"
   },
@@ -140,6 +144,7 @@
     "verify:package": "node scripts/verify-package-contents.mjs",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run guard:architecture && npm run verify:package",
     "package": "npm run verify && vsce package --no-dependencies",
+    "package:target": "node scripts/package-target.mjs",
     "watch": "node scripts/build-extension.mjs --watch & node scripts/build-webview.mjs --watch",
     "vscode:prepublish": "npm run build"
   },
