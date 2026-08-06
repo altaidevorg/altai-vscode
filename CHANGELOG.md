@@ -97,6 +97,10 @@ sibling `file:` packages until public npm publish.
 - MCP status strip when `mcp.list` is advertised; optional restart with
   `mcp.configure`.
 - Replay toolbar control when `runtime.replayRun` is available.
+- Composer **slash commands**: type `/` for built-in command suggestions;
+  session actions (`/new`, `/stop`, `/retry`, `/compact`, …), Operations
+  deep-links (`/tasks`, `/inbox`, `/automations`), plan toggle, change review,
+  and prompt expansions (`/fix`, `/init`, …) for a normal agent turn.
 
 ### Security
 

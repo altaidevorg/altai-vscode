@@ -93,6 +93,15 @@ import {
   type AtMentionHandle,
 } from "./ChatComposerAtMention.js";
 import {
+  ChatComposerSlash,
+  type SlashCommandHandle,
+} from "./ChatComposerSlash.js";
+import {
+  tryRunSlashCommand,
+  type SlashCommandMeta,
+  type SlashHostAction,
+} from "./composerSlashCommands.js";
+import {
   addContextItem,
   composeRunPrompt,
   newContextItemId,
@@ -536,6 +545,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 onInspectorAvailabilityChange={setRunInspectorAvailable}
                 onInspectorOpenChange={setRunInspectorOpen}
                 onFocusChat={openChatFromOperations}
+                onOpenOperations={openOperationsSurface}
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
                 }
@@ -559,6 +569,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             onInspectorAvailabilityChange={setRunInspectorAvailable}
             onInspectorOpenChange={setRunInspectorOpen}
             onFocusChat={openChatFromOperations}
+            onOpenOperations={openOperationsSurface}
             requestWorkspace={(method, params) =>
               transport.requestWorkspace(method, params)
             }
@@ -581,6 +592,7 @@ function AgentUiShell({
   onInspectorAvailabilityChange,
   onInspectorOpenChange,
   onFocusChat,
+  onOpenOperations,
   requestWorkspace,
 }: {
   hostStatus: HostStatusPayload;
@@ -594,6 +606,10 @@ function AgentUiShell({
   onInspectorAvailabilityChange?: (available: boolean) => void;
   onInspectorOpenChange?: (open: boolean) => void;
   onFocusChat: (input: { chatId?: string; label?: string }) => void;
+  onOpenOperations?: (input: {
+    view: OperationsDeepLinkView;
+    workHubView?: OperationsDeepLinkWorkHubView;
+  }) => void;
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
 }) {
   const ports = useHostPorts();
@@ -602,12 +618,17 @@ function AgentUiShell({
   const canSteer = useCapability("runtime.steerRun");
   const canQueue = useCapability("runtime.queueRun");
   const canRetry = useCapability("runtime.retryRun");
+  const canCancel = useCapability("runtime.cancelRun");
+  const canCompact = useCapability("runtime.compactContext");
+  const canCreateSession = useCapability("sessions.create");
+  const canRenameSession = useCapability("sessions.rename");
   const canTruncate = useCapability("sessions.truncate");
   const canListSessions = useCapability("sessions.list");
   const canMessages = useCapability("sessions.messages");
   const canListModels = useCapability("models.list");
   const canSelectModel = useCapability("models.select");
   const canGetSettings = useCapability("settings.get");
+  const canSetPermission = useCapability("interactive.permissionModes");
   const canModelConfigRow = canMountModelPicker({
     list: canListModels,
     select: canSelectModel,
@@ -642,6 +663,7 @@ function AgentUiShell({
   const [contextItems, setContextItems] = useState<ComposerContextItem[]>([]);
   const [cursor, setCursor] = useState(0);
   const atMentionRef = useRef<AtMentionHandle | null>(null);
+  const slashRef = useRef<SlashCommandHandle | null>(null);
   const [pendingApprovals, setPendingApprovals] = useState<
     PendingToolApproval[]
   >([]);
@@ -905,6 +927,140 @@ function AgentUiShell({
 
   const onSubmit = async (preferSteer = false): Promise<void> => {
     const text = prompt.trim();
+    if ((!text && contextItems.length === 0) || busy) {
+      return;
+    }
+
+    // Whole-line slash commands (no attachment payload required).
+    if (text.startsWith("/") && contextItems.length === 0) {
+      const outcome = tryRunSlashCommand(text);
+      if (outcome.kind === "handled") {
+        setBusy(true);
+        setError(null);
+        try {
+          await dispatchSlashAction(outcome.action, outcome.tail, outcome.toast);
+          setPrompt("");
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
+        } finally {
+          setBusy(false);
+        }
+        return;
+      }
+      if (outcome.kind === "send-prompt") {
+        await submitExpandedPrompt(outcome.prompt, preferSteer);
+        return;
+      }
+    }
+
+    await submitExpandedPrompt(text, preferSteer);
+  };
+
+  const dispatchSlashAction = async (
+    action: SlashHostAction,
+    tail: string,
+    toast?: string,
+  ): Promise<void> => {
+    switch (action) {
+      case "new": {
+        if (!canCreateSession) {
+          throw new Error("Session create is unavailable on this host");
+        }
+        const session = await ports.sessions.createSession(
+          tail.trim() || undefined,
+        );
+        setActiveChatId(session.id);
+        setActiveRunId(null);
+        setMessages([]);
+        setRunUsage(ZERO_RUN_USAGE);
+        rememberTab(session.id, session.title);
+        setSessionListKey((key) => key + 1);
+        onFocusChat({ chatId: session.id, label: session.title });
+        break;
+      }
+      case "sessions":
+        setSessionListKey((key) => key + 1);
+        break;
+      case "rename": {
+        if (!tail.trim()) {
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Usage: /rename <new title>"),
+          );
+          return;
+        }
+        if (!activeChatId || !canRenameSession) {
+          throw new Error("Rename is unavailable on this host");
+        }
+        await ports.sessions.renameSession(activeChatId, tail.trim());
+        rememberTab(activeChatId, tail.trim());
+        setSessionListKey((key) => key + 1);
+        break;
+      }
+      case "retry":
+        await onRetry();
+        return;
+      case "stop":
+        if (!canCancel) {
+          throw new Error("Cancel is unavailable on this host");
+        }
+        await onCancel();
+        return;
+      case "compact": {
+        if (!canCompact || !activeChatId) {
+          throw new Error("Compact is unavailable on this host");
+        }
+        await ports.runtime.compactContext({
+          chatId: activeChatId,
+        });
+        break;
+      }
+      case "status":
+        setRunDetailsDismissed(false);
+        onInspectorOpenChange?.(true);
+        break;
+      case "plan": {
+        if (!canSetPermission) {
+          throw new Error("Permission mode is unavailable on this host");
+        }
+        const next =
+          tail === "off" || tail === "exit"
+            ? "auto-edit"
+            : permissionMode === "plan"
+              ? "auto-edit"
+              : "plan";
+        const mode = await ports.settings.setPermissionMode(next);
+        setPermissionMode(mode);
+        break;
+      }
+      case "review":
+        setChangeReviewOpen(true);
+        break;
+      case "tasks":
+        onOpenOperations?.({ view: "work", workHubView: "runs" });
+        break;
+      case "inbox":
+        onOpenOperations?.({ view: "inbox" });
+        break;
+      case "automations":
+        onOpenOperations?.({ view: "work", workHubView: "scheduled" });
+        break;
+      case "models":
+      case "permissions":
+      case "mcp":
+      case "skills":
+        break;
+      default:
+        break;
+    }
+    if (toast) {
+      setMessages((prev) => appendMetaMessage(prev, toast));
+    }
+  };
+
+  const submitExpandedPrompt = async (
+    text: string,
+    preferSteer: boolean,
+  ): Promise<void> => {
     if ((!text && contextItems.length === 0) || busy) {
       return;
     }
@@ -1309,6 +1465,17 @@ function AgentUiShell({
                     disabled={busy}
                     handleRef={atMentionRef}
                   />
+                  <ChatComposerSlash
+                    prompt={prompt}
+                    cursor={cursor}
+                    disabled={busy}
+                    handleRef={slashRef}
+                    onPickCommand={(command: SlashCommandMeta) => {
+                      const next = `/${command.name} `;
+                      setPrompt(next);
+                      setCursor(next.length);
+                    }}
+                  />
                   <ComposerTextArea
                     value={prompt}
                     onChange={(event) => {
@@ -1339,7 +1506,7 @@ function AgentUiShell({
                           ? "Follow up — Enter queues · ⌘/Ctrl+Enter steers"
                           : "Describe what should change…"
                         : canStartRun
-                          ? "Describe what should change… Type @ to attach a file"
+                          ? "Describe what should change… Type / for commands, @ for files"
                           : "Start run capability unavailable"
                     }
                     disabled={
@@ -1349,6 +1516,12 @@ function AgentUiShell({
                     }
                     rows={2}
                     onKeyDown={(event) => {
+                      if (slashRef.current?.isOpen()) {
+                        if (slashRef.current.handleKeyDown(event.key)) {
+                          event.preventDefault();
+                          return;
+                        }
+                      }
                       if (atMentionRef.current?.isOpen()) {
                         if (
                           atMentionRef.current.handleKeyDown(event.key)
