@@ -161,6 +161,24 @@ export function withOverviewRowNavigation(
   });
 }
 
+/**
+ * Extract a task-run id from a progressing overview row when cancel is valid.
+ * Active runs use status labels "Queued" or "Working".
+ */
+export function overviewActiveRunId(
+  rowId: string,
+  statusLabel: string,
+): string | null {
+  if (!rowId.startsWith("run:")) {
+    return null;
+  }
+  if (statusLabel !== "Queued" && statusLabel !== "Working") {
+    return null;
+  }
+  const id = rowId.slice("run:".length);
+  return id.length > 0 ? id : null;
+}
+
 function automationScheduleLabel(automation: AutomationInfo): string {
   const { schedule } = automation;
   if (schedule.kind === "once") {

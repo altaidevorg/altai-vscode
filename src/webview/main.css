@@ -239,6 +239,27 @@ body {
   padding: 0.75rem;
 }
 
+.altai-ops-row-action {
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  cursor: pointer;
+}
+
+.altai-ops-row-action:hover:not(:disabled) {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.altai-ops-row-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .altai-ops-domain--inbox {
   /* Inbox uses AuxiliarySurface absolute chrome; keep a height for inset-0. */
   min-height: 16rem;

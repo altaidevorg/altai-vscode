@@ -32,10 +32,13 @@ import {
 import {
   buildOperationsOverview,
   EMPTY_OPERATIONS_DATA,
+  overviewActiveRunId,
   withOverviewRowNavigation,
   type OperationsOverviewData,
 } from "./operationsOverview.js";
 import { resolveAvailableOperationsViews } from "./operationsRoutes.js";
+import type { ReactNode } from "react";
+import { createElement } from "react";
 
 type LoadState =
   | { status: "loading" }
@@ -45,16 +48,30 @@ type LoadState =
 export type OperationsPanelProps = {
   /** Deep-link from Extension Host commands; reapplied when `key` changes. */
   navigation?: OpenOperationsPayload;
+  /** Restored presentation from Webview getState(). */
+  initialView?: OperationsView;
+  initialWorkHubView?: WorkHubView;
+  /** Persist secondary route selection across reloads. */
+  onPresentationChange?: (next: {
+    operationsView: OperationsView;
+    workHubView: WorkHubView;
+  }) => void;
 };
 
-export function OperationsPanel({ navigation }: OperationsPanelProps) {
+export function OperationsPanel({
+  navigation,
+  initialView = "overview",
+  initialWorkHubView = "runs",
+  onPresentationChange,
+}: OperationsPanelProps) {
   const ports = useHostPorts();
   const { capabilities } = useHostPortsContext();
   const canTaskRuns = useCapability("work.taskRuns");
   const canAutomations = useCapability("work.automations");
   const canInbox = useCapability("inbox.notifications");
-  const [view, setView] = useState<OperationsView>("overview");
-  const [workHubView, setWorkHubView] = useState<WorkHubView>("runs");
+  const [view, setView] = useState<OperationsView>(initialView);
+  const [workHubView, setWorkHubView] =
+    useState<WorkHubView>(initialWorkHubView);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [markingAllRead, setMarkingAllRead] = useState(false);
@@ -86,6 +103,13 @@ export function OperationsPanel({ navigation }: OperationsPanelProps) {
       setView("overview");
     }
   }, [availableViews, view]);
+
+  useEffect(() => {
+    onPresentationChange?.({
+      operationsView: view,
+      workHubView,
+    });
+  }, [view, workHubView, onPresentationChange]);
 
   const load = useCallback(async () => {
     // Capabilities are null until runtime.initialize completes; the effect
@@ -144,23 +168,6 @@ export function OperationsPanel({ navigation }: OperationsPanelProps) {
     [flags],
   );
 
-  const viewModel = useMemo(() => {
-    const base = buildOperationsOverview(data);
-    return {
-      metrics: base.metrics,
-      attention: withOverviewRowNavigation(
-        base.attention,
-        flags,
-        navigateOverviewRow,
-      ),
-      progressing: withOverviewRowNavigation(
-        base.progressing,
-        flags,
-        navigateOverviewRow,
-      ),
-    };
-  }, [data, flags, navigateOverviewRow]);
-
   const withBusy = useCallback(
     async (id: string, action: () => Promise<void>) => {
       setActionBusyId(id);
@@ -179,18 +186,75 @@ export function OperationsPanel({ navigation }: OperationsPanelProps) {
     [load],
   );
 
-  const taskActions = {
-    busyId: actionBusyId,
-    onRetry: (id: string) => {
+  const onRetryTask = useCallback(
+    (id: string) => {
       void withBusy(id, () => ports.work.retryTaskRun(id).then(() => undefined));
     },
-    onStop: (id: string) => {
+    [ports.work, withBusy],
+  );
+  const onStopTask = useCallback(
+    (id: string) => {
       void withBusy(id, () => ports.work.cancelTaskRun(id));
     },
-    onRemove: (id: string) => {
+    [ports.work, withBusy],
+  );
+  const onRemoveTask = useCallback(
+    (id: string) => {
       void withBusy(id, () => ports.work.removeTaskRun(id));
     },
+    [ports.work, withBusy],
+  );
+
+  const taskActions = {
+    busyId: actionBusyId,
+    onRetry: onRetryTask,
+    onStop: onStopTask,
+    onRemove: onRemoveTask,
   };
+
+  const viewModel = useMemo(() => {
+    const base = buildOperationsOverview(data);
+    const attention = withOverviewRowNavigation(
+      base.attention,
+      flags,
+      navigateOverviewRow,
+    );
+    const progressing = withOverviewRowNavigation(
+      base.progressing,
+      flags,
+      navigateOverviewRow,
+    ).map((row) => {
+      const runId = overviewActiveRunId(row.id, row.statusLabel);
+      if (!runId || !canTaskRuns) {
+        return row;
+      }
+      const actions: ReactNode = createElement(
+        "button",
+        {
+          type: "button",
+          className: "altai-ops-row-action",
+          disabled: actionBusyId === runId,
+          onClick: () => {
+            onStopTask(runId);
+          },
+        },
+        actionBusyId === runId ? "…" : "Cancel",
+      );
+      return { ...row, actions };
+    });
+    return {
+      metrics: base.metrics,
+      attention,
+      progressing,
+    };
+  }, [
+    data,
+    flags,
+    navigateOverviewRow,
+    canTaskRuns,
+    actionBusyId,
+    onStopTask,
+  ]);
 
   const automationActions = {
     busyId: actionBusyId,

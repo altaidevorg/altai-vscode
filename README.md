@@ -25,7 +25,9 @@ Operations (V7): Chat/Operations surface tabs mount shared
 Runs / Inbox domain lists enable only when the host advertises the matching
 capabilities. Command palette deep-links (`ALTAI: Open Operations …`) focus
 the panel and select the route. Overview attention/progress rows open the
-matching Work/Runs/Inbox domain when that capability is available. Canonical
+matching Work/Runs/Inbox domain when that capability is available. Presentation
+(Chat vs Operations, secondary route, Work hub strip) survives Webview reload
+via getState/setState. Active overview runs expose a Cancel action. Canonical
 CP-17 projections and full Tailwind visual parity are follow-on work.
 
 Local installs expect a sibling checkout of `altai-app` at

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parsePersistedWebviewState } from "../../src/shared/webviewState.js";
+import {
+  mergePersistedWebviewState,
+  parsePersistedWebviewState,
+} from "../../src/shared/webviewState.js";
 
 describe("parsePersistedWebviewState", () => {
   it("returns empty object for non-objects", () => {
@@ -26,11 +29,69 @@ describe("parsePersistedWebviewState", () => {
     });
   });
 
-  it("drops malformed hostStatus", () => {
+  it("drops malformed hostStatus without discarding other fields", () => {
     expect(
       parsePersistedWebviewState({
         hostStatus: { status: "disconnected" },
+        surface: "operations",
+        operationsView: "inbox",
+        workHubView: "scheduled",
+      }),
+    ).toEqual({
+      surface: "operations",
+      operationsView: "inbox",
+      workHubView: "scheduled",
+    });
+  });
+
+  it("accepts surface and operations presentation fields", () => {
+    expect(
+      parsePersistedWebviewState({
+        surface: "operations",
+        operationsView: "work",
+        workHubView: "runs",
+      }),
+    ).toEqual({
+      surface: "operations",
+      operationsView: "work",
+      workHubView: "runs",
+    });
+  });
+
+  it("drops unknown surface or operations routes", () => {
+    expect(
+      parsePersistedWebviewState({
+        surface: "settings",
+        operationsView: "agents",
+        workHubView: "cron",
       }),
     ).toEqual({});
+  });
+});
+
+describe("mergePersistedWebviewState", () => {
+  it("preserves existing keys when patching one field", () => {
+    expect(
+      mergePersistedWebviewState(
+        {
+          surface: "operations",
+          operationsView: "runs",
+          hostStatus: {
+            status: "ready",
+            message: "ok",
+            extensionVersion: "0.1.0",
+          },
+        },
+        { operationsView: "inbox" },
+      ),
+    ).toEqual({
+      surface: "operations",
+      operationsView: "inbox",
+      hostStatus: {
+        status: "ready",
+        message: "ok",
+        extensionVersion: "0.1.0",
+      },
+    });
   });
 });

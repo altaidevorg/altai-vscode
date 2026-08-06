@@ -7,6 +7,7 @@ import type {
 import {
   buildOperationsOverview,
   destinationForOverviewRowId,
+  overviewActiveRunId,
   withOverviewRowNavigation,
   type OverviewNavFlags,
 } from "../../src/webview/operationsOverview.js";
@@ -191,5 +192,14 @@ describe("withOverviewRowNavigation", () => {
     expect(rows[1]?.onOpen).toBeUndefined();
     rows[0]?.onOpen?.();
     expect(visited).toEqual(["runs"]);
+  });
+});
+
+describe("overviewActiveRunId", () => {
+  it("returns run ids only for queued/working overview rows", () => {
+    expect(overviewActiveRunId("run:abc", "Working")).toBe("abc");
+    expect(overviewActiveRunId("run:abc", "Queued")).toBe("abc");
+    expect(overviewActiveRunId("run:abc", "Failed")).toBeNull();
+    expect(overviewActiveRunId("inbox:n1", "Working")).toBeNull();
   });
 });
