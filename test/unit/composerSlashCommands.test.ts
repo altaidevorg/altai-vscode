@@ -153,6 +153,25 @@ describe("tryRunSlashCommand", () => {
       action: "attach-terminal",
     });
   });
+
+  it("attaches active file and selection", () => {
+    expect(tryRunSlashCommand("/attach-file")).toMatchObject({
+      kind: "handled",
+      action: "attach-file",
+    });
+    expect(tryRunSlashCommand("/file")).toMatchObject({
+      kind: "handled",
+      action: "attach-file",
+    });
+    expect(tryRunSlashCommand("/attach-selection")).toMatchObject({
+      kind: "handled",
+      action: "attach-selection",
+    });
+    expect(tryRunSlashCommand("/sel")).toMatchObject({
+      kind: "handled",
+      action: "attach-selection",
+    });
+  });
 });
 
 describe("formatSlashHelpDigest", () => {

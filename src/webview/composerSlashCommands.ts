@@ -52,7 +52,9 @@ export type SlashHostAction =
   | "connect"
   | "disconnect"
   | "attach-diff"
-  | "attach-terminal";
+  | "attach-terminal"
+  | "attach-file"
+  | "attach-selection";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -113,6 +115,8 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "disconnect", invocation: "/disconnect", label: "Clear credential", description: "Remove a stored provider credential via the Extension Host.", aliases: ["clear-credential"], category: "settings", behavior: "action" },
   { name: "attach-diff", invocation: "/attach-diff", label: "Attach working tree", description: "Attach the git working-tree summary to the composer.", aliases: ["diff-attach", "wt"], category: "workspace", behavior: "action" },
   { name: "attach-terminal", invocation: "/attach-terminal", label: "Attach terminal", description: "Attach active terminal context to the composer.", aliases: ["terminal", "tty"], category: "workspace", behavior: "action" },
+  { name: "attach-file", invocation: "/attach-file", label: "Attach active file", description: "Attach the active editor file URI to the composer.", aliases: ["file", "active-file"], category: "workspace", behavior: "action" },
+  { name: "attach-selection", invocation: "/attach-selection", label: "Attach selection", description: "Attach the current editor selection to the composer.", aliases: ["selection", "sel"], category: "workspace", behavior: "action" },
   { name: "logs", invocation: "/logs", label: "Open logs", description: "Show the ALTAI output channel.", category: "settings", behavior: "action" },
   { name: "diagnostics", invocation: "/diagnostics", label: "Run diagnostics", description: "Write host diagnostics to the ALTAI log channel.", aliases: ["diag"], category: "settings", behavior: "action" },
   { name: "restart-host", invocation: "/restart-host", label: "Restart host", description: "Restart the ALTAI agent host process.", aliases: ["restart"], category: "settings", behavior: "action" },
@@ -281,6 +285,10 @@ function toastFor(name: string, tail: string): string | undefined {
     case "attach-diff":
       return undefined;
     case "attach-terminal":
+      return undefined;
+    case "attach-file":
+      return undefined;
+    case "attach-selection":
       return undefined;
     case "help":
       return undefined;

@@ -18,19 +18,18 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useState } from "react";
 import {
+  buildDiffContextItem,
+  buildFileContextItem,
+  buildSelectionContextItem,
+  buildTerminalContextItem,
+} from "./composerAttachChrome.js";
+import {
   addContextItem,
-  basenamePath,
-  countLines,
   listOpenableContextItems,
-  newContextItemId,
   removeContextItem,
   toComposerAttachFiles,
   type ComposerContextItem,
 } from "./composerContext.js";
-import {
-  buildDiffContextItem,
-  buildTerminalContextItem,
-} from "./composerAttachChrome.js";
 import { type Snippet } from "./composerSnippets.js";
 
 export type ChatComposerContextProps = {
@@ -75,19 +74,12 @@ export function ChatComposerContext({
     setError(null);
     try {
       const file = await ports.workspace.getActiveFile();
-      if (!file) {
+      const item = buildFileContextItem(file);
+      if (!item) {
         setError("No active workspace file");
         return;
       }
-      onChange(
-        addContextItem(items, {
-          id: newContextItemId("file"),
-          kind: "file",
-          uri: file.uri,
-          name: basenamePath(file.path),
-          path: file.path,
-        }),
-      );
+      onChange(addContextItem(items, item));
       setMenuOpen(false);
     } catch (err) {
       pushError(err);
@@ -104,20 +96,12 @@ export function ChatComposerContext({
     setError(null);
     try {
       const selection = await ports.workspace.getSelection();
-      if (!selection || !selection.text.trim()) {
+      const item = buildSelectionContextItem(selection);
+      if (!item) {
         setError("No editor selection");
         return;
       }
-      onChange(
-        addContextItem(items, {
-          id: newContextItemId("selection"),
-          kind: "selection",
-          uri: selection.uri,
-          path: selection.path,
-          text: selection.text,
-          lines: countLines(selection.text),
-        }),
-      );
+      onChange(addContextItem(items, item));
       setMenuOpen(false);
     } catch (err) {
       pushError(err);

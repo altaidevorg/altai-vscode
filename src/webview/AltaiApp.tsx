@@ -143,6 +143,8 @@ import {
 } from "./composerContext.js";
 import {
   buildDiffContextItem,
+  buildFileContextItem,
+  buildSelectionContextItem,
   buildTerminalContextItem,
 } from "./composerAttachChrome.js";
 import { pathToFileUri } from "./chatHref.js";
@@ -790,6 +792,8 @@ function AgentUiShell({
   const canReadWorkspaceFile = useCapability("workspace.readFile");
   const canGitDiff = useCapability("workspace.gitDiff");
   const canTerminal = useCapability("workspace.terminalContext");
+  const canActiveFile = useCapability("workspace.activeFile");
+  const canSelection = useCapability("workspace.selection");
   const canModelConfigRow = canMountModelPicker({
     list: canListModels,
     select: canSelectModel,
@@ -1447,6 +1451,70 @@ function AgentUiShell({
             err instanceof Error ? err.message : "attach_terminal_failed";
           setMessages((prev) =>
             appendMetaMessage(prev, `Could not attach terminal: ${message}`),
+          );
+        }
+        return;
+      }
+      case "attach-file": {
+        if (!canActiveFile) {
+          setMessages((prev) =>
+            appendMetaMessage(
+              prev,
+              "Active-file attach is unavailable on this host.",
+            ),
+          );
+          return;
+        }
+        try {
+          const file = await ports.workspace.getActiveFile();
+          const item = buildFileContextItem(file);
+          if (!item) {
+            setMessages((prev) =>
+              appendMetaMessage(prev, "No active workspace file to attach."),
+            );
+            return;
+          }
+          setContextItems((prev) => addContextItem(prev, item));
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Attached active file"),
+          );
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "attach_file_failed";
+          setMessages((prev) =>
+            appendMetaMessage(prev, `Could not attach file: ${message}`),
+          );
+        }
+        return;
+      }
+      case "attach-selection": {
+        if (!canSelection) {
+          setMessages((prev) =>
+            appendMetaMessage(
+              prev,
+              "Selection attach is unavailable on this host.",
+            ),
+          );
+          return;
+        }
+        try {
+          const selection = await ports.workspace.getSelection();
+          const item = buildSelectionContextItem(selection);
+          if (!item) {
+            setMessages((prev) =>
+              appendMetaMessage(prev, "No editor selection to attach."),
+            );
+            return;
+          }
+          setContextItems((prev) => addContextItem(prev, item));
+          setMessages((prev) =>
+            appendMetaMessage(prev, "Attached editor selection"),
+          );
+        } catch (err) {
+          const message =
+            err instanceof Error ? err.message : "attach_selection_failed";
+          setMessages((prev) =>
+            appendMetaMessage(prev, `Could not attach selection: ${message}`),
           );
         }
         return;
