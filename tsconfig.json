@@ -35,6 +35,7 @@
     "test/unit/automationDraft.test.ts",
     "test/unit/operationsAttentionPoll.test.ts",
     "test/unit/openChatDeepLink.test.ts",
+    "test/unit/sessionTranscript.test.ts",
     "dist",
     "out",
     "node_modules"
