@@ -90,11 +90,6 @@
         "category": "ALTAI"
       },
       {
-        "command": "altai.openSettings",
-        "title": "ALTAI: Open Settings",
-        "category": "ALTAI"
-      },
-      {
         "command": "altai.openOperations",
         "title": "ALTAI: Open Operations",
         "category": "ALTAI"
@@ -196,6 +191,12 @@
         "key": "ctrl+alt+f",
         "mac": "cmd+alt+f",
         "when": "editorTextFocus && workspaceFolderCount > 0"
+      },
+      {
+        "command": "altai.askAboutWorkingTree",
+        "key": "ctrl+alt+g",
+        "mac": "cmd+alt+g",
+        "when": "workspaceFolderCount > 0"
       }
     ]
   },
