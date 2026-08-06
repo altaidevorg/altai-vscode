@@ -652,4 +652,58 @@ describe("createVsCodeHostPorts", () => {
     expect(transport.request).toHaveBeenCalledWith("sessions/archive", { chat_id: "chat_1" });
     expect(transport.request).toHaveBeenCalledWith("sessions/delete", { chat_id: "chat_1" });
   });
+
+  it("applies and denies edit proposals only when native review methods exist", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "review/proposals/apply" || method === "review/proposals/deny") {
+        return { ok: true };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "review/proposals/apply",
+        "review/proposals/deny",
+      ],
+      transport,
+    });
+    const caps = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    const byId = Object.fromEntries(
+      caps.capabilities.map((capability) => [capability.id, capability.availability]),
+    );
+    expect(byId["review.editProposal"]).toBe("available");
+
+    await ports.review.applyEditProposal("msg-1", {
+      path: "src/a.ts",
+      kind: "edit_file",
+      originalContent: "a",
+      proposedContent: "b",
+    });
+    await ports.review.denyEditProposal("msg-2");
+    expect(transport.request).toHaveBeenCalledWith("review/proposals/apply", {
+      id: "msg-1",
+      path: "src/a.ts",
+      kind: "edit_file",
+      original_content: "a",
+      proposed_content: "b",
+    });
+    expect(transport.request).toHaveBeenCalledWith("review/proposals/deny", {
+      id: "msg-2",
+    });
+
+    const locked = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["checkpoints/list"],
+      transport: mockTransport(),
+    });
+    await expect(
+      locked.review.applyEditProposal("x", { path: "a", proposedContent: "b" }),
+    ).rejects.toThrow(/capability_unavailable|review\/proposals\/apply/);
+  });
 });

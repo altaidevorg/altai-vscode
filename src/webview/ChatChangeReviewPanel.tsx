@@ -1,6 +1,6 @@
 /**
  * Open/dismiss change-review centre for edit_diff rows.
- * Apply is intentionally omitted (requires review.editProposal on the host).
+ * Apply/Deny only when the native host advertises review.editProposal.
  */
 
 import {
@@ -34,9 +34,11 @@ export function ChatChangeReviewPanel({
 }: ChatChangeReviewPanelProps) {
   const ports = useHostPorts();
   const canOpenDiff = useCapability("workspace.openDiff");
+  const canApply = useCapability("review.editProposal");
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const queue = useMemo(
     () => listChangeReviewItems(messages, dismissed),
@@ -53,6 +55,7 @@ export function ChatChangeReviewPanel({
       return;
     }
     setBusyId(item.id);
+    setFeedback(null);
     try {
       await ports.workspace.openDiff({
         title: `ALTAI · ${item.path}`,
@@ -62,6 +65,58 @@ export function ChatChangeReviewPanel({
       });
     } catch (err) {
       onOpenFileError?.(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const applyOne = async (item: ChangeReviewItem): Promise<void> => {
+    if (!canApply) {
+      onOpenFileError?.("Apply is unavailable on this host");
+      return;
+    }
+    setBusyId(item.id);
+    setFeedback(null);
+    try {
+      // Host-contract Wave 1 adds optional body; older packages only type `id`.
+      const apply = ports.review.applyEditProposal as (
+        proposalId: string,
+        input?: {
+          path?: string;
+          kind?: string;
+          originalContent?: string;
+          proposedContent?: string;
+        },
+      ) => Promise<void>;
+      await apply(item.id, {
+        path: item.path,
+        kind: item.isNewFile ? "create_file" : "edit_file",
+        originalContent: item.originalContent,
+        proposedContent: item.proposedContent,
+      });
+      setDismissed((prev) => dismissChangeReviewId(prev, item.id));
+      setFeedback(`Applied ${item.path}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setFeedback(message);
+      onOpenFileError?.(message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const denyOne = async (item: ChangeReviewItem): Promise<void> => {
+    setBusyId(item.id);
+    setFeedback(null);
+    try {
+      if (canApply) {
+        await ports.review.denyEditProposal(item.id);
+      }
+      setDismissed((prev) => dismissChangeReviewId(prev, item.id));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setFeedback(message);
+      onOpenFileError?.(message);
     } finally {
       setBusyId(null);
     }
@@ -94,10 +149,15 @@ export function ChatChangeReviewPanel({
       >
         <div className="flex flex-col gap-2 p-3">
           <p className="text-[10px] leading-relaxed text-muted-foreground">
-            Review diffs in the editor. Applying edits on disk requires a future
-            host <code className="font-mono">review.editProposal</code>{" "}
-            capability.
+            {canApply
+              ? "Review, apply, or deny planned edits. Writes go through the native host under the workspace root."
+              : "Review diffs in the editor. Apply/Deny requires a host that advertises review.editProposal."}
           </p>
+          {feedback ? (
+            <p className="rounded-md border border-border/50 bg-muted/40 px-2 py-1 text-[10px] text-foreground">
+              {feedback}
+            </p>
+          ) : null}
           {queue.length === 0 ? (
             <p className="rounded-md border border-dashed border-border/60 px-3 py-6 text-center text-[11px] text-muted-foreground">
               No pending edit diffs. New agent edits will show here.
@@ -158,17 +218,42 @@ export function ChatChangeReviewPanel({
                             Diff
                           </button>
                         ) : null}
-                        <button
-                          type="button"
-                          className="rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
-                          onClick={() => {
-                            setDismissed((prev) =>
-                              dismissChangeReviewId(prev, item.id),
-                            );
-                          }}
-                        >
-                          Dismiss
-                        </button>
+                        {canApply ? (
+                          <>
+                            <button
+                              type="button"
+                              className="rounded-md border border-border/70 bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-foreground hover:bg-primary/20 disabled:opacity-50"
+                              disabled={busy}
+                              onClick={() => {
+                                void applyOne(item);
+                              }}
+                            >
+                              Apply
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-md border border-border/70 px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                              disabled={busy}
+                              onClick={() => {
+                                void denyOne(item);
+                              }}
+                            >
+                              Deny
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+                            onClick={() => {
+                              setDismissed((prev) =>
+                                dismissChangeReviewId(prev, item.id),
+                              );
+                            }}
+                          >
+                            Dismiss
+                          </button>
+                        )}
                       </div>
                     </div>
                     {expanded ? (
