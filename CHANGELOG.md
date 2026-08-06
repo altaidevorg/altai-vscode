@@ -39,6 +39,8 @@ sibling `file:` packages until public npm publish.
   completion totals) instead of a static "live" placeholder.
 - Skills status strip lists workspace-installed skills when the host
   advertises `skills/list` (`skills.list` capability).
+- Multi-root workspaces: project chip opens a QuickPick to pick the agent
+  target folder, then reveals it in Explorer.
 - Structured Chat message cards and shared `ChatTabStrip`, with run/event
   mapping fixed for nested `agent_message` envelopes (stream coalescing).
 - Active-run composer follow-up: shared `ComposerFollowupBar` for Steer /

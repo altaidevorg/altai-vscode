@@ -3,6 +3,7 @@ import {
   basenamePath,
   canMountProjectTarget,
   projectTargetFromWorkspace,
+  retainPreferredRoot,
 } from "../../src/webview/projectTargetChrome.js";
 
 describe("canMountProjectTarget", () => {
@@ -19,10 +20,11 @@ describe("projectTargetFromWorkspace", () => {
       path: null,
       kind: null,
       rootUri: null,
+      multiRoot: false,
     });
   });
 
-  it("prefers currentDir for path and name", () => {
+  it("prefers currentDir for path and name on single root", () => {
     expect(
       projectTargetFromWorkspace({
         roots: ["file:///Users/me/altai-vscode"],
@@ -34,6 +36,7 @@ describe("projectTargetFromWorkspace", () => {
       path: "/Users/me/altai-vscode",
       kind: "local",
       rootUri: "file:///Users/me/altai-vscode",
+      multiRoot: false,
     });
   });
 
@@ -44,6 +47,29 @@ describe("projectTargetFromWorkspace", () => {
     expect(view.name).toBe("demo app");
     expect(view.path).toBe("/tmp/demo app");
     expect(view.kind).toBe("local");
+  });
+
+  it("selects preferred multi-root uri", () => {
+    const view = projectTargetFromWorkspace(
+      {
+        roots: [
+          "file:///Users/me/a",
+          "file:///Users/me/b",
+        ],
+        currentDir: "/Users/me/a",
+      },
+      "file:///Users/me/b",
+    );
+    expect(view.rootUri).toBe("file:///Users/me/b");
+    expect(view.name).toBe("b");
+    expect(view.multiRoot).toBe(true);
+  });
+});
+
+describe("retainPreferredRoot", () => {
+  it("drops preference when root removed", () => {
+    expect(retainPreferredRoot("file:///a", ["file:///b"])).toBeNull();
+    expect(retainPreferredRoot("file:///a", ["file:///a"])).toBe("file:///a");
   });
 });
 

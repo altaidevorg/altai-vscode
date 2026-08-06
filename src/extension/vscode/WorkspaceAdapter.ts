@@ -26,6 +26,7 @@ export type WorkspaceRequestMethod =
   | "openDiff"
   | "openExternal"
   | "revealInExplorer"
+  | "pickWorkspaceFolder"
   | "getGitDiff"
   | "getTerminalContext";
 
@@ -64,6 +65,8 @@ export class WorkspaceAdapter {
         return this.openExternal(readExternalHref(params));
       case "revealInExplorer":
         return this.revealInExplorer(readUri(params));
+      case "pickWorkspaceFolder":
+        return this.pickWorkspaceFolder();
       case "getGitDiff":
         return this.getGitDiffContext();
       case "getTerminalContext":
@@ -210,6 +213,34 @@ export class WorkspaceAdapter {
   private async revealInExplorer(uriValue: string): Promise<void> {
     const uri = this.parseWorkspaceUri(uriValue);
     await this.api.commands.executeCommand("revealInExplorer", uri);
+  }
+
+  /**
+   * Multi-root folder picker. Returns `{ uri }` or `null` when dismissed.
+   * Single-folder workspaces return that folder without showing a UI.
+   */
+  private async pickWorkspaceFolder(): Promise<{ uri: string } | null> {
+    const folders = this.api.workspace.workspaceFolders ?? [];
+    if (folders.length === 0) {
+      return null;
+    }
+    if (folders.length === 1) {
+      return { uri: folders[0]!.uri.toString() };
+    }
+    const items = folders.map((folder) => ({
+      label: folder.name,
+      description: folder.uri.fsPath,
+      uri: folder.uri.toString(),
+    }));
+    const choice = await this.api.window.showQuickPick(items, {
+      title: "ALTAI project folder",
+      placeHolder: "Select the workspace root for agent context",
+      matchOnDescription: true,
+    });
+    if (!choice) {
+      return null;
+    }
+    return { uri: choice.uri };
   }
 
   private getTerminalContext(): TerminalContext | null {
