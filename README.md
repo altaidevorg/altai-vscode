@@ -29,7 +29,9 @@ matching Work/Runs/Inbox domain when that capability is available. Presentation
 (Chat vs Operations, secondary route, Work hub strip) survives Webview reload
 via getState/setState. Active overview runs expose a Cancel action; failed
 runs Retry and unread inbox Mark read. Attention count drives a status-bar
-badge that opens Operations. Work/Runs offer a New task composer (createTaskRun)
+badge that opens Operations; the badge also refreshes while Chat is open
+(Operations unmounted) via lifecycle/notification host events. Work/Runs offer
+a New task composer (createTaskRun)
 and Scheduled offers a New automation composer (createAutomation). Command
 palette includes **ALTAI: New Operations Task** and **New Operations Automation**.
 Canonical CP-17 projections and full Tailwind visual parity are follow-on work.

@@ -26,6 +26,7 @@ import {
   type PersistedWebviewState,
 } from "../shared/webviewState.js";
 import { OperationsPanel } from "./OperationsPanel.js";
+import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
@@ -261,6 +262,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     });
   }, [client, selectSurface, workHubView]);
 
+  // Clear the badge when the host is not usable so stale counts do not linger.
+  useEffect(() => {
+    if (hostStatus.status !== "ready" || initError) {
+      reportAttentionCount(0);
+    }
+  }, [hostStatus.status, initError, reportAttentionCount]);
+
   return (
     <HostPortsProvider ports={ports} capabilities={capabilities}>
       <div className="altai-shell">
@@ -293,14 +301,21 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             Operations
           </button>
         </div>
-        {surface === "operations" && hostStatus.status === "ready" && !initError ? (
-          <OperationsPanel
-            navigation={operationsNav}
-            initialView={operationsView}
-            initialWorkHubView={workHubView}
-            onPresentationChange={onOperationsPresentationChange}
-            onAttentionCountChange={reportAttentionCount}
-          />
+        {hostStatus.status === "ready" && !initError ? (
+          surface === "operations" ? (
+            <OperationsPanel
+              navigation={operationsNav}
+              initialView={operationsView}
+              initialWorkHubView={workHubView}
+              onPresentationChange={onOperationsPresentationChange}
+              onAttentionCountChange={reportAttentionCount}
+            />
+          ) : (
+            <>
+              <OperationsAttentionReporter onCount={reportAttentionCount} />
+              <AgentUiShell hostStatus={hostStatus} initError={initError} />
+            </>
+          )
         ) : (
           <AgentUiShell hostStatus={hostStatus} initError={initError} />
         )}
