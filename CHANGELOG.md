@@ -116,6 +116,8 @@ sibling `file:` packages until public npm publish.
   (selected skills append `<skills>` blocks to the instruction).
 - Settings surface tab collates provider / model / permission / MCP / skills
   chrome (capability-gated, no new secrets path).
+- Composer `/settings` (and `/models`, `/permissions`, `/mcp`, `/skills`) open
+  the Settings surface.
 
 ### Security
 

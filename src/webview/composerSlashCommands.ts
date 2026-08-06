@@ -39,7 +39,8 @@ export type SlashHostAction =
   | "models"
   | "permissions"
   | "mcp"
-  | "skills";
+  | "skills"
+  | "settings";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -86,10 +87,11 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "tasks", invocation: "/tasks", label: "Work", description: "Open Operations work (runs).", aliases: ["work"], category: "project", behavior: "action" },
   { name: "inbox", invocation: "/inbox", label: "Notifications", description: "Open the Operations inbox.", category: "project", behavior: "action" },
   { name: "automations", invocation: "/automations", label: "Scheduled", description: "Open Operations scheduled work.", aliases: ["schedule"], category: "project", behavior: "action" },
-  { name: "models", invocation: "/models", label: "Model settings", description: "Focus model selection in Chat.", aliases: ["model"], category: "settings", behavior: "action" },
-  { name: "permissions", invocation: "/permissions", label: "Permissions", description: "Use Chat permission mode controls.", aliases: ["permission"], category: "settings", behavior: "action" },
-  { name: "mcp", invocation: "/mcp", label: "MCP", description: "See the MCP status strip when available.", aliases: ["mcps"], category: "settings", behavior: "action" },
-  { name: "skills", invocation: "/skills", label: "Skills", description: "See the Skills strip when available.", category: "settings", behavior: "action" },
+  { name: "models", invocation: "/models", label: "Model settings", description: "Open Settings to pick a model.", aliases: ["model"], category: "settings", behavior: "action" },
+  { name: "permissions", invocation: "/permissions", label: "Permissions", description: "Open Settings for permission modes.", aliases: ["permission"], category: "settings", behavior: "action" },
+  { name: "mcp", invocation: "/mcp", label: "MCP", description: "Open Settings for MCP servers.", aliases: ["mcps"], category: "settings", behavior: "action" },
+  { name: "skills", invocation: "/skills", label: "Skills", description: "Open Settings for installed skills.", category: "settings", behavior: "action" },
+  { name: "settings", invocation: "/settings", label: "Settings", description: "Open the Settings surface.", aliases: ["config", "prefs"], category: "settings", behavior: "action" },
 ];
 
 export const SLASH_COMMAND_INDEX: readonly SlashCommandMeta[] =
@@ -192,13 +194,11 @@ function toastFor(name: string, tail: string): string | undefined {
     case "automations":
       return "Opened Operations scheduled";
     case "models":
-      return "Use the model picker in the composer";
     case "permissions":
-      return "Use the permission mode control in Chat";
     case "mcp":
-      return "See MCP status when advertised by the host";
     case "skills":
-      return "See Skills status when advertised by the host";
+    case "settings":
+      return "Opened Settings";
     default:
       return undefined;
   }
