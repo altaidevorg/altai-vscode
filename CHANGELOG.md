@@ -41,6 +41,8 @@ sibling `file:` packages until public npm publish.
   advertises `skills/list` (`skills.list` capability). Install from GitHub
   (`owner/repo` or `owner/repo#skill`) when the host advertises
   `skills/install` (`skills.install`).
+- Composer `@` mention helpers re-export from shared `@altai/agent-ui`
+  (`detectAtMention` and related A6.9 utilities).
 - Multi-root workspaces: project chip opens a QuickPick to pick the agent
   target folder, then reveals it in Explorer.
 - Structured Chat message cards and shared `ChatTabStrip`, with run/event
