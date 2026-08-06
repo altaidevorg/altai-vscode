@@ -30,7 +30,9 @@ tiles on Overview also navigate to the matching domain (host-wrapped
 `InspectorMetric` until shared metric `onOpen` lands). Task runs and inbox
 items can open Chat and focus a known owner conversation when `chatId` is
 present; when `sessions.messages` is available the host loads that conversation's
-transcript into the chat log. Presentation
+transcript into the chat log. When `sessions.list` is available, Chat mounts a
+shared `SessionRow` history list (New / rename / delete when those capabilities
+are advertised). Presentation
 (Chat vs Operations, secondary route, Work hub strip, active chat id) survives
 Webview reload via getState/setState, including Runs/Scheduled toggles on the
 Work hub. Active
