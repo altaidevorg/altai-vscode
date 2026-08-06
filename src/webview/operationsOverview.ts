@@ -141,6 +141,57 @@ export function destinationForOverviewRowId(
   return null;
 }
 
+/**
+ * Map overview metric labels (from `buildOperationsOverview`) onto secondary
+ * routes. Capability-gated: when the host cannot open the domain, return null
+ * so the tile stays non-interactive.
+ */
+export function destinationForOverviewMetric(
+  label: string,
+  flags: OverviewNavFlags,
+): OverviewRowDestination | null {
+  switch (label) {
+    case "Active runs":
+      return flags.taskRuns ? { view: "runs" } : null;
+    case "Needs attention":
+      if (flags.taskRuns) {
+        return { view: "runs" };
+      }
+      if (flags.inbox) {
+        return { view: "inbox" };
+      }
+      return null;
+    case "Scheduled":
+      return flags.automations
+        ? { view: "work", workHubView: "scheduled" }
+        : null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Attach onOpen for metrics that have a valid capability-gated destination.
+ */
+export function withOverviewMetricNavigation(
+  metrics: OperationsOverviewMetric[],
+  flags: OverviewNavFlags,
+  navigate: (destination: OverviewRowDestination) => void,
+): Array<OperationsOverviewMetric & { onOpen?: () => void }> {
+  return metrics.map((metric) => {
+    const destination = destinationForOverviewMetric(metric.label, flags);
+    if (!destination) {
+      return metric;
+    }
+    return {
+      ...metric,
+      onOpen: () => {
+        navigate(destination);
+      },
+    };
+  });
+}
+
 /** Attach presentational `onOpen` handlers without coupling pure row data to React. */
 export function withOverviewRowNavigation(
   rows: OperationsOverviewRow[],
