@@ -1,0 +1,58 @@
+import { describe, expect, it } from "vitest";
+import {
+  findSlashCommands,
+  resolveSlashCommand,
+  tryRunSlashCommand,
+} from "../../src/webview/composerSlashCommands.js";
+
+describe("findSlashCommands", () => {
+  it("filters by name and alias", () => {
+    expect(findSlashCommands("task").some((c) => c.name === "tasks")).toBe(
+      true,
+    );
+    expect(findSlashCommands("work").some((c) => c.name === "tasks")).toBe(
+      true,
+    );
+    expect(findSlashCommands("zzzzq")).toHaveLength(0);
+  });
+});
+
+describe("tryRunSlashCommand", () => {
+  it("returns none for plain text", () => {
+    expect(tryRunSlashCommand("hello")).toEqual({ kind: "none" });
+  });
+
+  it("maps action commands", () => {
+    expect(tryRunSlashCommand("/tasks")).toMatchObject({
+      kind: "handled",
+      action: "tasks",
+    });
+    expect(tryRunSlashCommand("/new")).toMatchObject({
+      kind: "handled",
+      action: "new",
+    });
+  });
+
+  it("expands prompt commands", () => {
+    const result = tryRunSlashCommand("/fix flaky test in CI");
+    expect(result.kind).toBe("send-prompt");
+    if (result.kind !== "send-prompt") {
+      return;
+    }
+    expect(result.commandName).toBe("fix");
+    expect(result.prompt).toContain("Focus from the user: flaky test in CI");
+  });
+
+  it("turns /review with a scope into a send-prompt", () => {
+    const result = tryRunSlashCommand("/review auth middleware");
+    expect(result.kind).toBe("send-prompt");
+  });
+
+  it("resolves aliases", () => {
+    expect(resolveSlashCommand("work")?.name).toBe("tasks");
+    expect(tryRunSlashCommand("/cancel")).toMatchObject({
+      kind: "handled",
+      action: "stop",
+    });
+  });
+});
