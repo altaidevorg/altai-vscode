@@ -56,6 +56,8 @@ sibling `file:` packages until public npm publish.
 - `todo_write` (and aliases) tool events render shared `TodoChecklist` cards.
 - Change-review and run-blocked banners: `ChangeReviewBanner` for queued
   `edit_diff` rows and `RunBlockedBanner` on terminal run failures.
+- Shared `RunRecoveryActions` when retry/steer/warn apply (Retry / Steer /
+  Stop / Dismiss).
 
 ### Security
 

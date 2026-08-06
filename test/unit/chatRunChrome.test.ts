@@ -3,8 +3,11 @@ import type { ChatDisplayMessage } from "../../src/webview/chatDisplayMessage.js
 import {
   countPendingEditDiffs,
   lastEditDiffMessage,
+  recoveryCopy,
   runBlockedMessageFromEvent,
+  runWarningMessageFromEvent,
   shouldShowChangeReviewBanner,
+  shouldShowRunRecovery,
 } from "../../src/webview/chatRunChrome.js";
 
 const base = (partial: Partial<ChatDisplayMessage>): ChatDisplayMessage => ({
@@ -61,5 +64,56 @@ describe("runBlockedMessageFromEvent", () => {
     expect(
       runBlockedMessageFromEvent({ type: "run_cancelled" }),
     ).toBe("Run cancelled");
+  });
+});
+
+describe("run recovery helpers", () => {
+  it("prefers recovery strip when retry is available", () => {
+    expect(
+      shouldShowRunRecovery({
+        blockedMessage: "boom",
+        warningMessage: null,
+        canRetry: true,
+        canSteer: false,
+        hasActiveRun: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldShowRunRecovery({
+        blockedMessage: "boom",
+        warningMessage: null,
+        canRetry: false,
+        canSteer: false,
+        hasActiveRun: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("maps warning copy", () => {
+    expect(
+      recoveryCopy({
+        blockedMessage: null,
+        warningMessage: "rate limited",
+        canRetry: false,
+        canSteer: true,
+        hasActiveRun: true,
+      }),
+    ).toEqual({
+      warning: true,
+      title: "Run needs attention",
+      detail: "rate limited",
+    });
+  });
+
+  it("parses run_warning events", () => {
+    expect(
+      runWarningMessageFromEvent("lifecycle", {
+        type: "run_warning",
+        warning: "slow tool",
+      }),
+    ).toBe("slow tool");
+    expect(
+      runWarningMessageFromEvent("lifecycle", { type: "run_warning_cleared" }),
+    ).toBe("");
   });
 });

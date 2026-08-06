@@ -75,7 +75,10 @@ import {
 import {
   resolveComposerSubmitMode,
 } from "./composerFollowupChrome.js";
-import { runBlockedMessageFromEvent } from "./chatRunChrome.js";
+import {
+  runBlockedMessageFromEvent,
+  runWarningMessageFromEvent,
+} from "./chatRunChrome.js";
 import {
   applyInteractivePrompt,
   interactivePromptFromAgentEvent,
@@ -447,6 +450,9 @@ function AgentUiShell({
   const [runBlockedMessage, setRunBlockedMessage] = useState<string | null>(
     null,
   );
+  const [runWarningMessage, setRunWarningMessage] = useState<string | null>(
+    null,
+  );
   const [messages, setMessages] = useState<ChatDisplayMessage[]>([]);
   const [openTabs, setOpenTabs] = useState<
     Array<{ id: string; title: string }>
@@ -587,8 +593,14 @@ function AgentUiShell({
           const blocked = runBlockedMessageFromEvent(event.payload);
           if (blocked) {
             setRunBlockedMessage(blocked);
+            setRunWarningMessage(null);
           }
         }
+      }
+
+      const warning = runWarningMessageFromEvent(event.type, event.payload);
+      if (warning !== null) {
+        setRunWarningMessage(warning === "" ? null : warning);
       }
 
       const promptEvent = interactivePromptFromAgentEvent(event);
@@ -619,6 +631,8 @@ function AgentUiShell({
     setPendingApprovals([]);
     setPendingClarification(null);
     setRunBlockedMessage(null);
+    setRunWarningMessage(null);
+    setRunWarningMessage(null);
   }, [activeChatId]);
 
   const onSubmit = async (preferSteer = false): Promise<void> => {
@@ -653,6 +667,7 @@ function AgentUiShell({
     setBusy(true);
     setError(null);
     setRunBlockedMessage(null);
+    setRunWarningMessage(null);
     try {
       if (mode === "steer" && activeChatId && activeRunId) {
         await ports.runtime.steerRun({
@@ -745,6 +760,7 @@ function AgentUiShell({
     setEditingBusy(true);
     setError(null);
     setRunBlockedMessage(null);
+    setRunWarningMessage(null);
     try {
       if (activeRunId) {
         await ports.runtime.cancelRun({
@@ -780,6 +796,7 @@ function AgentUiShell({
     setBusy(true);
     setError(null);
     setRunBlockedMessage(null);
+    setRunWarningMessage(null);
     try {
       const ref = await ports.runtime.retryRun({
         chatId: activeChatId,
@@ -896,8 +913,24 @@ function AgentUiShell({
             <ChatRunStatusChrome
               messages={messages}
               runBlockedMessage={runBlockedMessage}
+              runWarningMessage={runWarningMessage}
+              canRetry={canRetry && Boolean(activeChatId)}
+              canSteer={canSteer && Boolean(activeRunId)}
+              hasActiveRun={Boolean(activeRunId)}
               onDismissBlocked={() => {
                 setRunBlockedMessage(null);
+              }}
+              onDismissWarning={() => {
+                setRunWarningMessage(null);
+              }}
+              onRetry={() => {
+                void onRetry();
+              }}
+              onSteer={() => {
+                void onSubmit(true);
+              }}
+              onStop={() => {
+                void onCancel();
               }}
               onOpenFileError={(message) => {
                 setError(message);
