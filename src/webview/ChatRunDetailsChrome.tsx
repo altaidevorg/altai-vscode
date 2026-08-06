@@ -34,6 +34,8 @@ export type ChatRunDetailsChromeProps = {
   approvalsPending: number;
   blockedMessage: string | null;
   warningMessage?: string | null;
+  /** Accumulated prompt+completion tokens from host usage events. */
+  totalTokens?: number | null;
   onStop?: () => void;
   onClose?: () => void;
 };
@@ -46,6 +48,7 @@ export function ChatRunDetailsChrome({
   approvalsPending,
   blockedMessage,
   warningMessage = null,
+  totalTokens = null,
   onStop,
   onClose,
 }: ChatRunDetailsChromeProps) {
@@ -117,7 +120,11 @@ export function ChatRunDetailsChrome({
               announce={false}
             />
           }
-          tokenLabel={runDetailsTokenLabel({ hasActiveRun, status })}
+          tokenLabel={runDetailsTokenLabel({
+            hasActiveRun,
+            status,
+            totalTokens: totalTokens ?? null,
+          })}
           step={step}
           metrics={metrics}
         />

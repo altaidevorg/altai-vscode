@@ -69,7 +69,16 @@ export function runDetailsSubtitle(input: {
 export function runDetailsTokenLabel(input: {
   hasActiveRun: boolean;
   status: RunDetailsStatus;
+  /** Accumulated host usage for this run; omit when never observed. */
+  totalTokens?: number | null;
 }): string {
+  if (
+    typeof input.totalTokens === "number" &&
+    Number.isFinite(input.totalTokens) &&
+    input.totalTokens > 0
+  ) {
+    return `Tokens · ${formatTokenCount(input.totalTokens)}`;
+  }
   if (input.status === "blocked") {
     return "Tokens · n/a";
   }
@@ -77,6 +86,21 @@ export function runDetailsTokenLabel(input: {
     return "Tokens · live";
   }
   return "Tokens · —";
+}
+
+function formatTokenCount(n: number): string {
+  if (n < 1000) {
+    return String(Math.floor(n));
+  }
+  if (n < 10_000) {
+    const tenths = Math.round(n / 100) / 10;
+    return `${tenths}k`.replace(/\.0k$/, "k");
+  }
+  if (n < 1_000_000) {
+    return `${Math.round(n / 1000)}k`;
+  }
+  const mills = Math.round(n / 100_000) / 10;
+  return `${mills}M`.replace(/\.0M$/, "M");
 }
 
 export function runDetailsStepLabel(input: {

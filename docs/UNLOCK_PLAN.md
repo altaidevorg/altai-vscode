@@ -440,7 +440,7 @@ Two engineers (host + UI): compress Wave 4 with Wave 1–2 parallelization after
 | NPM_TOKEN / package publish | 0 + 7 | org + altai-app | open |
 | VSCE_PAT / Marketplace | 0 + 7 | org + altai-vscode | open |
 | edit Apply/Deny | 1 | altai-app → vscode | **in progress** — `review/proposals/*` on stdio host; VS Code Apply/Deny when capability present |
-| Real token meters | 2 | altai-app → vscode | open |
+| Real token meters | 2 | altai-app → vscode | **in progress** — vscode accumulates `usage` events into Run details |
 | MCP full product surface | 2 + 4/5 | altai-app → vscode | open (list cap partial) |
 | Skills install UI | 2 + 4/5 | altai-app → vscode | open |
 | Multi-project / multi-root target | 3 | product + both | open (reveal-only today) |
