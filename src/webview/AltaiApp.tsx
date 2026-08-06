@@ -74,6 +74,7 @@ import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
 import { ChatShellTopbar } from "./ChatShellTopbar.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
+import { ChatProjectTargetChrome } from "./ChatProjectTargetChrome.js";
 import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
 import { ChatRunStatusChrome } from "./ChatRunStatusChrome.js";
@@ -1187,6 +1188,7 @@ function AgentUiShell({
           </div>
           <div className="altai-chat-composer-dock">
             <ChatProviderConnectBanner />
+            <ChatProjectTargetChrome requestWorkspace={requestWorkspace} />
             <form
               className="altai-chat-composer-form"
               onSubmit={(event) => {

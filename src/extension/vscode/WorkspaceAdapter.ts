@@ -25,6 +25,7 @@ export type WorkspaceRequestMethod =
   | "openFile"
   | "openDiff"
   | "openExternal"
+  | "revealInExplorer"
   | "getGitDiff"
   | "getTerminalContext";
 
@@ -61,6 +62,8 @@ export class WorkspaceAdapter {
         return this.openDiff(readDiffInput(params));
       case "openExternal":
         return this.openExternal(readExternalHref(params));
+      case "revealInExplorer":
+        return this.revealInExplorer(readUri(params));
       case "getGitDiff":
         return this.getGitDiffContext();
       case "getTerminalContext":
@@ -198,6 +201,15 @@ export class WorkspaceAdapter {
       );
     }
     await this.api.env.openExternal(uri);
+  }
+
+  /**
+   * Focus the Explorer and highlight a workspace root or resource.
+   * Used by the project-target chip (not a multi-project switcher).
+   */
+  private async revealInExplorer(uriValue: string): Promise<void> {
+    const uri = this.parseWorkspaceUri(uriValue);
+    await this.api.commands.executeCommand("revealInExplorer", uri);
   }
 
   private getTerminalContext(): TerminalContext | null {

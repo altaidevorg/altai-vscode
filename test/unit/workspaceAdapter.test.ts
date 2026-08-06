@@ -25,7 +25,10 @@ function createAdapter(isTrusted = true) {
       isTrusted,
       workspaceFolders: [{ uri: root }],
       getWorkspaceFolder: vi.fn((candidate: FakeUri) =>
-        candidate.path.startsWith("/workspace/") ? { uri: root } : undefined,
+        candidate.path === "/workspace" ||
+        candidate.path.startsWith("/workspace/")
+          ? { uri: root }
+          : undefined,
       ),
       findFiles: vi.fn(async () => [source]),
       fs: {
@@ -44,6 +47,9 @@ function createAdapter(isTrusted = true) {
       parse: vi.fn((value: string) => {
         if (value === source.toString()) {
           return source;
+        }
+        if (value === root.toString()) {
+          return root;
         }
         if (value === "file:///outside.txt") {
           return uri("/outside.txt");
@@ -138,5 +144,14 @@ describe("WorkspaceAdapter", () => {
     await expect(
       adapter.request("openExternal", { href: "file:///workspace/a.ts" }),
     ).rejects.toMatchObject({ code: "invalid_uri" });
+  });
+
+  it("reveals workspace roots in the Explorer", async () => {
+    const { adapter, api } = createAdapter();
+    await adapter.request("revealInExplorer", { uri: "file:///workspace" });
+    expect(api.commands.executeCommand).toHaveBeenCalledWith(
+      "revealInExplorer",
+      expect.objectContaining({ path: "/workspace" }),
+    );
   });
 });
