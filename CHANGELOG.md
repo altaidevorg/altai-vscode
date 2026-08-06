@@ -74,6 +74,8 @@ sibling `file:` packages until public npm publish.
   opens Chat with the active workspace file as a URI attachment.
 - Live `AgentStatusPill` shows thinking / streaming / approval / recoverable
   attention from run and transcript state.
+- Active / blocked runs mount `RunDetailsHeader` + `RunOverviewCard` with stop
+  and local metrics (turns, tools, edits, approvals).
 
 ### Security
 

@@ -78,6 +78,7 @@ import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
 import { ChatRunStatusChrome } from "./ChatRunStatusChrome.js";
 import { ChatAgentStatusPill } from "./ChatAgentStatusPill.js";
+import { ChatRunDetailsChrome } from "./ChatRunDetailsChrome.js";
 import { ChatCheckpointsChrome } from "./ChatCheckpointsChrome.js";
 import { ChatComposerCompact } from "./ChatComposerCompact.js";
 import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
@@ -100,6 +101,7 @@ import {
   runBlockedMessageFromEvent,
   runWarningMessageFromEvent,
 } from "./chatRunChrome.js";
+import { canShowRunDetailsChrome } from "./runDetailsChrome.js";
 import {
   applyInteractivePrompt,
   interactivePromptFromAgentEvent,
@@ -584,6 +586,7 @@ function AgentUiShell({
   const [runWarningMessage, setRunWarningMessage] = useState<string | null>(
     null,
   );
+  const [runDetailsDismissed, setRunDetailsDismissed] = useState(false);
   const [messages, setMessages] = useState<ChatDisplayMessage[]>([]);
   const [openTabs, setOpenTabs] = useState<
     Array<{ id: string; title: string }>
@@ -737,6 +740,10 @@ function AgentUiShell({
     );
     onFileAttachConsumed?.();
   }, [fileAttach, onFileAttachConsumed]);
+
+  useEffect(() => {
+    setRunDetailsDismissed(false);
+  }, [activeRunId, runBlockedMessage, runWarningMessage]);
 
   useEffect(() => {
     return ports.events.subscribe((event) => {
@@ -1075,16 +1082,41 @@ function AgentUiShell({
               setError(message);
             }}
           />
-          <ChatAgentStatusPill
-            messages={messages}
-            hasActiveRun={Boolean(activeRunId)}
-            busy={busy || editingBusy}
-            approvalsPending={
-              pendingApprovals.length + (pendingClarification ? 1 : 0)
-            }
-            blockedMessage={runBlockedMessage}
-            warningMessage={runWarningMessage}
-          />
+          {!runDetailsDismissed &&
+          canShowRunDetailsChrome({
+            hasActiveRun: Boolean(activeRunId),
+            blockedMessage: runBlockedMessage,
+            warningMessage: runWarningMessage,
+          }) ? (
+            <ChatRunDetailsChrome
+              messages={messages}
+              chatId={activeChatId}
+              hasActiveRun={Boolean(activeRunId)}
+              busy={busy || editingBusy}
+              approvalsPending={
+                pendingApprovals.length + (pendingClarification ? 1 : 0)
+              }
+              blockedMessage={runBlockedMessage}
+              warningMessage={runWarningMessage}
+              onStop={() => {
+                void onCancel();
+              }}
+              onClose={() => {
+                setRunDetailsDismissed(true);
+              }}
+            />
+          ) : (
+            <ChatAgentStatusPill
+              messages={messages}
+              hasActiveRun={Boolean(activeRunId)}
+              busy={busy || editingBusy}
+              approvalsPending={
+                pendingApprovals.length + (pendingClarification ? 1 : 0)
+              }
+              blockedMessage={runBlockedMessage}
+              warningMessage={runWarningMessage}
+            />
+          )}
           <div className="altai-chat-scroll">
             {showEmptyHome ? (
               <>
