@@ -114,9 +114,10 @@ Useful scripts:
 | `npm run build` | Bundle extension host + webview |
 | `npm run guard:architecture` | Ban host imports / copied UI symbols |
 | `npm run verify:package` | Manifest + built assets + native host layout audit |
-| `npm run package:target` | Stage one OS/arch + native host, emit target VSIX |
 | `npm run verify:vsix` | Audit a packaged `.vsix` for single-target host layout |
-| `npm run verify` | All of the above (including package audit) |
+| `npm run verify:security` | Secret pattern scan + direct dependency license audit |
+| `npm run package:target` | Stage one OS/arch + native host, emit target VSIX |
+| `npm run verify` | All of the above (including package + security audit) |
 
 Remote workspaces (SSH, WSL, Dev Containers): the extension declares
 `extensionKind: workspace` so the native agent host runs on the **remote**
