@@ -39,6 +39,7 @@
     "test/unit/sessionHistoryMap.test.ts",
     "test/unit/permissionModeChrome.test.ts",
     "test/unit/interactivePrompt.test.ts",
+    "test/unit/modelPickerChrome.test.ts",
     "dist",
     "out",
     "node_modules"

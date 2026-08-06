@@ -34,7 +34,10 @@ transcript into the chat log. When `sessions.list` is available, Chat mounts a
 shared `SessionRow` history list (New / rename / delete when those capabilities
 are advertised). The composer mounts the shared permission-mode switcher when
 settings + interactive.permissionModes capabilities are available, and
-forwards the mode on startRun. Pending tool approvals and clarifications from
+forwards the mode on startRun. The composer also mounts a shared model
+picker (ComposerConfigTrigger + ModelOption) when models.list/select +
+settings.get are available, writing the default model via settings.update.
+Pending tool approvals and clarifications from
 host `run/event` streams render shared `AiToolApproval` /
 `ClarificationChoices` when interactive capabilities are available. Presentation
 (Chat vs Operations, secondary route, Work hub strip, active chat id) survives
