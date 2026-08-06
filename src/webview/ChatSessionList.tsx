@@ -11,6 +11,10 @@ import {
 } from "@altai/agent-ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionsToHistoryItems } from "./sessionHistoryMap.js";
+import {
+  resolveSessionRemoveMode,
+  sessionRemoveErrorMessage,
+} from "./sessionMutateChrome.js";
 import { filterSessionsBySearch } from "./sessionSearch.js";
 
 export type ChatSessionListProps = {
@@ -31,7 +35,9 @@ export function ChatSessionList({
   const canList = useCapability("sessions.list");
   const canCreate = useCapability("sessions.create");
   const canRename = useCapability("sessions.rename");
+  const canArchive = useCapability("sessions.archive");
   const canDelete = useCapability("sessions.delete");
+  const removeMode = resolveSessionRemoveMode({ canArchive, canDelete });
   const [items, setItems] = useState<SessionHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -126,14 +132,18 @@ export function ChatSessionList({
             });
           }}
           onDelete={(id) => {
-            if (!canDelete) {
-              setError("Delete is unavailable on this host.");
+            if (removeMode === "unavailable") {
+              setError(sessionRemoveErrorMessage(removeMode));
               return;
             }
             void (async () => {
               try {
                 const wasActive = id === activeChatId;
-                await ports.sessions.deleteSession(id);
+                if (removeMode === "archive") {
+                  await ports.sessions.archiveSession(id);
+                } else {
+                  await ports.sessions.deleteSession(id);
+                }
                 const remaining = sessionsToHistoryItems(
                   await ports.sessions.listSessions(),
                 );
@@ -150,7 +160,11 @@ export function ChatSessionList({
                   }
                 }
               } catch (err) {
-                setError(err instanceof Error ? err.message : String(err));
+                setError(
+                  err instanceof Error
+                    ? err.message
+                    : sessionRemoveErrorMessage(removeMode),
+                );
               }
             })();
           }}

@@ -61,3 +61,17 @@ export function modelTriggerLabel(
   const match = models.find((model) => model.id === selectedId);
   return match?.label ?? selectedId;
 }
+
+/**
+ * Model id to send on startRun. Omits `auto` / empty so the host may route.
+ */
+export function modelIdForStartRun(
+  selectedId: string | null | undefined,
+): string | undefined {
+  const trimmed = selectedId?.trim();
+  if (!trimmed || trimmed === AUTO_MODEL_ID) {
+    return undefined;
+  }
+  return trimmed;
+}
+
