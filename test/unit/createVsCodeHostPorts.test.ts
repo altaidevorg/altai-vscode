@@ -397,6 +397,29 @@ describe("createVsCodeHostPorts", () => {
         createdAt: "2023-11-14T22:13:20.000Z",
       },
     ]);
+    transport.request.mockImplementationOnce(async (method) => {
+      if (method === "checkpoints/list") {
+        return {
+          checkpoints: [
+            {
+              id: "checkpoint_2",
+              path: "/workspace/a.ts",
+              label: "edit_file",
+              created_ms: 1_700_000_000_100,
+            },
+          ],
+        };
+      }
+      throw new Error(`unexpected native method ${method}`);
+    });
+    await expect(ports.review.listCheckpoints("chat_1")).resolves.toEqual([
+      {
+        id: "checkpoint_2",
+        chatId: "chat_1",
+        label: "/workspace/a.ts · edit_file",
+        createdAt: "2023-11-14T22:13:20.100Z",
+      },
+    ]);
     await ports.review.restoreCheckpoint("checkpoint_1");
     expect(transport.request).toHaveBeenCalledWith("checkpoints/restore", {
       id: "checkpoint_1",

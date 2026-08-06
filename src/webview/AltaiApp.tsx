@@ -58,6 +58,7 @@ import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
+import { ChatCheckpointsChrome } from "./ChatCheckpointsChrome.js";
 import { ChatComposerCompact } from "./ChatComposerCompact.js";
 import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
 import { ChatComposerContext } from "./ChatComposerContext.js";
@@ -974,6 +975,20 @@ function AgentUiShell({
                             appendMetaMessage(
                               prev,
                               "Context compaction requested",
+                            ),
+                          );
+                        }}
+                        onError={(message) => {
+                          setError(message);
+                        }}
+                      />
+                      <ChatCheckpointsChrome
+                        chatId={activeChatId}
+                        onRestored={() => {
+                          setMessages((prev) =>
+                            appendMetaMessage(
+                              prev,
+                              "Checkpoint restore requested",
                             ),
                           );
                         }}
