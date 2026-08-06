@@ -1,5 +1,5 @@
 /**
- * Capability-gated MCP server status list in Chat footer (read-only restart).
+ * Capability-gated MCP server status list (enable/disable + restart).
  */
 
 import {
@@ -111,28 +111,59 @@ export function ChatMcpStatusChrome() {
                   </span>
                 </div>
                 {canRestart ? (
-                  <SurfaceSecondaryAction
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      void (async () => {
-                        setBusyId(server.id);
-                        setError(null);
-                        try {
-                          await ports.mcpSkills.restartMcpServer(server.id);
-                          await load();
-                        } catch (err) {
-                          setError(
-                            err instanceof Error ? err.message : String(err),
-                          );
-                        } finally {
-                          setBusyId(null);
-                        }
-                      })();
-                    }}
-                  >
-                    {busy ? "…" : "Restart"}
-                  </SurfaceSecondaryAction>
+                  <>
+                    <SurfaceSecondaryAction
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        void (async () => {
+                          setBusyId(server.id);
+                          setError(null);
+                          try {
+                            await ports.mcpSkills.setMcpServerEnabled(
+                              server.id,
+                              !server.enabled,
+                            );
+                            await load();
+                          } catch (err) {
+                            setError(
+                              err instanceof Error ? err.message : String(err),
+                            );
+                          } finally {
+                            setBusyId(null);
+                          }
+                        })();
+                      }}
+                    >
+                      {busy
+                        ? "…"
+                        : server.enabled
+                          ? "Disable"
+                          : "Enable"}
+                    </SurfaceSecondaryAction>
+                    <SurfaceSecondaryAction
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        void (async () => {
+                          setBusyId(server.id);
+                          setError(null);
+                          try {
+                            await ports.mcpSkills.restartMcpServer(server.id);
+                            await load();
+                          } catch (err) {
+                            setError(
+                              err instanceof Error ? err.message : String(err),
+                            );
+                          } finally {
+                            setBusyId(null);
+                          }
+                        })();
+                      }}
+                    >
+                      {busy ? "…" : "Restart"}
+                    </SurfaceSecondaryAction>
+                  </>
                 ) : null}
               </li>
             );
