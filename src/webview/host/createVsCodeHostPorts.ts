@@ -27,6 +27,7 @@ import {
   type SessionInfo,
   type SessionMessage,
   type SelectionContext,
+  type SkillInfo,
   type TerminalContext,
   type TaskRunInfo,
   type WorkspaceInfo,
@@ -752,6 +753,14 @@ export function createVsCodeHostPorts(
           requireNativeCapability(hasNativeMethod, "mcp/servers/restart");
           await transport.request("mcp/servers/restart", { id });
         },
+        async listSkills(): Promise<SkillInfo[]> {
+          requireReady(isHostReady);
+          if (hasNativeMethod("skills/list")) {
+            return normalizeSkills(await transport.request("skills/list", {}));
+          }
+          requireNativeCapability(hasNativeMethod, "skills/list-all");
+          return normalizeSkills(await transport.request("skills/list-all", {}));
+        },
       },
     ),
     events: {
@@ -1397,4 +1406,26 @@ function normalizeMcpServer(value: unknown): McpServerStatus {
     connected: value.connected,
     ...(typeof value.error === "string" ? { error: value.error } : {}),
   };
+}
+
+function normalizeSkills(value: unknown): SkillInfo[] {
+  if (!isRecord(value) || !Array.isArray(value.skills)) {
+    throw new Error("invalid_skills_response");
+  }
+  return value.skills.flatMap((item) => {
+    if (!isRecord(item) || typeof item.name !== "string" || !item.name.trim()) {
+      return [];
+    }
+    return [
+      {
+        name: item.name.trim(),
+        ...(typeof item.description === "string"
+          ? { description: item.description }
+          : item.description === null
+            ? { description: null }
+            : {}),
+        ...(typeof item.enabled === "boolean" ? { enabled: item.enabled } : {}),
+      },
+    ];
+  });
 }
