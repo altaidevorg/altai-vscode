@@ -68,6 +68,8 @@ sibling `file:` packages until public npm publish.
   connected (Connect routes secrets through Extension Host).
 - Editor command **ALTAI: Ask About Selection** (context menu + ⌘/Ctrl+Alt+A)
   opens Chat with the current selection attached as composer context.
+- Shared `WorkspaceTopbarActions` in the shell header opens Operations Work /
+  Inbox when those capabilities are available (attention badge included).
 
 ### Security
 

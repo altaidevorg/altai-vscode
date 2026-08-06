@@ -23,6 +23,8 @@ import {
   type HostRpcNotificationPayload,
   type HostStatusPayload,
   type OpenOperationsPayload,
+  type OperationsDeepLinkView,
+  type OperationsDeepLinkWorkHubView,
 } from "../shared/messages.js";
 import {
   parseOpenChatWithSelectionPayload,
@@ -65,6 +67,7 @@ import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { canMountModelPicker } from "./modelPickerChrome.js";
 import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
+import { ChatShellTopbar } from "./ChatShellTopbar.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
@@ -97,7 +100,10 @@ import {
   type PendingClarificationPrompt,
   type PendingToolApproval,
 } from "./interactivePrompt.js";
-import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
+import {
+  buildOpenOperationsPayload,
+  parseOpenOperationsPayload,
+} from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
   createVsCodeHostPorts,
@@ -219,6 +225,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const [selectionAttach, setSelectionAttach] = useState<
     OpenChatWithSelectionPayload | undefined
   >(undefined);
+  const [attentionCount, setAttentionCount] = useState(0);
 
   const selectSurface = useCallback(
     (next: PersistedAltaiSurface) => {
@@ -260,15 +267,43 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 
   const reportAttentionCount = useCallback(
     (count: number) => {
+      const next = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
+      setAttentionCount(next);
       void client
         .request("operations.reportAttention", {
-          params: { count },
+          params: { count: next },
         })
         .catch(() => {
           /* Status-bar badge is best-effort presentation. */
         });
     },
     [client],
+  );
+
+  const openOperationsSurface = useCallback(
+    (input: {
+      view: OperationsDeepLinkView;
+      workHubView?: OperationsDeepLinkWorkHubView;
+    }) => {
+      const payload = buildOpenOperationsPayload({
+        view: input.view,
+        ...(input.workHubView ? { workHubView: input.workHubView } : {}),
+      });
+      selectSurface("operations");
+      setOperationsNav(payload);
+      setOperationsView(payload.view as PersistedOperationsView);
+      if (payload.workHubView) {
+        setWorkHubView(payload.workHubView as PersistedWorkHubView);
+      }
+      patchPersistedState(client, {
+        surface: "operations",
+        operationsView: payload.view as PersistedOperationsView,
+        ...(payload.workHubView
+          ? { workHubView: payload.workHubView as PersistedWorkHubView }
+          : {}),
+      });
+    },
+    [client, selectSurface],
   );
 
   useEffect(() => {
@@ -385,6 +420,22 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             <span className="altai-host-pill" data-status={hostStatus.status}>
               {hostStatus.status}
             </span>
+          }
+          actions={
+            <ChatShellTopbar
+              surface={surface}
+              operationsView={operationsView}
+              attentionCount={attentionCount}
+              onOpenWork={() => {
+                openOperationsSurface({
+                  view: "work",
+                  workHubView: "runs",
+                });
+              }}
+              onOpenInbox={() => {
+                openOperationsSurface({ view: "inbox" });
+              }}
+            />
           }
         />
         <div className="altai-view-tabs" role="tablist" aria-label="ALTAI surfaces">
