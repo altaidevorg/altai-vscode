@@ -157,6 +157,7 @@ sibling `file:` packages until public npm publish.
 - Status-bar ALTAI badge with attention > 0 opens Operations Inbox.
 - Multi-root preferred project root is restored from Webview presentation state
   (display/Explorer only — does not rebind the agent host cwd).
+- Slash `/copy` (`/export`) copies the current transcript as plain text.
 
 ### Security
 

@@ -105,6 +105,17 @@ describe("tryRunSlashCommand", () => {
       action: "version",
     });
   });
+
+  it("copies the transcript", () => {
+    expect(tryRunSlashCommand("/copy")).toMatchObject({
+      kind: "handled",
+      action: "copy",
+    });
+    expect(tryRunSlashCommand("/export")).toMatchObject({
+      kind: "handled",
+      action: "copy",
+    });
+  });
 });
 
 describe("formatSlashHelpDigest", () => {
