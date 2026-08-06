@@ -71,6 +71,12 @@ export const HOST_RPC_NOTIFICATION_EVENT = "host.rpc.notification" as const;
  */
 export const OPEN_OPERATIONS_EVENT = "operations.open" as const;
 
+/**
+ * Extension Host → Webview: switch to Chat and attach the active editor
+ * selection as composer context (no secrets; text only).
+ */
+export const OPEN_CHAT_WITH_SELECTION_EVENT = "chat.attachSelection" as const;
+
 export type OperationsDeepLinkView =
   | "overview"
   | "work"

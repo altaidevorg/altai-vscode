@@ -75,6 +75,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.askAboutSelection",
+        "title": "ALTAI: Ask About Selection",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openOperations",
         "title": "ALTAI: Open Operations",
         "category": "ALTAI"
@@ -138,6 +143,23 @@
         "command": "altai.clearProviderCredential",
         "title": "ALTAI: Remove AI Provider Credential",
         "category": "ALTAI"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "altai.askAboutSelection",
+          "group": "altai@1",
+          "when": "editorHasSelection && workspaceFolderCount > 0"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "altai.askAboutSelection",
+        "key": "ctrl+alt+a",
+        "mac": "cmd+alt+a",
+        "when": "editorHasSelection && workspaceFolderCount > 0"
       }
     ]
   },

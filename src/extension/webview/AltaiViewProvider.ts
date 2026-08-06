@@ -3,6 +3,7 @@ import * as path from "node:path";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
+  OPEN_CHAT_WITH_SELECTION_EVENT,
   OPEN_OPERATIONS_EVENT,
   type HostRequestParams,
   type HostStatusPayload,
@@ -12,6 +13,10 @@ import {
   type WorkspaceRequestParams,
 } from "../../shared/messages.js";
 import { buildOpenOperationsPayload } from "../../shared/operationsDeepLink.js";
+import {
+  buildOpenChatWithSelectionPayload,
+  type OpenChatWithSelectionPayload,
+} from "../../shared/selectionDeepLink.js";
 import { createNonce } from "../../shared/nonce.js";
 import type { HostManager } from "../host/HostManager.js";
 import { getOutputChannel } from "../output.js";
@@ -38,6 +43,8 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   private removeNotificationListener: (() => void) | undefined;
   /** Queued until the Webview bridge is ready (first panel open). */
   private pendingOperationsOpen: OpenOperationsPayload | undefined;
+  /** Queued until the Webview bridge is ready (first panel open). */
+  private pendingSelectionAttach: OpenChatWithSelectionPayload | undefined;
   private attentionCount = 0;
 
   constructor(
@@ -138,6 +145,13 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       bridge.postEvent(OPEN_OPERATIONS_EVENT, this.pendingOperationsOpen);
       this.pendingOperationsOpen = undefined;
     }
+    if (this.pendingSelectionAttach) {
+      bridge.postEvent(
+        OPEN_CHAT_WITH_SELECTION_EVENT,
+        this.pendingSelectionAttach,
+      );
+      this.pendingSelectionAttach = undefined;
+    }
     getOutputChannel().appendLine("[altai] webview resolved");
   }
 
@@ -172,6 +186,55 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     this.pendingOperationsOpen = payload;
+  }
+
+  /**
+   * Capture the active editor selection in Extension Host, open Chat, and
+   * attach it as composer context. Empty selection surfaces a local message.
+   */
+  public async openChatWithSelection(): Promise<void> {
+    let selection: {
+      uri: string;
+      path: string;
+      text: string;
+    } | null;
+    try {
+      selection = (await this.workspaceAdapter.request("getSelection")) as {
+        uri: string;
+        path: string;
+        text: string;
+      } | null;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "selection_unavailable";
+      await vscode.window.showErrorMessage(
+        `ALTAI could not read the editor selection: ${message}`,
+      );
+      return;
+    }
+    if (!selection || !selection.text.trim()) {
+      await vscode.window.showInformationMessage(
+        "Select code in a workspace file, then run ALTAI: Ask About Selection.",
+      );
+      return;
+    }
+    const payload = buildOpenChatWithSelectionPayload({
+      uri: selection.uri,
+      path: selection.path,
+      text: selection.text,
+    });
+    if (!payload) {
+      await vscode.window.showInformationMessage(
+        "Select code in a workspace file, then run ALTAI: Ask About Selection.",
+      );
+      return;
+    }
+    await vscode.commands.executeCommand("altai.sidePanel.focus");
+    if (this.bridge && !this.bridge.isDisposed) {
+      this.bridge.postEvent(OPEN_CHAT_WITH_SELECTION_EVENT, payload);
+      return;
+    }
+    this.pendingSelectionAttach = payload;
   }
 
   private async proxyHostRequest(params: unknown): Promise<unknown> {
