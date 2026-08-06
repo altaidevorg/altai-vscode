@@ -16,15 +16,21 @@ import {
 export type ChatProjectTargetChromeProps = {
   /** Extension workspace adapter (reveal / pick) — not on host-contract ports. */
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
+  initialPreferredRootUri?: string | null;
+  onPreferredRootUriChange?: (uri: string | null) => void;
 };
 
 export function ChatProjectTargetChrome({
   requestWorkspace,
+  initialPreferredRootUri = null,
+  onPreferredRootUriChange,
 }: ChatProjectTargetChromeProps) {
   const ports = useHostPorts();
   const canInfo = useCapability("workspace.info");
   const canShow = canMountProjectTarget({ workspaceInfo: canInfo });
-  const [preferredRootUri, setPreferredRootUri] = useState<string | null>(null);
+  const [preferredRootUri, setPreferredRootUri] = useState<string | null>(
+    () => initialPreferredRootUri,
+  );
   const [target, setTarget] = useState<ProjectTargetView>(() =>
     projectTargetFromWorkspace(null),
   );
@@ -41,13 +47,14 @@ export function ChatProjectTargetChrome({
       const next = retainPreferredRoot(preferredRootUri, info.roots);
       if (next !== preferredRootUri) {
         setPreferredRootUri(next);
+        onPreferredRootUriChange?.(next);
       }
       setTarget(projectTargetFromWorkspace(info, next));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [ports, canShow, preferredRootUri]);
+  }, [ports, canShow, preferredRootUri, onPreferredRootUriChange]);
 
   useEffect(() => {
     void load();
@@ -86,6 +93,7 @@ export function ChatProjectTargetChrome({
                 ) {
                   const uri = (picked as { uri: string }).uri;
                   setPreferredRootUri(uri);
+                  onPreferredRootUriChange?.(uri);
                   const info = await ports.workspace.getWorkspace();
                   setTarget(projectTargetFromWorkspace(info, uri));
                   rootUri = uri;

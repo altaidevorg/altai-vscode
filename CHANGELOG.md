@@ -155,6 +155,8 @@ sibling `file:` packages until public npm publish.
   has no real patch text; terminal attach accepts cwd when selection is empty.
 - Empty-home slash starters are allowed to be short command tokens in tests.
 - Status-bar ALTAI badge with attention > 0 opens Operations Inbox.
+- Multi-root preferred project root is restored from Webview presentation state
+  (display/Explorer only — does not rebind the agent host cwd).
 
 ### Security
 
