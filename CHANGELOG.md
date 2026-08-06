@@ -72,6 +72,8 @@ sibling `file:` packages until public npm publish.
   Inbox when those capabilities are available (attention badge included).
 - Editor command **ALTAI: Ask About Active File** (context menu + ⌘/Ctrl+Alt+F)
   opens Chat with the active workspace file as a URI attachment.
+- Live `AgentStatusPill` shows thinking / streaming / approval / recoverable
+  attention from run and transcript state.
 
 ### Security
 

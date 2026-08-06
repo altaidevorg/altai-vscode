@@ -77,6 +77,7 @@ import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
 import { ChatRunStatusChrome } from "./ChatRunStatusChrome.js";
+import { ChatAgentStatusPill } from "./ChatAgentStatusPill.js";
 import { ChatCheckpointsChrome } from "./ChatCheckpointsChrome.js";
 import { ChatComposerCompact } from "./ChatComposerCompact.js";
 import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
@@ -1073,6 +1074,16 @@ function AgentUiShell({
             onOpenFileError={(message) => {
               setError(message);
             }}
+          />
+          <ChatAgentStatusPill
+            messages={messages}
+            hasActiveRun={Boolean(activeRunId)}
+            busy={busy || editingBusy}
+            approvalsPending={
+              pendingApprovals.length + (pendingClarification ? 1 : 0)
+            }
+            blockedMessage={runBlockedMessage}
+            warningMessage={runWarningMessage}
           />
           <div className="altai-chat-scroll">
             {showEmptyHome ? (
