@@ -167,6 +167,7 @@ sibling `file:` packages until public npm publish.
 - Command palette **Ask About Working Tree** attaches a path/status summary via
   the selection deep-link (no `git` spawn).
 - Command palette **Open Settings** focuses the side panel on the Settings surface.
+- Keyboard shortcut Cmd/Ctrl+Alt+G runs **Ask About Working Tree**.
 
 ### Security
 
