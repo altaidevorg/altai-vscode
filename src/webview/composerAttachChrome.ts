@@ -45,6 +45,55 @@ export function formatGitDiffSummary(input: {
 export { formatTerminalAttachText };
 
 /**
+ * Build an active-file context chip (URI only; contents stay on host).
+ */
+export function buildFileContextItem(
+  file: { uri: string; path: string } | null | undefined,
+): Extract<ComposerContextItem, { kind: "file" }> | null {
+  const uri = file?.uri?.trim() ?? "";
+  const path = file?.path?.trim() ?? "";
+  if (!uri || !path) {
+    return null;
+  }
+  return {
+    id: newContextItemId("file"),
+    kind: "file",
+    uri,
+    name: basenamePath(path),
+    path,
+  };
+}
+
+/**
+ * Build a selection context chip from editor selection text.
+ */
+export function buildSelectionContextItem(
+  selection:
+    | {
+        uri: string;
+        path: string;
+        text: string;
+      }
+    | null
+    | undefined,
+): Extract<ComposerContextItem, { kind: "selection" }> | null {
+  const text = selection?.text ?? "";
+  if (!text.trim()) {
+    return null;
+  }
+  const uri = selection?.uri?.trim() ?? "";
+  const path = selection?.path?.trim() || "selection";
+  return {
+    id: newContextItemId("selection"),
+    kind: "selection",
+    ...(uri ? { uri } : {}),
+    path,
+    text,
+    lines: countLines(text),
+  };
+}
+
+/**
  * Build a diff context chip from host git context (patch or path/status summary).
  */
 export function buildDiffContextItem(

@@ -174,6 +174,8 @@ sibling `file:` packages until public npm publish.
   focused) attaches terminal context via the selection deep-link.
 - Composer slash `/attach-diff` (`/wt`) and `/attach-terminal` (`/terminal`)
   add the same context chips as the attach menu.
+- Composer slash `/attach-file` (`/file`) and `/attach-selection` (`/sel`)
+  attach the active editor file and selection the same way.
 
 ### Security
 

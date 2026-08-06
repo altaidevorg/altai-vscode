@@ -3,6 +3,8 @@ import {
   formatGitDiffSummary,
   formatTerminalAttachText,
   buildDiffContextItem,
+  buildFileContextItem,
+  buildSelectionContextItem,
   buildTerminalContextItem,
 } from "../../src/webview/composerAttachChrome.js";
 
@@ -87,5 +89,42 @@ describe("buildTerminalContextItem", () => {
 
   it("returns null without context", () => {
     expect(buildTerminalContextItem({})).toBeNull();
+  });
+});
+
+describe("buildFileContextItem", () => {
+  it("builds from uri and path", () => {
+    const item = buildFileContextItem({
+      uri: "file:///ws/src/a.ts",
+      path: "/ws/src/a.ts",
+    });
+    expect(item?.kind).toBe("file");
+    expect(item?.name).toBe("a.ts");
+  });
+
+  it("returns null without path", () => {
+    expect(buildFileContextItem({ uri: "file:///x", path: "" })).toBeNull();
+  });
+});
+
+describe("buildSelectionContextItem", () => {
+  it("builds from selection text", () => {
+    const item = buildSelectionContextItem({
+      uri: "file:///ws/a.ts",
+      path: "/ws/a.ts",
+      text: "const x = 1",
+    });
+    expect(item?.kind).toBe("selection");
+    expect(item?.lines).toBe(1);
+  });
+
+  it("returns null for blank text", () => {
+    expect(
+      buildSelectionContextItem({
+        uri: "file:///ws/a.ts",
+        path: "/ws/a.ts",
+        text: "  ",
+      }),
+    ).toBeNull();
   });
 });
