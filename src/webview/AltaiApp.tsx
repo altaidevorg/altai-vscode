@@ -34,12 +34,14 @@ import {
 } from "./openChatDeepLink.js";
 import { transcriptLinesFromMessages } from "./sessionTranscript.js";
 import { ChatSessionList } from "./ChatSessionList.js";
+import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { parseOpenOperationsPayload } from "./operationsDeepLink.js";
 import type { WebviewClient } from "./WebviewClient.js";
 import {
   createVsCodeHostPorts,
   type HostRpcTransport,
 } from "./host/createVsCodeHostPorts.js";
+import type { PermissionMode } from "@altai/host-contract";
 
 export type AltaiAppProps = {
   client: WebviewClient;
@@ -387,6 +389,9 @@ function AgentUiShell({
   );
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [sessionListKey, setSessionListKey] = useState(0);
+  const [permissionMode, setPermissionMode] = useState<PermissionMode | null>(
+    null,
+  );
   const appliedFocus = useRef<{ key: number; withTranscript: boolean } | null>(
     null,
   );
@@ -466,6 +471,7 @@ function AgentUiShell({
       const ref = await ports.runtime.startRun({
         prompt: text,
         ...(activeChatId ? { chatId: activeChatId } : {}),
+        ...(permissionMode ? { permissionMode } : {}),
       });
       setActiveChatId(ref.chatId);
       setActiveRunId(ref.runId);
@@ -567,6 +573,7 @@ function AgentUiShell({
               rows={3}
             />
             <div className="altai-chat-actions">
+              <ChatPermissionModeChrome onModeChange={setPermissionMode} />
               <button
                 type="submit"
                 disabled={!canStartRun || busy || !prompt.trim()}

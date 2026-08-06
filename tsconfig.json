@@ -37,6 +37,7 @@
     "test/unit/openChatDeepLink.test.ts",
     "test/unit/sessionTranscript.test.ts",
     "test/unit/sessionHistoryMap.test.ts",
+    "test/unit/permissionModeChrome.test.ts",
     "dist",
     "out",
     "node_modules"
