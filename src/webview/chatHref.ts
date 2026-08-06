@@ -6,5 +6,8 @@
 export {
   hrefToFilePath,
   isWebHref,
+  looksLikePath,
+  pathToFileUri,
   resolveWorkspacePath,
+  toolBubbleContent,
 } from "@altai/agent-ui";
