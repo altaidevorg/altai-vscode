@@ -75,6 +75,9 @@ import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
 import { ChatShellTopbar } from "./ChatShellTopbar.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
 import { ChatProjectTargetChrome } from "./ChatProjectTargetChrome.js";
+import { ChatMcpStatusChrome } from "./ChatMcpStatusChrome.js";
+import { ChatChangeReviewPanel } from "./ChatChangeReviewPanel.js";
+import { ChatReplayChrome } from "./ChatReplayChrome.js";
 import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
 import { ChatRunStatusChrome } from "./ChatRunStatusChrome.js";
@@ -238,6 +241,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     OpenChatWithFilePayload | undefined
   >(undefined);
   const [attentionCount, setAttentionCount] = useState(0);
+  const [runInspectorAvailable, setRunInspectorAvailable] = useState(false);
+  const [runInspectorOpen, setRunInspectorOpen] = useState(false);
+  const [runInspectorOpenRequest, setRunInspectorOpenRequest] = useState(0);
 
   const selectSurface = useCallback(
     (next: PersistedAltaiSurface) => {
@@ -450,6 +456,8 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               surface={surface}
               operationsView={operationsView}
               attentionCount={attentionCount}
+              inspectorAvailable={runInspectorAvailable}
+              inspectorOpen={runInspectorOpen}
               onOpenWork={() => {
                 openOperationsSurface({
                   view: "work",
@@ -458,6 +466,15 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               }}
               onOpenInbox={() => {
                 openOperationsSurface({ view: "inbox" });
+              }}
+              onToggleInspector={() => {
+                if (runInspectorOpen) {
+                  setRunInspectorOpen(false);
+                  return;
+                }
+                selectSurface("chat");
+                setRunInspectorOpen(true);
+                setRunInspectorOpenRequest((value) => value + 1);
               }}
             />
           }
@@ -508,6 +525,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 onFileAttachConsumed={() => {
                   setFileAttach(undefined);
                 }}
+                inspectorOpenRequest={runInspectorOpenRequest}
+                onInspectorAvailabilityChange={setRunInspectorAvailable}
+                onInspectorOpenChange={setRunInspectorOpen}
                 onFocusChat={openChatFromOperations}
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
@@ -528,6 +548,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             onFileAttachConsumed={() => {
               setFileAttach(undefined);
             }}
+            inspectorOpenRequest={runInspectorOpenRequest}
+            onInspectorAvailabilityChange={setRunInspectorAvailable}
+            onInspectorOpenChange={setRunInspectorOpen}
             onFocusChat={openChatFromOperations}
             requestWorkspace={(method, params) =>
               transport.requestWorkspace(method, params)
@@ -547,6 +570,9 @@ function AgentUiShell({
   onSelectionAttachConsumed,
   fileAttach,
   onFileAttachConsumed,
+  inspectorOpenRequest = 0,
+  onInspectorAvailabilityChange,
+  onInspectorOpenChange,
   onFocusChat,
   requestWorkspace,
 }: {
@@ -557,6 +583,9 @@ function AgentUiShell({
   onSelectionAttachConsumed?: () => void;
   fileAttach?: OpenChatWithFilePayload;
   onFileAttachConsumed?: () => void;
+  inspectorOpenRequest?: number;
+  onInspectorAvailabilityChange?: (available: boolean) => void;
+  onInspectorOpenChange?: (open: boolean) => void;
   onFocusChat: (input: { chatId?: string; label?: string }) => void;
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
 }) {
@@ -588,6 +617,8 @@ function AgentUiShell({
     null,
   );
   const [runDetailsDismissed, setRunDetailsDismissed] = useState(false);
+  const [changeReviewOpen, setChangeReviewOpen] = useState(false);
+  const [lastReplayRunId, setLastReplayRunId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatDisplayMessage[]>([]);
   const [openTabs, setOpenTabs] = useState<
     Array<{ id: string; title: string }>
@@ -745,6 +776,32 @@ function AgentUiShell({
   useEffect(() => {
     setRunDetailsDismissed(false);
   }, [activeRunId, runBlockedMessage, runWarningMessage]);
+
+  useEffect(() => {
+    if (activeRunId) {
+      setLastReplayRunId(activeRunId);
+    }
+  }, [activeRunId]);
+
+  useEffect(() => {
+    if (inspectorOpenRequest > 0) {
+      setRunDetailsDismissed(false);
+    }
+  }, [inspectorOpenRequest]);
+
+  useEffect(() => {
+    const available = canShowRunDetailsChrome({
+      hasActiveRun: Boolean(activeRunId),
+      blockedMessage: runBlockedMessage,
+      warningMessage: runWarningMessage,
+    });
+    onInspectorAvailabilityChange?.(available);
+  }, [
+    activeRunId,
+    runBlockedMessage,
+    runWarningMessage,
+    onInspectorAvailabilityChange,
+  ]);
 
   useEffect(() => {
     return ports.events.subscribe((event) => {
@@ -1104,6 +1161,7 @@ function AgentUiShell({
               }}
               onClose={() => {
                 setRunDetailsDismissed(true);
+                onInspectorOpenChange?.(false);
               }}
             />
           ) : (
@@ -1118,6 +1176,18 @@ function AgentUiShell({
               warningMessage={runWarningMessage}
             />
           )}
+          {changeReviewOpen ? (
+            <ChatChangeReviewPanel
+              open={changeReviewOpen}
+              messages={messages}
+              onClose={() => {
+                setChangeReviewOpen(false);
+              }}
+              onOpenFileError={(message) => {
+                setError(message);
+              }}
+            />
+          ) : null}
           <div className="altai-chat-scroll">
             {showEmptyHome ? (
               <>
@@ -1177,6 +1247,9 @@ function AgentUiShell({
               }}
               onOpenFileError={(message) => {
                 setError(message);
+              }}
+              onOpenChangeReview={() => {
+                setChangeReviewOpen(true);
               }}
             />
             <ChatInteractivePrompts
@@ -1312,6 +1385,22 @@ function AgentUiShell({
                           setError(message);
                         }}
                       />
+                      <ChatReplayChrome
+                        chatId={activeChatId}
+                        runId={activeRunId ?? lastReplayRunId}
+                        disabled={busy}
+                        onReplayEvents={(count) => {
+                          setMessages((prev) =>
+                            appendMetaMessage(
+                              prev,
+                              `Replayed ${count} host event${count === 1 ? "" : "s"}`,
+                            ),
+                          );
+                        }}
+                        onError={(message) => {
+                          setError(message);
+                        }}
+                      />
                     </>
                   }
                   permission={
@@ -1353,6 +1442,7 @@ function AgentUiShell({
           </div>
           <div className="altai-chat-footer">
             <ChatProviderStatusChrome />
+            <ChatMcpStatusChrome />
             <p className="altai-shell-meta">
               Extension {hostStatus.extensionVersion}
               {activeChatId ? ` · chat ${activeChatId}` : ""}

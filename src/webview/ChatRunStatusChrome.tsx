@@ -32,6 +32,8 @@ export type ChatRunStatusChromeProps = {
   onSteer?: () => void;
   onStop?: () => void;
   onOpenFileError?: (message: string) => void;
+  /** Open the multi-diff change review panel. */
+  onOpenChangeReview?: () => void;
 };
 
 export function ChatRunStatusChrome({
@@ -47,6 +49,7 @@ export function ChatRunStatusChrome({
   onSteer,
   onStop,
   onOpenFileError,
+  onOpenChangeReview,
 }: ChatRunStatusChromeProps) {
   const ports = useHostPorts();
   const canOpenDiff = useCapability("workspace.openDiff");
@@ -115,6 +118,10 @@ export function ChatRunStatusChrome({
         <ChangeReviewBanner
           queueLen={queueLen}
           onOpen={() => {
+            if (onOpenChangeReview) {
+              onOpenChangeReview();
+              return;
+            }
             const target = lastEditDiffMessage(messages);
             if (!target) {
               return;

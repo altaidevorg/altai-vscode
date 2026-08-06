@@ -6,14 +6,21 @@ export type WorkspaceTopbarFlags = {
   taskRuns: boolean;
   automations: boolean;
   inbox: boolean;
+  /** When true, Work/Inbox cluster is joined by an available inspector control. */
+  inspector?: boolean;
 };
 
 /**
  * Mount the Work / Inbox cluster only when at least one Operations domain
- * route is available (no dead buttons).
+ * route is available, or a run inspector is available (no dead buttons).
  */
 export function canMountWorkspaceTopbar(flags: WorkspaceTopbarFlags): boolean {
-  return flags.taskRuns || flags.automations || flags.inbox;
+  return (
+    flags.taskRuns ||
+    flags.automations ||
+    flags.inbox ||
+    Boolean(flags.inspector)
+  );
 }
 
 export function workspaceTopbarWorkOpen(

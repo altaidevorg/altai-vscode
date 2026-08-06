@@ -1,6 +1,5 @@
 /**
- * Shared WorkspaceTopbarActions: Work / Inbox shortcuts into Operations.
- * Inspector stays hidden until a review surface is backed by host ports.
+ * Shared WorkspaceTopbarActions: Work / Inbox / optional run-inspector.
  */
 
 import {
@@ -17,16 +16,22 @@ export type ChatShellTopbarProps = {
   surface: "chat" | "operations";
   operationsView: string;
   attentionCount: number;
+  inspectorAvailable?: boolean;
+  inspectorOpen?: boolean;
   onOpenWork: () => void;
   onOpenInbox: () => void;
+  onToggleInspector?: () => void;
 };
 
 export function ChatShellTopbar({
   surface,
   operationsView,
   attentionCount,
+  inspectorAvailable = false,
+  inspectorOpen = false,
   onOpenWork,
   onOpenInbox,
+  onToggleInspector,
 }: ChatShellTopbarProps) {
   const canTaskRuns = useCapability("work.taskRuns");
   const canAutomations = useCapability("work.automations");
@@ -35,6 +40,7 @@ export function ChatShellTopbar({
     taskRuns: canTaskRuns,
     automations: canAutomations,
     inbox: canInbox,
+    inspector: inspectorAvailable,
   });
 
   if (!canShow) {
@@ -50,8 +56,8 @@ export function ChatShellTopbar({
       workOpen={workOpen}
       inboxOpen={inboxOpen}
       inboxAttentionCount={attentionCount}
-      inspectorOpen={false}
-      inspectorAvailable={false}
+      inspectorOpen={inspectorOpen}
+      inspectorAvailable={inspectorAvailable}
       onToggleWork={() => {
         onOpenWork();
       }}
@@ -59,7 +65,7 @@ export function ChatShellTopbar({
         onOpenInbox();
       }}
       onToggleInspector={() => {
-        /* Inspector deferred — not advertised. */
+        onToggleInspector?.();
       }}
     />
   );

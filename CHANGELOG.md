@@ -78,6 +78,12 @@ sibling `file:` packages until public npm publish.
   and local metrics (turns, tools, edits, approvals).
 - Composer shows shared `ChatProjectTarget` for the open workspace folder;
   click reveals the root in Explorer when `workspace.info` is available.
+- Change-review panel opens from the change banner (diff + dismiss; no Apply
+  without host `review.editProposal`).
+- Topbar inspector toggles the Run details strip when available.
+- MCP status strip when `mcp.list` is advertised; optional restart with
+  `mcp.configure`.
+- Replay toolbar control when `runtime.replayRun` is available.
 
 ### Security
 

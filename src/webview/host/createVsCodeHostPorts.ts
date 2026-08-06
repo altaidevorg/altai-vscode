@@ -142,6 +142,18 @@ export function createVsCodeHostPorts(
                     ].every(hasNativeMethod),
                   ),
                   "inbox.notifications": hasNativeMethod("inbox/list") && hasNativeMethod("inbox/mark-seen") && hasNativeMethod("inbox/resolve") ? "available" : "deferred",
+                  "mcp.list": nativeAvailability(hasNativeMethod("mcp/servers/list")),
+                  "mcp.configure": nativeAvailability(
+                    [
+                      "mcp/servers/configure",
+                      "mcp/servers/enable",
+                      "mcp/servers/restart",
+                    ].some(hasNativeMethod),
+                  ),
+                  "skills.list": nativeAvailability(
+                    hasNativeMethod("skills/list") ||
+                      hasNativeMethod("skills/list-all"),
+                  ),
                 }
               : {
                   "runtime.startRun": "deferred",
@@ -181,6 +193,9 @@ export function createVsCodeHostPorts(
                   "review.restoreCheckpoint": "deferred",
                   "work.taskRuns": "deferred",
                   "work.automations": "deferred",
+                  "mcp.list": "deferred",
+                  "mcp.configure": "deferred",
+                  "skills.list": "deferred",
                 },
           });
         },
