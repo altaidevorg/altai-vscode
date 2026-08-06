@@ -607,6 +607,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               <ChatSettingsHub
                 extensionVersion={hostStatus.extensionVersion}
                 hostStatusLabel={hostStatus.status}
+                requestWorkspace={(method, params) =>
+                  transport.requestWorkspace(method, params)
+                }
               />
             </>
           ) : (

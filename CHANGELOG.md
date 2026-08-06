@@ -138,6 +138,7 @@ sibling `file:` packages until public npm publish.
   state only, capped).
 - Slash `/logs`, `/diagnostics` (`/diag`), and `/restart-host` (`/restart`)
   invoke the allowlisted Extension Host recovery commands.
+- Settings About exposes the same recovery buttons as the wait shell.
 
 ### Security
 
