@@ -134,6 +134,8 @@ sibling `file:` packages until public npm publish.
   allowlisted Extension Host command (works even when the workspace is untrusted).
 - `/help` (aliases `/?`, `/commands`) prints a filtered slash-command digest in
   the transcript.
+- Unsent Chat composer text is restored across Webview reloads (presentation
+  state only, capped).
 
 ### Security
 

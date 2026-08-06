@@ -299,6 +299,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     [client],
   );
 
+  const onComposerDraftChange = useCallback(
+    (draft: string) => {
+      patchPersistedState(client, { composerDraft: draft });
+    },
+    [client],
+  );
+
   const openChatFromOperations = useCallback(
     (input: { chatId?: string; label?: string }) => {
       const focus = buildOpenChatFocus(input);
@@ -628,6 +635,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
                 }
+                initialComposerDraft={
+                  client.getPersistedState().composerDraft ?? ""
+                }
+                onComposerDraftChange={onComposerDraftChange}
               />
             </>
           )
@@ -655,6 +666,10 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             requestWorkspace={(method, params) =>
               transport.requestWorkspace(method, params)
             }
+            initialComposerDraft={
+              client.getPersistedState().composerDraft ?? ""
+            }
+            onComposerDraftChange={onComposerDraftChange}
           />
         )}
       </div>
@@ -677,6 +692,8 @@ function AgentUiShell({
   onOpenOperations,
   onOpenSettings,
   requestWorkspace,
+  initialComposerDraft = "",
+  onComposerDraftChange,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
@@ -695,6 +712,9 @@ function AgentUiShell({
   }) => void;
   onOpenSettings?: () => void;
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>;
+  /** Restored unsent composer text (presentation only). */
+  initialComposerDraft?: string;
+  onComposerDraftChange?: (draft: string) => void;
 }) {
   const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
@@ -720,7 +740,14 @@ function AgentUiShell({
     select: canSelectModel,
     settingsGet: canGetSettings,
   });
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPromptState] = useState(() => initialComposerDraft);
+  const setPrompt = useCallback(
+    (next: string) => {
+      setPromptState(next);
+      onComposerDraftChange?.(next);
+    },
+    [onComposerDraftChange],
+  );
   const [busy, setBusy] = useState(false);
   const [editingBusy, setEditingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
