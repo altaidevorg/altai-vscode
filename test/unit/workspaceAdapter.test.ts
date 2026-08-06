@@ -42,6 +42,7 @@ function createAdapter(isTrusted = true) {
       showTextDocument: vi.fn(async () => ({
         revealRange: vi.fn(),
       })),
+      showQuickPick: vi.fn(async () => undefined),
     },
     Uri: {
       parse: vi.fn((value: string) => {
@@ -50,6 +51,9 @@ function createAdapter(isTrusted = true) {
         }
         if (value === root.toString()) {
           return root;
+        }
+        if (value === "file:///workspace/pkg") {
+          return uri("/workspace/pkg");
         }
         if (value === "file:///outside.txt") {
           return uri("/outside.txt");
@@ -153,5 +157,27 @@ describe("WorkspaceAdapter", () => {
       "revealInExplorer",
       expect.objectContaining({ path: "/workspace" }),
     );
+  });
+
+  it("returns the only folder without a QuickPick", async () => {
+    const { adapter, api } = createAdapter();
+    await expect(adapter.request("pickWorkspaceFolder", {})).resolves.toEqual({
+      uri: "file:///workspace",
+    });
+    expect(api.window.showQuickPick).not.toHaveBeenCalled();
+  });
+
+  it("picks a multi-root folder via QuickPick", async () => {
+    const { adapter, api } = createAdapter();
+    const second = uri("/workspace/pkg");
+    api.workspace.workspaceFolders = [
+      { uri: uri("/workspace"), name: "workspace" },
+      { uri: second, name: "pkg" },
+    ] as never;
+    api.window.showQuickPick = vi.fn(async (items: Array<{ uri: string }>) => items[1]);
+    await expect(adapter.request("pickWorkspaceFolder", {})).resolves.toEqual({
+      uri: "file:///workspace/pkg",
+    });
+    expect(api.window.showQuickPick).toHaveBeenCalled();
   });
 });
