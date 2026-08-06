@@ -160,6 +160,7 @@ sibling `file:` packages until public npm publish.
 - Slash `/copy` (`/export`) copies the current transcript as plain text.
 - Settings About can Copy diagnostic (same text as the wait shell) and Escape
   also dismisses change-review / run-details chrome when no error banner is open.
+- Empty-home starters also cover `/settings` and `/new` (dispatched immediately).
 
 ### Security
 
