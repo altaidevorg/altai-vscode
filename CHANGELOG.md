@@ -136,6 +136,8 @@ sibling `file:` packages until public npm publish.
   the transcript.
 - Unsent Chat composer text is restored across Webview reloads (presentation
   state only, capped).
+- Slash `/logs`, `/diagnostics` (`/diag`), and `/restart-host` (`/restart`)
+  invoke the allowlisted Extension Host recovery commands.
 
 ### Security
 

@@ -41,7 +41,10 @@ export type SlashHostAction =
   | "mcp"
   | "skills"
   | "settings"
-  | "help";
+  | "help"
+  | "logs"
+  | "diagnostics"
+  | "restart-host";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -94,6 +97,9 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "skills", invocation: "/skills", label: "Skills", description: "Open Settings for installed skills.", category: "settings", behavior: "action" },
   { name: "settings", invocation: "/settings", label: "Settings", description: "Open the Settings surface.", aliases: ["config", "prefs"], category: "settings", behavior: "action" },
   { name: "help", invocation: "/help", label: "Help", description: "List available slash commands.", aliases: ["commands", "?"], category: "settings", behavior: "action" },
+  { name: "logs", invocation: "/logs", label: "Open logs", description: "Show the ALTAI output channel.", category: "settings", behavior: "action" },
+  { name: "diagnostics", invocation: "/diagnostics", label: "Run diagnostics", description: "Write host diagnostics to the ALTAI log channel.", aliases: ["diag"], category: "settings", behavior: "action" },
+  { name: "restart-host", invocation: "/restart-host", label: "Restart host", description: "Restart the ALTAI agent host process.", aliases: ["restart"], category: "settings", behavior: "action" },
 ];
 
 export const SLASH_COMMAND_INDEX: readonly SlashCommandMeta[] =
@@ -238,6 +244,12 @@ function toastFor(name: string, tail: string): string | undefined {
     case "skills":
     case "settings":
       return "Opened Settings";
+    case "logs":
+      return "Opening ALTAI logs";
+    case "diagnostics":
+      return "Running diagnostics";
+    case "restart-host":
+      return "Restarting agent host";
     case "help":
       return undefined;
     default:
