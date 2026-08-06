@@ -1,0 +1,92 @@
+name: package
+
+# Internal-channel packaging: build a multi-target fixture VSIX matrix and
+# audit archive contents. Real release host binaries land via later release CI;
+# this workflow proves single-target packaging invariants end-to-end.
+
+on:
+  pull_request:
+    paths:
+      - "scripts/package-target.mjs"
+      - "scripts/verify-package-contents.mjs"
+      - "scripts/verify-vsix.mjs"
+      - "src/extension/host/nativeTargets.ts"
+      - "src/extension/host/packageTarget.ts"
+      - "src/extension/host/packageContents.ts"
+      - "src/extension/host/vsixContents.ts"
+      - "package.json"
+      - ".vscodeignore"
+      - ".github/workflows/package.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  package-targets:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x64
+            host_name: altai-agent-host
+          - target: darwin-arm64
+            host_name: altai-agent-host
+          - target: darwin-x64
+            host_name: altai-agent-host
+          - target: win32-x64
+            host_name: altai-agent-host.exe
+    steps:
+      - name: Checkout altai-vscode
+        uses: actions/checkout@v4
+        with:
+          path: altai-vscode
+
+      - name: Checkout altai-app (shared packages)
+        uses: actions/checkout@v4
+        with:
+          repository: altaidevorg/altai-app
+          path: altai-app-main
+          token: ${{ github.token }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: altai-vscode/package-lock.json
+
+      - name: Install and build
+        working-directory: altai-vscode
+        run: |
+          npm ci
+          npm run build
+          npm run verify:package
+
+      - name: Stage fixture host and package target VSIX
+        working-directory: altai-vscode
+        run: |
+          FIXTURE_DIR="${RUNNER_TEMP}/altai-host-${{ matrix.target }}"
+          mkdir -p "$FIXTURE_DIR"
+          HOST_PATH="$FIXTURE_DIR/${{ matrix.host_name }}"
+          printf 'altai-agent-host-fixture-%s\n' "${{ matrix.target }}" > "$HOST_PATH"
+          chmod +x "$HOST_PATH" || true
+          npm run package:target -- \
+            --target=${{ matrix.target }} \
+            --host="$HOST_PATH" \
+            --skip-verify \
+            --out-dir=artifacts
+          VSIX="artifacts/altai-$(node -p "require('./package.json').version")-${{ matrix.target }}.vsix"
+          test -f "$VSIX"
+          node scripts/verify-vsix.mjs --vsix="$VSIX" --target=${{ matrix.target }}
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: altai-${{ matrix.target }}
+          path: altai-vscode/artifacts/*.vsix
+          if-no-files-found: error
+          retention-days: 14
