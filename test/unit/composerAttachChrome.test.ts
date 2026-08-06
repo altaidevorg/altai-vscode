@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   formatGitDiffSummary,
   formatTerminalAttachText,
+  buildDiffContextItem,
+  buildTerminalContextItem,
 } from "../../src/webview/composerAttachChrome.js";
 
 describe("formatGitDiffSummary", () => {
@@ -47,5 +49,43 @@ describe("formatTerminalAttachText", () => {
       "Active terminal cwd: /ws",
     );
     expect(formatTerminalAttachText({})).toBeNull();
+  });
+});
+
+describe("buildDiffContextItem", () => {
+  it("builds from patch", () => {
+    const item = buildDiffContextItem({
+      branch: "feat",
+      patch: "diff --git a/a b/a\n",
+    });
+    expect(item?.kind).toBe("diff");
+    expect(item?.name).toBe("diff · feat");
+    expect(item?.text).toContain("diff --git");
+  });
+
+  it("falls back to file status summary", () => {
+    const item = buildDiffContextItem({
+      files: [{ path: "x.ts", status: "M" }],
+    });
+    expect(item?.kind).toBe("diff");
+    expect(item?.text).toContain("x.ts");
+  });
+
+  it("returns null without content", () => {
+    expect(buildDiffContextItem(null)).toBeNull();
+    expect(buildDiffContextItem({ files: [] })).toBeNull();
+  });
+});
+
+describe("buildTerminalContextItem", () => {
+  it("builds from cwd", () => {
+    const item = buildTerminalContextItem({ cwd: "/proj/app" });
+    expect(item?.kind).toBe("terminal");
+    expect(item?.name).toBe("app");
+    expect(item?.text).toContain("/proj/app");
+  });
+
+  it("returns null without context", () => {
+    expect(buildTerminalContextItem({})).toBeNull();
   });
 });
