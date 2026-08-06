@@ -116,6 +116,17 @@ describe("tryRunSlashCommand", () => {
       action: "copy",
     });
   });
+
+  it("connects a provider", () => {
+    expect(tryRunSlashCommand("/connect")).toMatchObject({
+      kind: "handled",
+      action: "connect",
+    });
+    expect(tryRunSlashCommand("/provider")).toMatchObject({
+      kind: "handled",
+      action: "connect",
+    });
+  });
 });
 
 describe("formatSlashHelpDigest", () => {

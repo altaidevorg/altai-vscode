@@ -48,7 +48,8 @@ export type SlashHostAction =
   | "new-task"
   | "new-automation"
   | "version"
-  | "copy";
+  | "copy"
+  | "connect";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -105,6 +106,7 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "help", invocation: "/help", label: "Help", description: "List available slash commands.", aliases: ["commands", "?"], category: "settings", behavior: "action" },
   { name: "version", invocation: "/version", label: "Version compatibility", description: "Show extension and host protocol pin summary.", aliases: ["compat"], category: "settings", behavior: "action" },
   { name: "copy", invocation: "/copy", label: "Copy chat", description: "Copy the current transcript as plain text.", aliases: ["export"], category: "session", behavior: "action" },
+  { name: "connect", invocation: "/connect", label: "Connect provider", description: "Connect an AI provider credential via the Extension Host.", aliases: ["provider"], category: "settings", behavior: "action" },
   { name: "logs", invocation: "/logs", label: "Open logs", description: "Show the ALTAI output channel.", category: "settings", behavior: "action" },
   { name: "diagnostics", invocation: "/diagnostics", label: "Run diagnostics", description: "Write host diagnostics to the ALTAI log channel.", aliases: ["diag"], category: "settings", behavior: "action" },
   { name: "restart-host", invocation: "/restart-host", label: "Restart host", description: "Restart the ALTAI agent host process.", aliases: ["restart"], category: "settings", behavior: "action" },
@@ -266,6 +268,8 @@ function toastFor(name: string, tail: string): string | undefined {
       return "Showing version compatibility";
     case "copy":
       return undefined;
+    case "connect":
+      return "Opening provider connection";
     case "help":
       return undefined;
     default:

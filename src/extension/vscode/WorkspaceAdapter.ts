@@ -37,6 +37,7 @@ const ALTAI_RECOVERY_COMMANDS = new Set([
   "altai.runDiagnostics",
   "altai.restartAgentHost",
   "altai.showVersionCompatibility",
+  "altai.connectProvider",
   "workbench.action.manageWorkspaceTrust",
 ]);
 
