@@ -7,12 +7,20 @@
 import type { AgentEvent } from "@altai/host-contract";
 import type { ContextChip, TodoItem } from "@altai/agent-ui";
 import {
+  looksLikePath,
+  pathToFileUri,
+  toolBubbleContent,
+} from "@altai/agent-ui";
+import {
   isTodoToolName,
   parseTodoItemsFromInput,
   summarizeTodoItems,
 } from "./todoToolParse.js";
 
 export { isTodoToolName } from "./todoToolParse.js";
+
+/** Shared path / tool presentation helpers (Wave 4 / A6.16). */
+export { looksLikePath, pathToFileUri, toolBubbleContent } from "@altai/agent-ui";
 
 export type ChatDisplayRole =
   | "user"
@@ -209,44 +217,6 @@ export function extractToolFileTarget(payload: unknown): {
   };
 }
 
-export function looksLikePath(value: string): boolean {
-  if (!value.trim() || value.includes("\n") || value.length > 1024) {
-    return false;
-  }
-  if (value.startsWith("file:")) {
-    return true;
-  }
-  if (value.startsWith("/") || value.startsWith("./") || value.startsWith("../")) {
-    return true;
-  }
-  // Windows drive letter
-  return /^[A-Za-z]:[\\/]/.test(value);
-}
-
-/** Convert an absolute filesystem path to a file URI for openFile. */
-export function pathToFileUri(path: string): string {
-  if (path.startsWith("file:")) {
-    return path;
-  }
-  if (/^[A-Za-z]:[\\/]/.test(path)) {
-    return `file:///${path.replace(/\\/g, "/")}`;
-  }
-  const normalized = path.startsWith("/") ? path : `/${path}`;
-  return `file://${normalized}`;
-}
-
-export function toolBubbleContent(
-  name: string,
-  filePath?: string,
-): string {
-  if (filePath) {
-    const base = filePath.replace(/\\/g, "/").split("/").pop() || filePath;
-    return `Using ${name} · ${base}`;
-  }
-  return `Using ${name}…`;
-}
-
-/** Pull todo_write-style item lists from nested tool event payloads. */
 export function extractTodoToolItems(payload: unknown): TodoItem[] {
   if (!isRecord(payload)) {
     return [];
