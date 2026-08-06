@@ -118,6 +118,8 @@ sibling `file:` packages until public npm publish.
   chrome (capability-gated, no new secrets path).
 - Composer `/settings` (and `/models`, `/permissions`, `/mcp`, `/skills`) open
   the Settings surface.
+- Host wait shell surfaces diagnostic recovery hints (same copy as
+  `ALTAI: Run Diagnostics`) when `host.status` carries a diagnostic code.
 
 ### Security
 

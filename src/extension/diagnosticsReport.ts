@@ -7,6 +7,7 @@ import {
   HostDiagnosticCode,
   type HostDiagnostic,
 } from "./host/HostDiagnostics.js";
+import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
 
 export type CompatibilityPins = {
   extension: string;
@@ -43,24 +44,7 @@ export type DiagnosticsReportInput = {
 export function recoveryHintForDiagnostic(
   code: HostDiagnosticCode | string | undefined,
 ): string | undefined {
-  switch (code) {
-    case HostDiagnosticCode.Untrusted:
-      return "Trust this workspace (Workspace Trust) so ALTAI can start the native agent host.";
-    case HostDiagnosticCode.Missing:
-      return "Install a target VSIX with resources/native/<platform>/altai-agent-host, or set ALTAI_AGENT_HOST_PATH to an absolute altai-cli binary for local debug.";
-    case HostDiagnosticCode.Corrupt:
-      return "Reinstall the extension VSIX or replace the host binary; if a .sha256 sidecar is present it must match the binary.";
-    case HostDiagnosticCode.Incompatible:
-      return "Upgrade ALTAI or the native host so protocol majors match (see ALTAI: Show Version Compatibility).";
-    case HostDiagnosticCode.Crashed:
-      return "Open ALTAI logs, restart the agent host (ALTAI: Restart Agent Host), and retry. If crashes persist, reinstall the packaged host.";
-    case HostDiagnosticCode.FrameError:
-      return "Host stdio framing failed — restart the agent host. Report if it repeats after a clean restart.";
-    case HostDiagnosticCode.SpawnFailed:
-      return "The host process could not be spawned. Check execute permission, Remote extensionKind (workspace), and path validity.";
-    default:
-      return undefined;
-  }
+  return recoveryHintForDiagnosticCode(code);
 }
 
 /**
