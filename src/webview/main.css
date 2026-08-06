@@ -319,6 +319,78 @@ body {
   overflow: auto;
 }
 
+.altai-provider-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+}
+
+.altai-provider-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+
+.altai-provider-status-title {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.altai-provider-status-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.altai-provider-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.altai-provider-status-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.altai-provider-status-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.altai-provider-status-state {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+}
+
+.altai-provider-status-state.is-on {
+  color: var(--success);
+}
+
+.altai-provider-status-state.is-off {
+  color: var(--warning, var(--muted-foreground));
+}
+
+.altai-provider-status-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.25rem;
+}
+
 .altai-chat-actions button {
   border: 1px solid var(--border);
   border-radius: 0.35rem;

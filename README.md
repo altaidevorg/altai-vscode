@@ -37,6 +37,8 @@ settings + interactive.permissionModes capabilities are available, and
 forwards the mode on startRun. The composer also mounts a shared model
 picker (ComposerConfigTrigger + ModelOption) when models.list/select +
 settings.get are available, writing the default model via settings.update.
+When `settings.providerStatus` is available, Chat lists providers with Connect
+(Extension Host password prompt — secrets never enter the Webview) and Clear.
 Pending tool approvals and clarifications from
 host `run/event` streams render shared `AiToolApproval` /
 `ClarificationChoices` when interactive capabilities are available. Presentation
