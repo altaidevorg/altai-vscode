@@ -168,6 +168,8 @@ sibling `file:` packages until public npm publish.
   the selection deep-link (no `git` spawn).
 - Command palette **Open Settings** focuses the side panel on the Settings surface.
 - Keyboard shortcut Cmd/Ctrl+Alt+G runs **Ask About Working Tree**.
+- Command palette lists **Open Settings** (registered contribution) with
+  Cmd/Ctrl+Alt+, keybinding.
 
 ### Security
 
