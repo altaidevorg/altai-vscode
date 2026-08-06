@@ -14,4 +14,20 @@ describe("host recovery actions", () => {
     expect(isAltaiRecoveryCommand("altai.openLogs")).toBe(true);
     expect(isAltaiRecoveryCommand("workbench.action.quit")).toBe(false);
   });
+
+  it("prepends manage workspace trust when host is untrusted", () => {
+    expect(
+      listRecoveryActions({ diagnosticCode: "host.untrusted" }).map(
+        (a) => a.command,
+      ),
+    ).toEqual([
+      "workbench.action.manageWorkspaceTrust",
+      "altai.openLogs",
+      "altai.runDiagnostics",
+      "altai.restartAgentHost",
+    ]);
+    expect(isAltaiRecoveryCommand("workbench.action.manageWorkspaceTrust")).toBe(
+      true,
+    );
+  });
 });

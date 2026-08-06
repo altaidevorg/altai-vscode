@@ -607,6 +607,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               <ChatSettingsHub
                 extensionVersion={hostStatus.extensionVersion}
                 hostStatusLabel={hostStatus.status}
+                diagnosticCode={hostStatus.diagnosticCode}
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
                 }
@@ -1481,7 +1482,9 @@ function AgentUiShell({
           className="altai-ops-create-bar"
           style={{ padding: "0 1rem 0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
         >
-          {listRecoveryActions().map((action) => (
+          {listRecoveryActions({
+            diagnosticCode: hostStatus.diagnosticCode,
+          }).map((action) => (
             <SurfaceSecondaryAction
               key={action.command}
               type="button"

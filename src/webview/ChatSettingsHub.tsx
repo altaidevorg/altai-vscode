@@ -23,12 +23,14 @@ export { listSettingsHubSections } from "./settingsHubChrome.js";
 export type ChatSettingsHubProps = {
   extensionVersion?: string;
   hostStatusLabel?: string;
+  diagnosticCode?: string;
   requestWorkspace?: (method: string, params?: unknown) => Promise<unknown>;
 };
 
 export function ChatSettingsHub({
   extensionVersion,
   hostStatusLabel,
+  diagnosticCode,
   requestWorkspace,
 }: ChatSettingsHubProps) {
   const canProvider = useCapability("settings.providerStatus");
@@ -51,7 +53,7 @@ export function ChatSettingsHub({
     canMcp,
     canSkills,
   });
-  const recoveryActions = listRecoveryActions();
+  const recoveryActions = listRecoveryActions({ diagnosticCode });
 
   return (
     <section className="altai-settings-hub" aria-label="ALTAI settings">

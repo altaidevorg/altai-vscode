@@ -36,6 +36,7 @@ const ALTAI_RECOVERY_COMMANDS = new Set([
   "altai.openLogs",
   "altai.runDiagnostics",
   "altai.restartAgentHost",
+  "workbench.action.manageWorkspaceTrust",
 ]);
 
 export type ReviewUriFactory = (label: string, text: string) => vscode.Uri;
