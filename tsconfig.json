@@ -68,6 +68,7 @@
     "test/unit/composerAttachChrome.test.ts",
     "test/unit/composerSnippets.test.ts",
     "test/unit/composerAttachments.test.ts",
+    "test/unit/composerSubmitCompose.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
