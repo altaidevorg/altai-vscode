@@ -203,6 +203,8 @@ sibling `file:` packages until public npm publish.
 - VS Code setting `altai.agentHostPath` for absolute host path override
   (settings beat `ALTAI_AGENT_HOST_PATH`).
 - Host-missing recovery copy mentions `altai.agentHostPath`.
+- Host error status shows a toast with Run Diagnostics / Restart Host actions
+  (once per error entry).
 
 ### Security
 

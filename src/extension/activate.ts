@@ -14,6 +14,11 @@ import {
   onDidGrantWorkspaceTrust,
 } from "./workspaceTrust.js";
 import { shouldNotifyHostRecovered } from "../shared/hostStatusNotify.js";
+import {
+  hostErrorActionCommands,
+  HOST_ERROR_ACTION_LABELS,
+  shouldPromptHostErrorActions,
+} from "../shared/hostErrorActions.js";
 import type { HostStatusPayload } from "../shared/messages.js";
 
 let hostManager: HostManager | undefined;
@@ -48,7 +53,27 @@ export function activate(context: vscode.ExtensionContext): void {
     onStatus: (status) => {
       hostStatusBar.setStatus(status);
       provider?.publishHostStatus(status);
-      if (shouldNotifyHostRecovered(lastHostStatus, status.status)) {
+      if (shouldPromptHostErrorActions(lastHostStatus, status.status)) {
+        const actions = hostErrorActionCommands().map(
+          (command) => HOST_ERROR_ACTION_LABELS[command],
+        );
+        void vscode.window
+          .showErrorMessage(
+            status.message.trim() || "ALTAI agent host error",
+            ...actions,
+          )
+          .then((choice) => {
+            if (!choice) {
+              return;
+            }
+            for (const command of hostErrorActionCommands()) {
+              if (HOST_ERROR_ACTION_LABELS[command] === choice) {
+                void vscode.commands.executeCommand(command);
+                return;
+              }
+            }
+          });
+      } else if (shouldNotifyHostRecovered(lastHostStatus, status.status)) {
         void vscode.window.showInformationMessage(
           "ALTAI agent host is ready again.",
         );
