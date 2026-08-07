@@ -132,7 +132,7 @@ Legend: **G** green in Desktop product · **partial** VS Code has a slice · **m
 | @ / slash / snippets | G | Partial pickers | Shared pickers; workspace.search/read ports |
 | Compact context | G | ChatComposerCompact in tools | ok |
 | Connect / provider | G | Connect banner + Settings | Settings hub |
-| Agent switcher | G | weak/missing | ports.agents + AgentSwitcher extract |
+| Agent switcher | G | **composer agent profiles (0.1.x)** | keep freeze; full ports.agents extract later |
 | Send / Stop | icon / stop | **0.1.3 Desktop-style** | freeze chrome; extract AiInputBar next |
 | Permission toolbar icon | G | **toolbar-icon 0.1.3** | ok |
 | Footer MCP/skills strip | none (inspectors) | **removed 0.1.3** | Settings hub |
@@ -253,7 +253,8 @@ User-visible:
 3. ~~Shared `AiComposer` in agent-ui + VS Code mount~~ (**0.1.4**); Desktop `AiInputBar` still host-logic shell (same visual slots).
 4. ~~Settings depth: compaction via `config/update` + Settings hub~~ (**0.1.4** / `altai-cli`)
 5. **Freeze rule:** no new `Chat*Chrome` composer features — expand host ports or package only.
-6. **Next extract:** ports-first `useComposer` + Desktop picker adapters → package; then full `AiSidePanel`.
+6. ~~Shared `AiComposer` re-export + Desktop mount path~~ (**altai-app** main; Desktop `AiInputBar` adopt in follow-up PR).
+7. **Next extract:** ports-first `useComposer` + Desktop picker adapters → package; then full `AiSidePanel`.
 
 ## 9. Risks
 
