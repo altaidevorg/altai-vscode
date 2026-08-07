@@ -34,7 +34,7 @@ ALTAI Desktop.
 
 ## Phased delivery
 
-### P0 — Stop VS Code bleeding (done / this PR)
+### P0 — Stop VS Code bleeding (**landed** 2026-08-07, PR #208)
 
 | Item | Repo | Notes |
 |---|---|---|
@@ -42,13 +42,13 @@ ALTAI Desktop.
 | Humanize host error codes | vscode | `journal_unavailable`, `unsupported_config_patch`, … |
 | CSS container query for wide secondary sidebar | vscode | Side-by-side only ≥ 36rem |
 
-### P1 — Shared layout primitive (next)
+### P1 — Shared layout primitive (**AgentChatLayout landed** — altai-app #408)
 
 | Item | Repo | Acceptance |
 |---|---|---|
-| Export `AgentChatLayout` (slots: history, main, footer) with `density: "sidebar" \| "desktop"` | agent-ui | Unit + a11y smoke |
-| Desktop `AiSidePanel` uses layout for history\|main split only | altai-app | Desktop tests green |
-| VS Code `AgentUiShell` uses same layout component | vscode | No local rail CSS fork |
+| Export `AgentChatLayout` (slots: history, main) with `density: "sidebar" \| "desktop"` | agent-ui | Unit test ✓ |
+| VS Code mounts `AgentChatLayout` | vscode | PR #208 ✓ |
+| Desktop `AiSidePanel` history\|main migrate off ad-hoc markup where resizable allows | altai-app | **next** |
 
 ### P2 — Port-backed session surface
 
