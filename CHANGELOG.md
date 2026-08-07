@@ -192,6 +192,7 @@ sibling `file:` packages until public npm publish.
 - Composer draft persistence is debounced (empty drafts still flush
   immediately).
 - Integrated terminal context menu: **Ask About Terminal**.
+- Shared `formatGitDiffSummary` for Extension Host + Webview attach paths.
 
 ### Security
 
