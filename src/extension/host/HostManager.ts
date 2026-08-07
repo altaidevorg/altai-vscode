@@ -100,6 +100,11 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
     return this.resolvedPath;
   }
 
+  /** Last workspace root used for `--workspace` (if any). */
+  getLastSpawnedWorkspaceRoot(): string | undefined {
+    return this.lastSpawnedWorkspaceRoot;
+  }
+
   getCapabilities(): readonly string[] {
     return this.capabilities.list();
   }

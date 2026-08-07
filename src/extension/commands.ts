@@ -124,6 +124,7 @@ export function registerCommands(
           status: status.status,
           message: status.message,
           diagnostic: hostManager.getLastDiagnostic(),
+          workspaceRoot: hostManager.getLastSpawnedWorkspaceRoot(),
         },
       });
       for (const line of lines) {

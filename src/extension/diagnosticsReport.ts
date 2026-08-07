@@ -30,6 +30,8 @@ export type DiagnosticsHostSnapshot = {
   status: string;
   message: string;
   diagnostic: HostDiagnostic | undefined;
+  /** Effective --workspace path preferred or first folder. */
+  workspaceRoot?: string | undefined;
 };
 
 export type DiagnosticsReportInput = {
@@ -71,6 +73,7 @@ export function formatDiagnosticsReport(
   }
 
   lines.push(
+    `  workspaceRoot=${host.workspaceRoot ?? "(none)"}`,
     `  resolvedPath=${host.resolvedPath ?? "(none)"}`,
     `  lifecycle=${host.lifecycle}`,
     `  diagnosticCode=${host.diagnostic?.code ?? "(none)"}`,

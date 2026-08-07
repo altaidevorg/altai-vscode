@@ -244,6 +244,7 @@ sibling `file:` packages until public npm publish.
   automatic same-root restarts).
 - `altai.agentHostPath` and workspace-folder changes also force-restart so root
   skip cannot leave a stale binary/process.
+- Diagnostics report includes the last host `--workspace` root.
 
 ### Security
 
