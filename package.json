@@ -93,12 +93,14 @@
       {
         "command": "altai.askAboutActiveFile",
         "title": "ALTAI: Ask About Active File",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(file-code)"
       },
       {
         "command": "altai.askAboutWorkingTree",
         "title": "ALTAI: Ask About Working Tree",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(git-compare)"
       },
       {
         "command": "altai.askAboutTerminal",
@@ -222,6 +224,25 @@
           "command": "altai.askAboutActiveFile",
           "group": "altai@1",
           "when": "resourceScheme != untitled && workspaceFolderCount > 0"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "altai.askAboutActiveFile",
+          "group": "navigation@90",
+          "when": "resourceScheme != untitled && resourceScheme != output && workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutWorkingTree",
+          "group": "navigation@91",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "altai.askAboutWorkingTree",
+          "group": "navigation@90",
+          "when": "workspaceFolderCount > 0"
         }
       ],
       "terminal/context": [
