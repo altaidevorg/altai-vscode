@@ -253,8 +253,9 @@ User-visible:
 3. ~~Shared `AiComposer` in agent-ui + VS Code mount~~ (**0.1.4**); Desktop `AiInputBar` still host-logic shell (same visual slots).
 4. ~~Settings depth: compaction via `config/update` + Settings hub~~ (**0.1.4** / `altai-cli`)
 5. **Freeze rule:** no new `Chat*Chrome` composer features — expand host ports or package only.
-6. ~~Shared `AiComposer` re-export + Desktop mount path~~ (**altai-app** main; Desktop `AiInputBar` adopt in follow-up PR).
-7. **Next extract:** ports-first `useComposer` + Desktop picker adapters → package; then full `AiSidePanel`.
+6. ~~Shared `AiComposer` re-export + Desktop mount path~~ (**altai-app** main).
+7. ~~`AiSidePanelFrame` + layout breakpoints + composer availability~~ (agent-ui A6.20–23; VS Code mounts frame).
+8. **Next extract:** ports-first `useComposer` + Desktop picker adapters → package; then full `AiSidePanel` body cutover.
 
 ## 9. Risks
 
