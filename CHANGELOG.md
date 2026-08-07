@@ -12,6 +12,9 @@ sibling `file:` packages until public npm publish.
 
 ### Added
 
+- Ask About * menus/keybindings require a trusted workspace; untrusted attempts offer Manage Workspace Trust.
+- Workspace-wide Ask About Problems scopes diagnostics to the preferred multi-root project root when set.
+
 - Thin VS Code host with trust-gated native agent host lifecycle over stdio.
 - Capability-gated Chat surface: sessions, permission mode, model picker,
   provider status (Connect/Clear via Extension Host secret prompt), interactive

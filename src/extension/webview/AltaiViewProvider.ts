@@ -45,6 +45,7 @@ import { WebviewBridge } from "./WebviewBridge.js";
 import { getWebviewHtml } from "./webviewHtml.js";
 import type { WorkspaceAdapter } from "../vscode/WorkspaceAdapter.js";
 import { parseAttentionReportParams } from "../../shared/attention.js";
+import { includeUriInWorkspaceProblemsAttach } from "../../shared/workspaceTrustAttach.js";
 
 const MAX_RUN_ATTACHMENTS = 4;
 const MAX_RUN_ATTACHMENT_BYTES = 1_500_000;
@@ -259,7 +260,30 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  /**
+   * Context attach (Ask About *) requires a trusted workspace before host
+   * materializes workspace bytes / attachments.
+   */
+  private async ensureTrustedForContextAttach(): Promise<boolean> {
+    if (vscode.workspace.isTrusted) {
+      return true;
+    }
+    const pick = await vscode.window.showWarningMessage(
+      "This workspace is not trusted. Trust it before ALTAI can attach editor context.",
+      "Manage Workspace Trust",
+    );
+    if (pick === "Manage Workspace Trust") {
+      await vscode.commands.executeCommand(
+        "workbench.action.manageWorkspaceTrust",
+      );
+    }
+    return false;
+  }
+
   public async openChatWithSelection(): Promise<void> {
+    if (!(await this.ensureTrustedForContextAttach())) {
+      return;
+    }
     let selection: {
       uri: string;
       path: string;
@@ -309,6 +333,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
    * resource) as selection-style context.
    */
   public async openChatWithProblems(resource?: vscode.Uri): Promise<void> {
+    if (!(await this.ensureTrustedForContextAttach())) {
+      return;
+    }
     const target =
       resource ??
       vscode.window.activeTextEditor?.document.uri;
@@ -345,8 +372,29 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       const all = vscode.languages.getDiagnostics();
       const bundles = [];
       let primaryUri: vscode.Uri | undefined;
+      const preferredFs =
+        this.workspaceAdapter.getPreferredHostRootFsPath();
+      const preferredFolder = preferredFs
+        ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(preferredFs))
+        : undefined;
+      const preferredFolderUri = preferredFolder?.uri.toString();
+      let skippedOutsidePreferred = false;
       for (const [uri, diagnostics] of all) {
-        if (!vscode.workspace.getWorkspaceFolder(uri)) {
+        const folder = vscode.workspace.getWorkspaceFolder(uri);
+        if (!folder) {
+          continue;
+        }
+        if (
+          !includeUriInWorkspaceProblemsAttach({
+            uriFolderUri: folder.uri.toString(),
+            ...(preferredFolderUri
+              ? { preferredFolderUri }
+              : {}),
+          })
+        ) {
+          if (diagnostics.length > 0) {
+            skippedOutsidePreferred = true;
+          }
           continue;
         }
         if (diagnostics.length === 0) {
@@ -372,7 +420,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       text = formatProblemsBundles(bundles);
       if (!text || !primaryUri) {
         await vscode.window.showInformationMessage(
-          "No workspace Problems to attach. Open a file with diagnostics, or fix the workspace Issues list.",
+          skippedOutsidePreferred && preferredFolder
+            ? `No Problems under preferred project root “${preferredFolder.name}”. Pick another root (ALTAI: Pick Project Root) or open a file with diagnostics.`
+            : "No workspace Problems to attach. Open a file with diagnostics, or fix the workspace Issues list.",
         );
         return;
       }
@@ -410,6 +460,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     resource?: vscode.Uri,
     selectedResources?: vscode.Uri[],
   ): Promise<void> {
+    if (!(await this.ensureTrustedForContextAttach())) {
+      return;
+    }
     const candidates: vscode.Uri[] = [];
     if (Array.isArray(selectedResources) && selectedResources.length > 0) {
       candidates.push(...selectedResources);
@@ -499,6 +552,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   public async openChatWithTerminal(
     resource?: vscode.Terminal,
   ): Promise<void> {
+    if (!(await this.ensureTrustedForContextAttach())) {
+      return;
+    }
     if (resource) {
       this.workspaceAdapter.setPreferredTerminal(resource);
     }
@@ -570,6 +626,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   public async openChatWithWorkingTree(
     resource?: vscode.Uri,
   ): Promise<void> {
+    if (!(await this.ensureTrustedForContextAttach())) {
+      return;
+    }
     if (resource) {
       this.workspaceAdapter.setPreferredGitUri(resource);
     }
