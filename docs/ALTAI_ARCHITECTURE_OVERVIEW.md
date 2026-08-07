@@ -239,7 +239,10 @@ The extension is an **internal-channel (0.1.0)** thin VS Code host:
   slash `/extension-settings` for host path;
 - Host re-reads the first workspace folder on each start and restarts when
   folders change (empty window → Open Folder without Reload Window);
-  `host.no_workspace` diagnostic distinct from generic spawn failures;
+  preferred multi-root host root persists in workspaceState before spawn;
+  `host.no_workspace` and `host.virtual_workspace` diagnostics with recovery;
+  connecting window progress; Copy Diagnostics command; multi-file and
+  multi-cursor attach; editor/SCM title Ask About; files/search.exclude honors;
 - OpenAI Compatible connect prompts for http(s) base URL before the API key;
 - packaging audit, single-target VSIX tooling, fixture package CI, secret and
   license scans, CHANGELOG / RELEASE gates;
