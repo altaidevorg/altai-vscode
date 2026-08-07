@@ -30,8 +30,8 @@ export function registerCommands(
     }),
     vscode.commands.registerCommand(
       "altai.askAboutActiveFile",
-      async (resource?: vscode.Uri) => {
-        await provider.openChatWithActiveFile(resource);
+      async (resource?: vscode.Uri, selectedResources?: vscode.Uri[]) => {
+        await provider.openChatWithActiveFile(resource, selectedResources);
       },
     ),
     vscode.commands.registerCommand(
