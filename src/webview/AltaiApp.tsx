@@ -1444,6 +1444,11 @@ function AgentUiShell({
           command: "altai.copyDiagnosticsReport",
         });
         break;
+      case "attach-problems":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.askAboutProblems",
+        });
+        break;
       case "attach-diff": {
         if (!canGitDiff) {
           setMessages((prev) =>

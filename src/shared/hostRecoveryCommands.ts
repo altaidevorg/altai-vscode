@@ -1,6 +1,7 @@
 /**
  * Allowlisted recovery / diagnostic commands the Webview may invoke via
  * WorkspaceAdapter.executeAltaiCommand. Shared by Extension Host + wait shell.
+ * Also includes a small set of context deep-links used by slash commands.
  */
 
 export const ALTAI_RECOVERY_COMMANDS = [
@@ -13,6 +14,7 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.clearProviderCredential",
   "altai.openWalkthrough",
   "altai.openExtensionSettings",
+  "altai.askAboutProblems",
   "workbench.action.manageWorkspaceTrust",
   "workbench.action.files.openFolder",
 ] as const;

@@ -57,7 +57,8 @@ export type SlashHostAction =
   | "attach-selection"
   | "walkthrough"
   | "extension-settings"
-  | "copy-diag";
+  | "copy-diag"
+  | "attach-problems";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -119,6 +120,7 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "walkthrough", invocation: "/walkthrough", label: "Getting started", description: "Open the ALTAI Getting Started walkthrough.", aliases: ["intro", "getting-started"], category: "settings", behavior: "action" },
   { name: "extension-settings", invocation: "/extension-settings", label: "Extension settings", description: "Open VS Code settings filtered to ALTAI (host path, etc.).", aliases: ["ext-settings", "host-path"], category: "settings", behavior: "action" },
   { name: "copy-diag", invocation: "/copy-diag", label: "Copy diagnostics", description: "Copy the ALTAI diagnostics report to the clipboard.", aliases: ["copy-diagnostics"], category: "settings", behavior: "action" },
+  { name: "attach-problems", invocation: "/attach-problems", label: "Attach problems", description: "Attach Problems for the active file as composer context.", aliases: ["problems", "errors"], category: "workspace", behavior: "action" },
   { name: "attach-diff", invocation: "/attach-diff", label: "Attach working tree", description: "Attach the git working-tree summary to the composer.", aliases: ["diff-attach", "wt"], category: "workspace", behavior: "action" },
   { name: "attach-terminal", invocation: "/attach-terminal", label: "Attach terminal", description: "Attach active terminal context to the composer.", aliases: ["terminal", "tty"], category: "workspace", behavior: "action" },
   { name: "attach-file", invocation: "/attach-file", label: "Attach active file", description: "Attach the active editor file URI to the composer.", aliases: ["file", "active-file"], category: "workspace", behavior: "action" },
@@ -294,6 +296,8 @@ function toastFor(name: string, tail: string): string | undefined {
       return "Opening ALTAI extension settings";
     case "copy-diag":
       return "Copying diagnostics report";
+    case "attach-problems":
+      return "Attaching file problems";
     case "attach-diff":
       return undefined;
     case "attach-terminal":
