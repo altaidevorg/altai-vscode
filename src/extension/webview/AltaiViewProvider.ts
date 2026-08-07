@@ -63,7 +63,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   /** Queued until the Webview bridge is ready (first panel open). */
   private pendingSelectionAttach: OpenChatWithSelectionPayload | undefined;
   /** Queued until the Webview bridge is ready (first panel open). */
-  private pendingFileAttach: OpenChatWithFilePayload | undefined;
+  private pendingFileAttach: OpenChatWithFilePayload | OpenChatWithFilePayload[] | undefined;
   /** Queued until the Webview bridge is ready (first panel open). */
   private pendingSettingsOpen: OpenSettingsPayload | undefined;
   private attentionCount = 0;
@@ -174,7 +174,12 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       this.pendingSelectionAttach = undefined;
     }
     if (this.pendingFileAttach) {
-      bridge.postEvent(OPEN_CHAT_WITH_FILE_EVENT, this.pendingFileAttach);
+      const files = Array.isArray(this.pendingFileAttach)
+        ? this.pendingFileAttach
+        : [this.pendingFileAttach];
+      for (const payload of files) {
+        bridge.postEvent(OPEN_CHAT_WITH_FILE_EVENT, payload);
+      }
       this.pendingFileAttach = undefined;
     }
     if (this.pendingSettingsOpen) {
@@ -267,25 +272,42 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Capture a workspace file URI (explorer selection or active editor), open Chat,
-   * and attach it as a file chip (contents stay on host until run/start).
+   * Capture workspace file URI(s) (explorer multi-select or active editor), open Chat,
+   * and attach as file chip(s) (contents stay on host until run/start).
+   * Caps at MAX_RUN_ATTACHMENTS.
    */
-  public async openChatWithActiveFile(resource?: vscode.Uri): Promise<void> {
-    let file: { uri: string; path: string } | null = null;
-    if (resource) {
-      const folder = vscode.workspace.getWorkspaceFolder(resource);
-      if (folder) {
-        try {
-          const stat = await vscode.workspace.fs.stat(resource);
-          if (stat.type === vscode.FileType.File) {
-            file = { uri: resource.toString(), path: resource.fsPath };
-          }
-        } catch {
-          // fall through to active editor
+  public async openChatWithActiveFile(
+    resource?: vscode.Uri,
+    selectedResources?: vscode.Uri[],
+  ): Promise<void> {
+    const candidates: vscode.Uri[] = [];
+    if (Array.isArray(selectedResources) && selectedResources.length > 0) {
+      candidates.push(...selectedResources);
+    } else if (resource) {
+      candidates.push(resource);
+    }
+
+    const files: { uri: string; path: string }[] = [];
+    for (const candidate of candidates) {
+      if (files.length >= MAX_RUN_ATTACHMENTS) {
+        break;
+      }
+      const folder = vscode.workspace.getWorkspaceFolder(candidate);
+      if (!folder) {
+        continue;
+      }
+      try {
+        const stat = await vscode.workspace.fs.stat(candidate);
+        if (stat.type === vscode.FileType.File) {
+          files.push({ uri: candidate.toString(), path: candidate.fsPath });
         }
+      } catch {
+        // skip unreadable entries
       }
     }
-    if (!file) {
+
+    if (files.length === 0) {
+      let file: { uri: string; path: string } | null = null;
       try {
         file = (await this.workspaceAdapter.request("getActiveFile")) as {
           uri: string;
@@ -299,29 +321,45 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
         );
         return;
       }
+      if (file) {
+        files.push(file);
+      }
     }
-    if (!file) {
+
+    if (files.length === 0) {
       await vscode.window.showInformationMessage(
-        "Select a workspace file (not a folder), then run ALTAI: Ask About Active File.",
+        "Select workspace file(s) (not folders), then run ALTAI: Ask About Active File.",
       );
       return;
     }
-    const payload = buildOpenChatWithFilePayload({
-      uri: file.uri,
-      path: file.path,
-    });
-    if (!payload) {
+
+    const payloads: OpenChatWithFilePayload[] = [];
+    const baseKey = Date.now();
+    for (const [index, file] of files.entries()) {
+      const payload = buildOpenChatWithFilePayload({
+        uri: file.uri,
+        path: file.path,
+        key: baseKey + index,
+      });
+      if (payload) {
+        payloads.push(payload);
+      }
+    }
+    if (payloads.length === 0) {
       await vscode.window.showInformationMessage(
         "Select a workspace file, then run ALTAI: Ask About Active File.",
       );
       return;
     }
+
     await vscode.commands.executeCommand("altai.sidePanel.focus");
     if (this.bridge && !this.bridge.isDisposed) {
-      this.bridge.postEvent(OPEN_CHAT_WITH_FILE_EVENT, payload);
+      for (const payload of payloads) {
+        this.bridge.postEvent(OPEN_CHAT_WITH_FILE_EVENT, payload);
+      }
       return;
     }
-    this.pendingFileAttach = payload;
+    this.pendingFileAttach = payloads.length === 1 ? payloads[0]! : payloads;
   }
 
   /**
