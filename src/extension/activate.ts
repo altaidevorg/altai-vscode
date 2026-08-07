@@ -17,6 +17,7 @@ import {
 import { shouldNotifyHostRecovered } from "../shared/hostStatusNotify.js";
 import {
   hostErrorActionCommands,
+  hostRecoveredActionCommands,
   HOST_ERROR_ACTION_LABELS,
   shouldPromptHostErrorActions,
 } from "../shared/hostErrorActions.js";
@@ -55,7 +56,12 @@ export function activate(context: vscode.ExtensionContext): void {
       hostStatusBar.setStatus(status);
       provider?.publishHostStatus(status);
       if (shouldPromptHostErrorActions(lastHostStatus, status.status)) {
-        const actions = hostErrorActionCommands().map(
+        const commands = hostErrorActionCommands({
+          ...(status.diagnosticCode
+            ? { diagnosticCode: status.diagnosticCode }
+            : {}),
+        });
+        const actions = commands.map(
           (command) => HOST_ERROR_ACTION_LABELS[command],
         );
         void vscode.window
@@ -67,7 +73,7 @@ export function activate(context: vscode.ExtensionContext): void {
             if (!choice) {
               return;
             }
-            for (const command of hostErrorActionCommands()) {
+            for (const command of commands) {
               if (HOST_ERROR_ACTION_LABELS[command] === choice) {
                 void vscode.commands.executeCommand(command);
                 return;
@@ -75,9 +81,26 @@ export function activate(context: vscode.ExtensionContext): void {
             }
           });
       } else if (shouldNotifyHostRecovered(lastHostStatus, status.status)) {
-        void vscode.window.showInformationMessage(
-          "ALTAI agent host is ready again.",
+        const recoverCommands = hostRecoveredActionCommands();
+        const recoverActions = recoverCommands.map(
+          (command) => HOST_ERROR_ACTION_LABELS[command],
         );
+        void vscode.window
+          .showInformationMessage(
+            "ALTAI agent host is ready again.",
+            ...recoverActions,
+          )
+          .then((choice) => {
+            if (!choice) {
+              return;
+            }
+            for (const command of recoverCommands) {
+              if (HOST_ERROR_ACTION_LABELS[command] === choice) {
+                void vscode.commands.executeCommand(command);
+                return;
+              }
+            }
+          });
       }
       lastHostStatus = status.status;
     },

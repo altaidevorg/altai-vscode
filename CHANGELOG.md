@@ -222,6 +222,8 @@ sibling `file:` packages until public npm publish.
 - **Run Diagnostics** toast offers Copy report and Open logs actions.
 - Side-panel title icons plus Inbox / Logs / Restart / Get started overflow;
   walkthrough completion events + optional host-path step.
+- Host error/recovery toasts pick actions from diagnostic code (Trust / Host
+  path / Open ALTAI).
 
 ### Security
 

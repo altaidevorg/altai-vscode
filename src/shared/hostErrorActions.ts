@@ -4,11 +4,19 @@
 
 import type { HostLifecycleStatus } from "./hostStatusNotify.js";
 
-export type HostErrorAction = "altai.runDiagnostics" | "altai.restartAgentHost";
+export type HostErrorAction =
+  | "altai.runDiagnostics"
+  | "altai.restartAgentHost"
+  | "workbench.action.manageWorkspaceTrust"
+  | "altai.openExtensionSettings"
+  | "altai.openSidePanel";
 
 export const HOST_ERROR_ACTION_LABELS: Record<HostErrorAction, string> = {
   "altai.runDiagnostics": "Run Diagnostics",
   "altai.restartAgentHost": "Restart Host",
+  "workbench.action.manageWorkspaceTrust": "Manage Trust",
+  "altai.openExtensionSettings": "Host Path Settings",
+  "altai.openSidePanel": "Open ALTAI",
 };
 
 /**
@@ -21,6 +29,25 @@ export function shouldPromptHostErrorActions(
   return next === "error" && previous !== "error";
 }
 
-export function hostErrorActionCommands(): readonly HostErrorAction[] {
+/**
+ * Choose a short list of real Extension Host / VS Code commands for the toast.
+ */
+export function hostErrorActionCommands(input?: {
+  diagnosticCode?: string;
+}): readonly HostErrorAction[] {
+  const code = input?.diagnosticCode?.trim() ?? "";
+  if (code === "host.untrusted") {
+    return [
+      "workbench.action.manageWorkspaceTrust",
+      "altai.runDiagnostics",
+    ];
+  }
+  if (code === "host.missing") {
+    return ["altai.openExtensionSettings", "altai.runDiagnostics"];
+  }
   return ["altai.runDiagnostics", "altai.restartAgentHost"];
+}
+
+export function hostRecoveredActionCommands(): readonly HostErrorAction[] {
+  return ["altai.openSidePanel"];
 }
