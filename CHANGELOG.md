@@ -231,13 +231,11 @@ sibling `file:` packages until public npm publish.
   Diagnostics); disconnected-with-diagnostic uses the same recovery command.
 - Composer slash `/extension-settings` (`/host-path`) opens ALTAI extension
   settings.
-- One-shot Getting Started walkthrough on first activate (`altai.openWalkthroughOnInstall`).
 - No open folder yields `host.no_workspace` with Open Folder recovery (toast,
   status bar, wait shell).
 - Host re-reads the first workspace folder on each start and restarts when
   folders change (empty window → open folder without reloading the window).
-- Architecture overview + feature matrix note first-activate walkthrough and
-  dynamic workspace root recovery.
+- Architecture overview + feature matrix note dynamic workspace root recovery.
 - Project chip preferred folder also drives native-host `--workspace` (restart
   only when the root actually changes).
 - Palette **Restart Agent Host** always force-restarts (skip applies only to
@@ -269,6 +267,12 @@ sibling `file:` packages until public npm publish.
 - Composer slash `/attach-problems` (`/errors`) runs Ask About Problems.
 - Composer slash `/pick-root` runs Pick Project Root.
 - README shortcuts mention Problems, Pick Project Root, and Copy Diagnostics.
+
+### Changed
+
+- No auto-open Getting Started on first activate; walkthrough remains opt-in
+  via command, `/walkthrough`, panel, and recovery (VS Code AI plugin, not app
+  installer UX). Removed `altai.openWalkthroughOnInstall`.
 
 ### Security
 

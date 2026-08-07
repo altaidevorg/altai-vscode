@@ -235,7 +235,7 @@ The extension is an **internal-channel (0.1.0)** thin VS Code host:
   and recovery deep-links; slash attach helpers for composer context chips;
   multi-root project chip preference also prefers git working-tree attach;
 - Getting Started walkthrough (command, slash `/walkthrough`, recovery Get
-  started, one-shot on first activation via `altai.openWalkthroughOnInstall`);
+  started; opt-in via command only — no auto-open on install);
   slash `/extension-settings` for host path;
 - Host re-reads the first workspace folder on each start and restarts when
   folders change (empty window → Open Folder without Reload Window);

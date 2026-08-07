@@ -453,12 +453,6 @@
           "default": "",
           "scope": "window",
           "markdownDescription": "Absolute path to the ALTAI agent host / `altai-cli` executable override for local development. Takes precedence over `ALTAI_AGENT_HOST_PATH`. Leave empty to use the packaged native host when present."
-        },
-        "altai.openWalkthroughOnInstall": {
-          "type": "boolean",
-          "default": true,
-          "scope": "application",
-          "description": "Open the Getting Started walkthrough once the first time ALTAI activates in this environment."
         }
       }
     },
