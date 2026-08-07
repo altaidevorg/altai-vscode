@@ -557,7 +557,8 @@
     "build:native-host": "node scripts/build-and-stage-host.mjs",
     "publish:pre-release": "node -e \"console.error('Use: npx vsce publish --packagePath <vsix> --pre-release (requires VSCE_PAT)'); process.exit(1)\"",
     "watch": "node scripts/build-extension.mjs --watch & node scripts/build-webview.mjs --watch",
-    "vscode:prepublish": "npm run build"
+    "vscode:prepublish": "npm run build",
+    "dev:extension": "bash scripts/dev-run-extension.sh"
   },
   "dependencies": {
     "@altai/agent-ui": "file:../altai-app-main/packages/agent-ui",
