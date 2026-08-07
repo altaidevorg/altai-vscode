@@ -249,6 +249,8 @@ sibling `file:` packages until public npm publish.
   first host start; `getWorkspace().currentDir` follows that preference.
 - **ALTAI: Copy Diagnostics Report** (palette, recovery, `/copy-diag`) copies
   the report via Extension Host clipboard.
+- Composer `@file` / workspace search honors VS Code `files.exclude` and
+  `search.exclude` (plus `.git` / `node_modules`).
 
 ### Security
 
