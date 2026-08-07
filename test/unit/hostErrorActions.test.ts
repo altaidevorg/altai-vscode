@@ -34,6 +34,9 @@ describe("host error action toast policy", () => {
     expect(hostErrorActionCommands({ diagnosticCode: "host.missing" })).toEqual(
       ["altai.openExtensionSettings", "altai.runDiagnostics"],
     );
+    expect(
+      hostErrorActionCommands({ diagnosticCode: "host.no_workspace" }),
+    ).toEqual(["workbench.action.files.openFolder", "altai.runDiagnostics"]);
   });
 
   it("offers Open ALTAI after recovery", () => {

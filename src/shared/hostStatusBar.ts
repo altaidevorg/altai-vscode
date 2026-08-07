@@ -30,6 +30,12 @@ function actionForDiagnostic(code: string | undefined): {
       actionLabel: "Host Path Settings",
     };
   }
+  if (normalized === "host.no_workspace") {
+    return {
+      command: "workbench.action.files.openFolder",
+      actionLabel: "Open Folder",
+    };
+  }
   return {
     command: "altai.runDiagnostics",
     actionLabel: "Run Diagnostics",

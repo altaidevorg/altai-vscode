@@ -7,6 +7,9 @@ describe("recoveryHintForDiagnosticCode", () => {
     expect(recoveryHintForDiagnosticCode("host.missing")).toMatch(
       /ALTAI_AGENT_HOST_PATH|VSIX/,
     );
+    expect(recoveryHintForDiagnosticCode("host.no_workspace")).toMatch(
+      /workspace folder/i,
+    );
     expect(recoveryHintForDiagnosticCode("nope")).toBeUndefined();
   });
 });

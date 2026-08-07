@@ -110,6 +110,24 @@ describe("HostManager", () => {
     expect(manager.getStatus().diagnosticCode).toBe(HostDiagnosticCode.Untrusted);
   });
 
+  it("reports no workspace folder", async () => {
+    const manager = new HostManager({
+      extensionPath: "/tmp/ext",
+      workspaceRoot: undefined,
+      isTrusted: () => true,
+      extensionVersion: "0.1.0",
+      processFactory: mockProcessFactory(),
+      env: { [AGENT_HOST_PATH_ENV]: createFakeBinary() },
+    });
+    managers.push(manager);
+
+    await manager.start();
+    expect(manager.getLifecycleState()).toBe("Error");
+    expect(manager.getLastDiagnostic()?.code).toBe(
+      HostDiagnosticCode.NoWorkspace,
+    );
+  });
+
   it("reports missing binary", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext-missing",

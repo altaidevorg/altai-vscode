@@ -133,7 +133,7 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
     }
     if (!this.options.workspaceRoot) {
       this.fail({
-        code: HostDiagnosticCode.SpawnFailed,
+        code: HostDiagnosticCode.NoWorkspace,
         message: "No workspace folder open for the agent host",
       });
       return;

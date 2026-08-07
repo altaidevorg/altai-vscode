@@ -232,6 +232,8 @@ sibling `file:` packages until public npm publish.
 - Composer slash `/extension-settings` (`/host-path`) opens ALTAI extension
   settings.
 - One-shot Getting Started walkthrough on first activate (`altai.openWalkthroughOnInstall`).
+- No open folder yields `host.no_workspace` with Open Folder recovery (toast,
+  status bar, wait shell).
 
 ### Security
 
