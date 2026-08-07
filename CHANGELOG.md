@@ -197,6 +197,7 @@ sibling `file:` packages until public npm publish.
 - Explorer **Ask About Active File** only targets files (not folders).
 - ALTAI side-panel view title actions: Open Settings, Open Operations, Run
   Diagnostics.
+- Keyboard shortcut Cmd/Ctrl+Shift+Alt+R restarts the agent host.
 
 ### Security
 
