@@ -51,6 +51,7 @@ describe("package.json command contributions", () => {
     expect(keybound.has("altai.runDiagnostics")).toBe(true);
     expect(keybound.has("altai.openOperations")).toBe(true);
     expect(keybound.has("altai.restartAgentHost")).toBe(true);
+    expect(keybound.has("altai.openOperationsInbox")).toBe(true);
   });
 
   it("keeps package contributes.commands in sync with registerCommands", () => {
@@ -74,6 +75,10 @@ describe("package.json command contributions", () => {
     ).toBe(true);
     expect(
       explorer.some((entry) => entry.command === "altai.askAboutWorkingTree"),
+    ).toBe(true);
+    const scm = manifest.contributes?.menus?.["scm/resourceState/context"] ?? [];
+    expect(
+      scm.some((entry) => entry.command === "altai.askAboutActiveFile"),
     ).toBe(true);
     const terminal = manifest.contributes?.menus?.["terminal/context"] ?? [];
     expect(

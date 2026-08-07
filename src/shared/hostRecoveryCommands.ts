@@ -11,6 +11,7 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.connectProvider",
   "altai.clearProviderCredential",
   "altai.openWalkthrough",
+  "altai.openExtensionSettings",
   "workbench.action.manageWorkspaceTrust",
 ] as const;
 
@@ -40,6 +41,12 @@ export function listRecoveryActions(input?: {
     actions.push({
       command: "workbench.action.manageWorkspaceTrust",
       label: "Manage workspace trust",
+    });
+  }
+  if (input?.diagnosticCode === "host.missing") {
+    actions.push({
+      command: "altai.openExtensionSettings",
+      label: "Host path settings",
     });
   }
   actions.push(

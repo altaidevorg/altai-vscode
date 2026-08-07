@@ -49,6 +49,12 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.openSettings", async () => {
       await provider.openSettings();
     }),
+    vscode.commands.registerCommand("altai.openExtensionSettings", async () => {
+      await vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        "@ext:altaidevorg.altai",
+      );
+    }),
     vscode.commands.registerCommand("altai.openOperations", async () => {
       await provider.openOperations({ view: "overview" });
     }),

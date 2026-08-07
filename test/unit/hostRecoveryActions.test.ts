@@ -40,4 +40,10 @@ describe("host recovery actions", () => {
       "altai.openWalkthrough",
     ]);
   });
+
+  it("surfaces host path settings when host binary is missing", () => {
+    expect(
+      listRecoveryActions({ diagnosticCode: "host.missing" })[0]?.command,
+    ).toBe("altai.openExtensionSettings");
+  });
 });
