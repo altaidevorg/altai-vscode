@@ -36,6 +36,12 @@ function actionForDiagnostic(code: string | undefined): {
       actionLabel: "Open Folder",
     };
   }
+  if (normalized === "host.virtual_workspace") {
+    return {
+      command: "workbench.action.files.openFolder",
+      actionLabel: "Open Folder",
+    };
+  }
   return {
     command: "altai.runDiagnostics",
     actionLabel: "Run Diagnostics",

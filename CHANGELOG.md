@@ -252,6 +252,8 @@ sibling `file:` packages until public npm publish.
 - Composer `@file` / workspace search honors VS Code `files.exclude` and
   `search.exclude` (plus `.git` / `node_modules`).
 - Editor title and SCM title actions for Ask About Active File / Working Tree.
+- Virtual-only workspaces (vscode-vfs / vscode.dev) fail with
+  `host.virtual_workspace` and Open Folder recovery.
 
 ### Security
 

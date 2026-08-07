@@ -23,6 +23,8 @@ export function recoveryHintForDiagnosticCode(
       return "The host process could not be spawned. Check execute permission, Remote extensionKind (workspace), and path validity.";
     case "host.no_workspace":
       return "Open a workspace folder so ALTAI can start the native agent host with a project root.";
+    case "host.virtual_workspace":
+      return "Open a local or remote machine folder (SSH/WSL/Container). Pure virtual / vscode.dev workspaces cannot run the native agent host.";
     default:
       return undefined;
   }

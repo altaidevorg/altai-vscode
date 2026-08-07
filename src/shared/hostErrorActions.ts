@@ -50,6 +50,9 @@ export function hostErrorActionCommands(input?: {
   if (code === "host.no_workspace") {
     return ["workbench.action.files.openFolder", "altai.runDiagnostics"];
   }
+  if (code === "host.virtual_workspace") {
+    return ["workbench.action.files.openFolder", "altai.runDiagnostics"];
+  }
   return ["altai.runDiagnostics", "altai.restartAgentHost"];
 }
 

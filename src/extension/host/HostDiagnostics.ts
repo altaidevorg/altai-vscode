@@ -12,6 +12,7 @@ export const HostDiagnosticCode = {
   FrameError: "host.frame_error",
   SpawnFailed: "host.spawn_failed",
   NoWorkspace: "host.no_workspace",
+  VirtualWorkspace: "host.virtual_workspace",
 } as const;
 
 export type HostDiagnosticCode =
