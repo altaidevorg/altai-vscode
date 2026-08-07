@@ -263,6 +263,7 @@ sibling `file:` packages until public npm publish.
   file as selection context.
 - Problems panel context menu and workspace-wide Problems attach (when no file
   is focused) with multi-file caps.
+- Keybinding Cmd/Ctrl+Alt+P for Ask About Problems.
 - **ALTAI: Pick Project Root** sets multi-root preferred host folder (palette /
   explorer folder context).
 - Composer `@file` search scopes to the preferred host project root when set.
