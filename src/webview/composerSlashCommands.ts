@@ -56,7 +56,8 @@ export type SlashHostAction =
   | "attach-file"
   | "attach-selection"
   | "walkthrough"
-  | "extension-settings";
+  | "extension-settings"
+  | "copy-diag";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -117,6 +118,7 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "disconnect", invocation: "/disconnect", label: "Clear credential", description: "Remove a stored provider credential via the Extension Host.", aliases: ["clear-credential"], category: "settings", behavior: "action" },
   { name: "walkthrough", invocation: "/walkthrough", label: "Getting started", description: "Open the ALTAI Getting Started walkthrough.", aliases: ["intro", "getting-started"], category: "settings", behavior: "action" },
   { name: "extension-settings", invocation: "/extension-settings", label: "Extension settings", description: "Open VS Code settings filtered to ALTAI (host path, etc.).", aliases: ["ext-settings", "host-path"], category: "settings", behavior: "action" },
+  { name: "copy-diag", invocation: "/copy-diag", label: "Copy diagnostics", description: "Copy the ALTAI diagnostics report to the clipboard.", aliases: ["copy-diagnostics"], category: "settings", behavior: "action" },
   { name: "attach-diff", invocation: "/attach-diff", label: "Attach working tree", description: "Attach the git working-tree summary to the composer.", aliases: ["diff-attach", "wt"], category: "workspace", behavior: "action" },
   { name: "attach-terminal", invocation: "/attach-terminal", label: "Attach terminal", description: "Attach active terminal context to the composer.", aliases: ["terminal", "tty"], category: "workspace", behavior: "action" },
   { name: "attach-file", invocation: "/attach-file", label: "Attach active file", description: "Attach the active editor file URI to the composer.", aliases: ["file", "active-file"], category: "workspace", behavior: "action" },
@@ -290,6 +292,8 @@ function toastFor(name: string, tail: string): string | undefined {
       return "Opening Getting Started walkthrough";
     case "extension-settings":
       return "Opening ALTAI extension settings";
+    case "copy-diag":
+      return "Copying diagnostics report";
     case "attach-diff":
       return undefined;
     case "attach-terminal":

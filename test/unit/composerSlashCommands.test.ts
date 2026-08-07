@@ -157,6 +157,13 @@ describe("tryRunSlashCommand", () => {
     });
   });
 
+  it("copies diagnostics report", () => {
+    expect(tryRunSlashCommand("/copy-diag")).toMatchObject({
+      kind: "handled",
+      action: "copy-diag",
+    });
+  });
+
   it("attaches working tree and terminal context", () => {
     expect(tryRunSlashCommand("/attach-diff")).toMatchObject({
       kind: "handled",

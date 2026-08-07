@@ -108,43 +108,9 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.runDiagnostics", async () => {
       const channel = getOutputChannel();
       channel.show(true);
-      const status = hostManager.getStatus();
-      const lines = formatDiagnosticsReport({
-        compatibility: COMPATIBILITY,
-        env: {
-          workspaceTrusted: isWorkspaceTrusted(),
-          remoteName: vscode.env.remoteName,
-          appHost: vscode.env.appHost,
-          uiKind: vscode.env.uiKind,
-          extensionPath: context.extensionUri.fsPath,
-        },
-        host: {
-          lifecycle: hostManager.getLifecycleState(),
-          resolvedPath: hostManager.getResolvedPath(),
-          status: status.status,
-          message: status.message,
-          diagnostic: hostManager.getLastDiagnostic(),
-          workspaceRoot: hostManager.getLastSpawnedWorkspaceRoot(),
-        },
-      });
+      const lines = await buildDiagnosticsReportLines(context, hostManager);
       for (const line of lines) {
         channel.appendLine(line);
-      }
-      // Surface native host pin for alpha supportability.
-      try {
-        const pinUri = vscode.Uri.joinPath(
-          context.extensionUri,
-          "resources",
-          "native",
-          "PIN.json",
-        );
-        const pinBytes = await vscode.workspace.fs.readFile(pinUri);
-        const pinText = Buffer.from(pinBytes).toString("utf8");
-        channel.appendLine("  hostPin=" + pinText.replace(/\s+/g, " ").trim());
-        lines.push(`  hostPin=${pinText.replace(/\s+/g, " ").trim()}`);
-      } catch {
-        channel.appendLine("  hostPin=(missing)");
-        lines.push("  hostPin=(missing)");
       }
       const recovery = lines.find((line) => line.startsWith("  recovery="));
       const summary = recovery
@@ -163,6 +129,13 @@ export function registerCommands(
       } else if (choice === "Open logs") {
         channel.show(true);
       }
+    }),
+    vscode.commands.registerCommand("altai.copyDiagnosticsReport", async () => {
+      const lines = await buildDiagnosticsReportLines(context, hostManager);
+      await vscode.env.clipboard.writeText(lines.join("\n"));
+      await vscode.window.showInformationMessage(
+        "ALTAI diagnostics report copied to the clipboard.",
+      );
     }),
     vscode.commands.registerCommand("altai.showVersionCompatibility", async () => {
       await vscode.window.showInformationMessage(
@@ -216,3 +189,42 @@ const PROVIDERS = [
   { id: "openrouter", label: "OpenRouter" },
   { id: "openai-compatible", label: "OpenAI Compatible" },
 ] as const;
+
+async function buildDiagnosticsReportLines(
+  context: vscode.ExtensionContext,
+  hostManager: HostManager,
+): Promise<string[]> {
+  const status = hostManager.getStatus();
+  const lines = formatDiagnosticsReport({
+    compatibility: COMPATIBILITY,
+    env: {
+      workspaceTrusted: isWorkspaceTrusted(),
+      remoteName: vscode.env.remoteName,
+      appHost: vscode.env.appHost,
+      uiKind: vscode.env.uiKind,
+      extensionPath: context.extensionUri.fsPath,
+    },
+    host: {
+      lifecycle: hostManager.getLifecycleState(),
+      resolvedPath: hostManager.getResolvedPath(),
+      status: status.status,
+      message: status.message,
+      diagnostic: hostManager.getLastDiagnostic(),
+      workspaceRoot: hostManager.getLastSpawnedWorkspaceRoot(),
+    },
+  });
+  try {
+    const pinUri = vscode.Uri.joinPath(
+      context.extensionUri,
+      "resources",
+      "native",
+      "PIN.json",
+    );
+    const pinBytes = await vscode.workspace.fs.readFile(pinUri);
+    const pinText = Buffer.from(pinBytes).toString("utf8");
+    lines.push(`  hostPin=${pinText.replace(/\s+/g, " ").trim()}`);
+  } catch {
+    lines.push("  hostPin=(missing)");
+  }
+  return lines;
+}
