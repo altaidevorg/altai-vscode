@@ -257,6 +257,7 @@ sibling `file:` packages until public npm publish.
 - Multi-cursor editor selections join into one selection context attach.
 - Explorer multi-select Ask About Active File attaches up to four file chips.
 - Window progress “ALTAI agent host is starting…” while host status is connecting.
+- Command palette hides Ask About / Operations entries when no folder is open.
 
 ### Security
 

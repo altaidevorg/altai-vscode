@@ -294,6 +294,52 @@
           "group": "altai@1",
           "when": "scmResourceState & workspaceFolderCount > 0"
         }
+      ],
+      "commandPalette": [
+        {
+          "command": "altai.askAboutSelection",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutActiveFile",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutWorkingTree",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutTerminal",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.openOperations",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.openOperationsWork",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.openOperationsRuns",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.openOperationsNewTask",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.openOperationsNewAutomation",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.openOperationsInbox",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.openOperationsScheduled",
+          "when": "workspaceFolderCount > 0"
+        }
       ]
     },
     "keybindings": [
