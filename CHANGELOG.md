@@ -254,6 +254,7 @@ sibling `file:` packages until public npm publish.
 - Editor title and SCM title actions for Ask About Active File / Working Tree.
 - Virtual-only workspaces (vscode-vfs / vscode.dev) fail with
   `host.virtual_workspace` and Open Folder recovery.
+- Multi-cursor editor selections join into one selection context attach.
 
 ### Security
 
