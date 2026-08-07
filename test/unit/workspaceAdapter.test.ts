@@ -39,6 +39,13 @@ function createAdapter(isTrusted = true) {
     },
     window: {
       activeTextEditor: undefined,
+      activeTerminal: undefined as
+        | {
+            name: string;
+            creationOptions: Record<string, unknown>;
+            shellIntegration?: { cwd?: string | FakeUri };
+          }
+        | undefined,
       showTextDocument: vi.fn(async () => ({
         revealRange: vi.fn(),
       })),
@@ -212,5 +219,26 @@ describe("WorkspaceAdapter", () => {
         command: "altai.clearProviderCredential",
       }),
     ).resolves.toEqual({ ok: true });
+  });
+
+  it("returns terminal cwd when available, otherwise a named fallback", async () => {
+    const { adapter, api } = createAdapter();
+    await expect(adapter.request("getTerminalContext")).resolves.toBeNull();
+
+    api.window.activeTerminal = {
+      name: "zsh",
+      creationOptions: {},
+    };
+    await expect(adapter.request("getTerminalContext")).resolves.toEqual({
+      lastCommand: "Active terminal: zsh",
+    });
+
+    api.window.activeTerminal = {
+      name: "bash",
+      creationOptions: { cwd: "/workspace" },
+    };
+    await expect(adapter.request("getTerminalContext")).resolves.toEqual({
+      cwd: "/workspace",
+    });
   });
 });

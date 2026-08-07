@@ -280,11 +280,19 @@ export class WorkspaceAdapter {
     const configuredCwd =
       "cwd" in creationOptions ? creationOptions.cwd : undefined;
     const cwd = terminal.shellIntegration?.cwd ?? configuredCwd;
-    if (!cwd) {
+    if (cwd) {
+      return {
+        cwd: typeof cwd === "string" ? cwd : cwd.toString(),
+      };
+    }
+    // Fallback when shellIntegration has not reported a cwd yet: still attach
+    // a presentation-only label so Attach Terminal / Ask About Terminal work.
+    const name = typeof terminal.name === "string" ? terminal.name.trim() : "";
+    if (!name) {
       return null;
     }
     return {
-      cwd: typeof cwd === "string" ? cwd : cwd.toString(),
+      lastCommand: `Active terminal: ${name}`,
     };
   }
 
