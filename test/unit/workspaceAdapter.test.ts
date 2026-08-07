@@ -125,7 +125,7 @@ describe("WorkspaceAdapter", () => {
 
     expect(api.workspace.findFiles).toHaveBeenCalledWith(
       "**/*main*",
-      "**/{.git,node_modules}/**",
+      "{**/.git,**/node_modules}",
       100,
     );
   });
