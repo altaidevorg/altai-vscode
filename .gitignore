@@ -17,3 +17,6 @@ resources/native/*/altai-agent-host
 resources/native/*/altai-agent-host.exe
 resources/native/*/*.sha256
 
+# Local agent-host state (created by altai-cli against this workspace)
+.altai/
+.isanagent/
