@@ -236,6 +236,8 @@ sibling `file:` packages until public npm publish.
   status bar, wait shell).
 - Host re-reads the first workspace folder on each start and restarts when
   folders change (empty window → open folder without reloading the window).
+- Architecture overview + feature matrix note first-activate walkthrough and
+  dynamic workspace root recovery.
 
 ### Security
 

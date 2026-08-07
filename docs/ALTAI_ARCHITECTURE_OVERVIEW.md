@@ -226,16 +226,23 @@ The extension is an **internal-channel (0.1.0)** thin VS Code host:
   provider connect/clear (credentials stay in Extension Host);
 - Settings surface (provider, model, MCP, skills, About) plus allowlisted
   recovery actions (logs / diagnostics / restart / version; Manage Workspace
-  Trust when host is untrusted; Copy diagnostic);
-- Status-bar attention badge (Inbox when count > 0);
+  Trust when host is untrusted; Host path settings when binary missing;
+  Open folder when no workspace; Copy diagnostic);
+- Extension Host status bars: host lifecycle (click routes by diagnostic code —
+  Trust / Host path / Open folder / Diagnostics) and Operations attention
+  (Inbox when count > 0);
+- Command palette / Explorer / SCM / terminal context menus for Ask About *
+  and recovery deep-links; slash attach helpers for composer context chips;
+  multi-root project chip preference also prefers git working-tree attach;
+- Getting Started walkthrough (command, slash `/walkthrough`, recovery Get
+  started, one-shot on first activation via `altai.openWalkthroughOnInstall`);
+  slash `/extension-settings` for host path;
+- Host re-reads the first workspace folder on each start and restarts when
+  folders change (empty window → Open Folder without Reload Window);
+  `host.no_workspace` diagnostic distinct from generic spawn failures;
+- OpenAI Compatible connect prompts for http(s) base URL before the API key;
 - packaging audit, single-target VSIX tooling, fixture package CI, secret and
   license scans, CHANGELOG / RELEASE gates;
-- Extension Host status bar: host lifecycle (non-ready) and Operations
-  attention (Inbox when count > 0);
-- Command palette / Explorer / terminal context menus for Ask About * and
-  recovery deep-links; slash attach helpers for composer context chips;
-- Getting Started walkthrough (command, slash `/walkthrough`, recovery Get
-  started) for trust → open → connect → diagnostics.
 
 Remaining external gates for alpha+: signed native hosts per target, published
 shared npm packages, Remote e2e automation, deeper Desktop settings parity
