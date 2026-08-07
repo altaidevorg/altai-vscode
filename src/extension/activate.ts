@@ -42,9 +42,32 @@ export function activate(context: vscode.ExtensionContext): void {
   let provider: AltaiViewProvider | undefined;
   let lastHostStatus: HostStatusPayload["status"] | undefined;
 
+  const diffContentProvider = new DiffContentProvider(vscode);
+  diffContentProvider.register(context);
+  const gitDiffAdapter = new GitDiffAdapter(vscode);
+  const terminalTracker = new TerminalContextTracker(vscode);
+  context.subscriptions.push(terminalTracker);
+
+  let managerRef: HostManager | undefined;
+  const workspaceAdapter = new WorkspaceAdapter(
+    vscode,
+    () => isWorkspaceTrusted(),
+    (label, text) => diffContentProvider.createUri(label, text),
+    () => gitDiffAdapter.getDiffContext(),
+    terminalTracker,
+    gitDiffAdapter,
+    () => {
+      output.appendLine(
+        "[altai] preferred project root changed; restarting agent host if needed",
+      );
+      void managerRef?.restart();
+    },
+  );
+
   hostManager = new HostManager({
     extensionPath: context.extensionUri.fsPath,
     getWorkspaceRoot: () =>
+      workspaceAdapter.getPreferredHostRootFsPath() ??
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
     isTrusted: () => isWorkspaceTrusted(),
     onDidGrantTrust: (listener) => onDidGrantWorkspaceTrust(listener),
@@ -109,22 +132,9 @@ export function activate(context: vscode.ExtensionContext): void {
       lastHostStatus = status.status;
     },
   });
-
+  managerRef = hostManager;
   const manager = hostManager;
 
-  const diffContentProvider = new DiffContentProvider(vscode);
-  diffContentProvider.register(context);
-  const gitDiffAdapter = new GitDiffAdapter(vscode);
-  const terminalTracker = new TerminalContextTracker(vscode);
-  context.subscriptions.push(terminalTracker);
-  const workspaceAdapter = new WorkspaceAdapter(
-    vscode,
-    () => isWorkspaceTrusted(),
-    (label, text) => diffContentProvider.createUri(label, text),
-    () => gitDiffAdapter.getDiffContext(),
-    terminalTracker,
-    gitDiffAdapter,
-  );
   provider = new AltaiViewProvider(
     context,
     manager,

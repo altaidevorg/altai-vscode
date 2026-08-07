@@ -238,6 +238,8 @@ sibling `file:` packages until public npm publish.
   folders change (empty window → open folder without reloading the window).
 - Architecture overview + feature matrix note first-activate walkthrough and
   dynamic workspace root recovery.
+- Project chip preferred folder also drives native-host `--workspace` (restart
+  only when the root actually changes).
 
 ### Security
 
