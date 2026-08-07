@@ -83,6 +83,12 @@ function createAdapter(isTrusted = true) {
     },
     Selection: class {},
     TextEditorRevealType: { InCenterIfOutsideViewport: 0 },
+    RelativePattern: class {
+      constructor(
+        public base: unknown,
+        public pattern: string,
+      ) {}
+    },
     commands: { executeCommand },
     env: {
       openExternal: vi.fn(async () => true),
@@ -124,7 +130,9 @@ describe("WorkspaceAdapter", () => {
     ).resolves.toMatchObject({ text: "const a = 1;", truncated: false });
 
     expect(api.workspace.findFiles).toHaveBeenCalledWith(
-      "**/*main*",
+      expect.objectContaining({
+        pattern: "**/*main*",
+      }),
       "{**/.git,**/node_modules}",
       100,
     );

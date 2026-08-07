@@ -268,8 +268,22 @@ export class WorkspaceAdapter {
       ...(filesExclude ? { filesExclude } : {}),
       ...(searchExclude ? { searchExclude } : {}),
     });
+    const preferredPath = this.getPreferredHostRootFsPath();
+    const preferredFolder = preferredPath
+      ? (this.api.workspace.workspaceFolders ?? []).find(
+          (folder) => folder.uri.fsPath === preferredPath,
+        )
+      : undefined;
+    const scopeFolder =
+      preferredFolder ?? this.api.workspace.workspaceFolders?.[0];
+    const include = scopeFolder
+      ? new this.api.RelativePattern(
+          scopeFolder,
+          `**/*${escapeGlob(query)}*`,
+        )
+      : `**/*${escapeGlob(query)}*`;
     const candidates = await this.api.workspace.findFiles(
-      `**/*${escapeGlob(query)}*`,
+      include,
       exclude,
       MAX_SEARCH_RESULTS,
     );

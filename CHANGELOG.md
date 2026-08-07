@@ -265,6 +265,7 @@ sibling `file:` packages until public npm publish.
   file as selection context.
 - **ALTAI: Pick Project Root** sets multi-root preferred host folder (palette /
   explorer folder context).
+- Composer `@file` search scopes to the preferred host project root when set.
 
 ### Security
 
