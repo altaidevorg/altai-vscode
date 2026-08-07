@@ -97,7 +97,6 @@ import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
 import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
 import { ChatShellTopbar } from "./ChatShellTopbar.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
-import { ChatProjectTargetChrome } from "./ChatProjectTargetChrome.js";
 import { ChatMcpStatusChrome } from "./ChatMcpStatusChrome.js";
 import { ChatSkillsStatusChrome } from "./ChatSkillsStatusChrome.js";
 import { ChatChangeReviewPanel } from "./ChatChangeReviewPanel.js";
@@ -360,12 +359,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     [client, flushComposerDraft],
   );
 
-  const onPreferredRootUriChange = useCallback(
-    (uri: string | null) => {
-      patchPersistedState(client, { preferredRootUri: uri ?? "" });
-    },
-    [client],
-  );
 
   const openChatFromOperations = useCallback(
     (input: { chatId?: string; label?: string }) => {
@@ -732,10 +725,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                   client.getPersistedState().composerDraft ?? ""
                 }
                 onComposerDraftChange={onComposerDraftChange}
-                initialPreferredRootUri={
-                  client.getPersistedState().preferredRootUri ?? null
-                }
-                onPreferredRootUriChange={onPreferredRootUriChange}
               />
             </>
           )
@@ -767,10 +756,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               client.getPersistedState().composerDraft ?? ""
             }
             onComposerDraftChange={onComposerDraftChange}
-            initialPreferredRootUri={
-              client.getPersistedState().preferredRootUri ?? null
-            }
-            onPreferredRootUriChange={onPreferredRootUriChange}
           />
         )}
       </div>
@@ -795,8 +780,6 @@ function AgentUiShell({
   requestWorkspace,
   initialComposerDraft = "",
   onComposerDraftChange,
-  initialPreferredRootUri = null,
-  onPreferredRootUriChange,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
@@ -821,8 +804,6 @@ function AgentUiShell({
   /** Restored unsent composer text (presentation only). */
   initialComposerDraft?: string;
   onComposerDraftChange?: (draft: string) => void;
-  initialPreferredRootUri?: string | null;
-  onPreferredRootUriChange?: (uri: string | null) => void;
 }) {
   const ports = useHostPorts();
   const canInitialize = useCapability("runtime.initialize");
@@ -1885,21 +1866,21 @@ function AgentUiShell({
   return (
     <main className="altai-shell-body altai-shell-body--chat">
       <AgentChatLayout
-        density="auto"
-        history={
-          <ChatSessionList
-            activeChatId={activeChatId}
-            onFocusSession={(input) => {
-              if (input.chatId) {
-                rememberTab(input.chatId, input.label);
-              }
-              onFocusChat(input);
-            }}
-            refreshKey={sessionListKey}
-          />
-        }
+        density="sidebar"
         main={
           <>
+          <div className="altai-chat-toolbar">
+            <ChatSessionList
+              activeChatId={activeChatId}
+              onFocusSession={(input) => {
+                if (input.chatId) {
+                  rememberTab(input.chatId, input.label);
+                }
+                onFocusChat(input);
+              }}
+              refreshKey={sessionListKey}
+            />
+          </div>
           {openTabs.length > 0 ? (
             <ChatTabStrip
               tabs={openTabs}
@@ -2137,11 +2118,6 @@ function AgentUiShell({
           </div>
           <div className="altai-chat-composer-dock">
             <ChatProviderConnectBanner />
-            <ChatProjectTargetChrome
-              requestWorkspace={requestWorkspace}
-              initialPreferredRootUri={initialPreferredRootUri}
-              onPreferredRootUriChange={onPreferredRootUriChange}
-            />
             <form
               className="altai-chat-composer-form"
               onSubmit={(event) => {
@@ -2395,10 +2371,6 @@ function AgentUiShell({
             <ChatProviderStatusChrome />
             <ChatMcpStatusChrome />
             <ChatSkillsStatusChrome />
-            <p className="altai-shell-meta">
-              Extension {hostStatus.extensionVersion}
-              {activeChatId ? ` · chat ${activeChatId}` : ""}
-            </p>
           </div>
           </>
         }
