@@ -32,6 +32,7 @@ export type WorkspaceRequestMethod =
   | "pickWorkspaceFolder"
   | "getGitDiff"
   | "getTerminalContext"
+  | "setPreferredRootUri"
   | "executeAltaiCommand";
 
 export type ReviewUriFactory = (label: string, text: string) => vscode.Uri;
@@ -92,9 +93,34 @@ export class WorkspaceAdapter {
         return this.getGitDiffContext();
       case "getTerminalContext":
         return this.getTerminalContext();
+      case "setPreferredRootUri":
+        return this.setPreferredRootUri(readOptionalUri(params));
       default:
         throw codedError("method_not_found", `Unknown workspace method: ${method}`);
     }
+  }
+
+  /**
+   * Multi-root project chip: prefer this workspace folder for getGitDiff
+   * until another resource (Explorer/SCM) overrides the preferred git URI.
+   */
+  private setPreferredRootUri(
+    uriValue: string | undefined,
+  ): { ok: true } {
+    if (!uriValue) {
+      this.setPreferredGitUri(undefined);
+      return { ok: true };
+    }
+    const uri = this.parseWorkspaceUri(uriValue);
+    const folder = this.api.workspace.getWorkspaceFolder(uri);
+    if (!folder) {
+      throw codedError(
+        "invalid_uri",
+        "Preferred root must be an open workspace folder",
+      );
+    }
+    this.setPreferredGitUri(folder.uri);
+    return { ok: true };
   }
 
   private async executeAltaiCommand(command: string): Promise<{ ok: true }> {
@@ -371,6 +397,26 @@ function readAltaiCommandId(value: unknown): string {
 function readUri(value: unknown): string {
   if (!isRecord(value) || typeof value.uri !== "string") {
     throw codedError("invalid_params", "A workspace URI is required");
+  }
+  return value.uri;
+}
+
+/** Clears preferred root when `uri` is missing/empty; otherwise returns the string. */
+function readOptionalUri(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (!isRecord(value)) {
+    throw codedError(
+      "invalid_params",
+      "setPreferredRootUri requires an object params payload",
+    );
+  }
+  if (value.uri === undefined || value.uri === null || value.uri === "") {
+    return undefined;
+  }
+  if (typeof value.uri !== "string") {
+    throw codedError("invalid_params", "uri must be a string when provided");
   }
   return value.uri;
 }

@@ -225,6 +225,8 @@ sibling `file:` packages until public npm publish.
 - Host error/recovery toasts pick actions from diagnostic code (Trust / Host
   path / Open ALTAI).
 - README shortcut table for common keybindings.
+- Multi-root project chip preference also drives preferred git working-tree
+  target (until Explorer/SCM overrides).
 
 ### Security
 

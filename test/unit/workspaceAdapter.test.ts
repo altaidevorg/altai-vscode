@@ -20,6 +20,7 @@ function createAdapter(isTrusted = true) {
   const source = uri("/workspace/src/main.ts");
   const executeCommand = vi.fn(async () => undefined);
   const createReviewUri = vi.fn((label: string) => uri(`/review/${label}`));
+  const setPreferredTargetUri = vi.fn();
   const api = {
     workspace: {
       isTrusted,
@@ -89,9 +90,14 @@ function createAdapter(isTrusted = true) {
       () => isTrusted,
       createReviewUri as never,
       async () => ({ branch: "main", files: [{ path: "src/main.ts", status: "working-tree:1" }] }),
+      undefined,
+      {
+        setPreferredTargetUri,
+      } as never,
     ),
     api,
     createReviewUri,
+    setPreferredTargetUri,
   };
 }
 
@@ -186,6 +192,27 @@ describe("WorkspaceAdapter", () => {
       uri: "file:///workspace/pkg",
     });
     expect(api.window.showQuickPick).toHaveBeenCalled();
+  });
+
+  it("mirrors preferred project root to GitDiffAdapter", async () => {
+    const { adapter, setPreferredTargetUri } = createAdapter();
+    await expect(
+      adapter.request("setPreferredRootUri", { uri: "file:///workspace" }),
+    ).resolves.toEqual({ ok: true });
+    expect(setPreferredTargetUri).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "/workspace" }),
+    );
+    await expect(adapter.request("setPreferredRootUri", { uri: "" })).resolves.toEqual({
+      ok: true,
+    });
+    expect(setPreferredTargetUri).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("rejects preferred roots outside open folders", async () => {
+    const { adapter } = createAdapter();
+    await expect(
+      adapter.request("setPreferredRootUri", { uri: "file:///outside.txt" }),
+    ).rejects.toMatchObject({ code: "outside_workspace" });
   });
 
   it("runs allowlisted recovery commands without workspace trust", async () => {
