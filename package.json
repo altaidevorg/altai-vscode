@@ -75,6 +75,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.pickProjectRoot",
+        "title": "ALTAI: Pick Project Root",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.openSettings",
         "title": "ALTAI: Open Settings",
         "category": "ALTAI",
@@ -228,6 +233,11 @@
           "command": "altai.askAboutWorkingTree",
           "group": "altai@2",
           "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.pickProjectRoot",
+          "group": "altai@3",
+          "when": "explorerResourceIsFolder && workspaceFolderCount > 1"
         }
       ],
       "editor/title/context": [
@@ -317,6 +327,13 @@
         }
       ],
       "commandPalette": [
+        {
+          "command": "altai.openSidePanel"
+        },
+        {
+          "command": "altai.pickProjectRoot",
+          "when": "workspaceFolderCount > 1"
+        },
         {
           "command": "altai.askAboutSelection",
           "when": "workspaceFolderCount > 0"
