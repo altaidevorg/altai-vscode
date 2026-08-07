@@ -10,6 +10,7 @@ import {
 } from "@altai/agent-ui";
 import type { PermissionMode } from "@altai/host-contract";
 import { useCallback, useEffect, useState } from "react";
+import { formatHostUserError } from "../shared/hostUserError.js";
 import { canMountPermissionModeSwitcher } from "./permissionModeChrome.js";
 
 export type ChatPermissionModeChromeProps = {
@@ -57,7 +58,7 @@ export function ChatPermissionModeChrome({
         if (cancelled) {
           return;
         }
-        setError(err instanceof Error ? err.message : String(err));
+        setError(formatHostUserError(err));
         setReady(false);
         onModeChange?.(null);
       });
@@ -75,7 +76,7 @@ export function ChatPermissionModeChrome({
           setMode(applied);
           onModeChange?.(applied);
         } catch (err) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(formatHostUserError(err));
         }
       })();
     },

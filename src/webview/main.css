@@ -112,29 +112,111 @@ body {
   color: var(--muted-foreground);
 }
 
-/* —— Chat layout (Desktop-like: history rail + main) —— */
+/* —— Chat layout ——
+ * Activity Bar webviews are narrow (~240–360px). Desktop's side-by-side history
+ * rail collides with the main pane here — stack history above chat by default.
+ */
 .altai-chat-layout {
   display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
   gap: 0;
 }
 
+/* Side-by-side only when the webview is wide enough (secondary sidebar / panel). */
+@container altai-shell (min-width: 36rem) {
+  .altai-chat-layout {
+    flex-direction: row;
+  }
+
+  .altai-chat-history-rail {
+    width: 11.5rem;
+    min-width: 10rem;
+    max-width: 14rem;
+    max-height: none;
+    border-right: 1px solid var(--border-subtle);
+    border-bottom: none;
+  }
+
+  .altai-chat-history-rail--collapsed {
+    max-height: none;
+  }
+}
+
+.altai-shell-root {
+  container-type: inline-size;
+  container-name: altai-shell;
+}
+
 .altai-chat-history-rail {
   display: flex;
-  width: 11.5rem;
-  min-width: 10rem;
-  max-width: 14rem;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
   flex-shrink: 0;
+  max-height: min(40vh, 16rem);
   min-height: 0;
-  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
   background: color-mix(in srgb, var(--card) 55%, transparent);
 }
 
-.altai-chat-history-rail > * {
+.altai-chat-history-rail--collapsed {
+  max-height: none;
+}
+
+.altai-chat-history-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.altai-chat-history-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-height: 1.7rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.altai-chat-history-toolbar button:hover {
+  background: var(--accent);
+}
+
+.altai-chat-history-toolbar button.is-primary {
+  flex: 1;
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.altai-chat-history-body {
   flex: 1;
   min-height: 0;
+  overflow: auto;
+}
+
+.altai-chat-history-body > * {
+  min-height: 0;
   width: 100%;
+}
+
+.altai-chat-history-error {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--destructive);
 }
 
 .altai-chat-main {

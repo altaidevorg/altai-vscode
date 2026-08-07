@@ -10,6 +10,7 @@ import {
 } from "@altai/agent-ui";
 import type { ProviderStatus } from "@altai/host-contract";
 import { useCallback, useEffect, useState } from "react";
+import { formatHostUserError } from "../shared/hostUserError.js";
 import {
   canMountProviderStatus,
   firstConnectableProvider,
@@ -37,7 +38,7 @@ export function ChatProviderConnectBanner() {
       setProviders(next);
       setReady(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatHostUserError(err));
       setReady(false);
     }
   }, [ports, canShow]);
@@ -87,7 +88,7 @@ export function ChatProviderConnectBanner() {
               });
               await load();
             } catch (err) {
-              setError(err instanceof Error ? err.message : String(err));
+              setError(formatHostUserError(err));
             } finally {
               setBusy(false);
             }

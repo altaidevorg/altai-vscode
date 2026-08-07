@@ -72,6 +72,8 @@ See the [engineering plan](docs/ENGINEERING_PLAN.md) and
   responsibilities and the Desktop, VS Code, service, and IsanAgent data flow.
 - [Engineering plan](docs/ENGINEERING_PLAN.md) — implementation phases and
   non-negotiable architecture rules.
+- [Desktop chat UI parity](docs/DESKTOP_CHAT_PARITY.md) — extract `AiSidePanel`
+  and replace the VS Code composite shell.
 - [Protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md) — pinned extension,
   protocol, shared-package, and native-host versions.
 - [Feature matrix](docs/FEATURE_MATRIX.md) — internal channel surface status.
