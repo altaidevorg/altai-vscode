@@ -64,7 +64,7 @@ describe("package.json command contributions", () => {
       readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
     ) as {
       contributes?: {
-        menus?: Record<string, Array<{ command: string }>>;
+        menus?: Record<string, Array<{ command: string; when?: string }>>;
       };
     };
     const explorer = manifest.contributes?.menus?.["explorer/context"] ?? [];
@@ -77,6 +77,13 @@ describe("package.json command contributions", () => {
     const terminal = manifest.contributes?.menus?.["terminal/context"] ?? [];
     expect(
       terminal.some((entry) => entry.command === "altai.askAboutTerminal"),
+    ).toBe(true);
+    const viewTitle = manifest.contributes?.menus?.["view/title"] ?? [];
+    expect(
+      viewTitle.some((entry) => entry.command === "altai.openSettings"),
+    ).toBe(true);
+    expect(
+      viewTitle.some((entry) => entry.command === "altai.openOperations"),
     ).toBe(true);
   });
 });
