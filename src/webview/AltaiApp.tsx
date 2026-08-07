@@ -1,4 +1,5 @@
 import {
+  AgentChatLayout,
   ChatTabStrip,
   ComposerConfigRow,
   ComposerPrimaryRow,
@@ -182,6 +183,7 @@ import {
   type HostRpcTransport,
 } from "./host/createVsCodeHostPorts.js";
 import type { PermissionMode } from "@altai/host-contract";
+import { formatHostUserError } from "../shared/hostUserError.js";
 
 export type AltaiAppProps = {
   client: WebviewClient;
@@ -457,9 +459,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          const message =
-            error instanceof Error ? error.message : "Runtime initialize failed";
-          setInitError(message);
+          setInitError(
+            formatHostUserError(
+              error instanceof Error
+                ? error
+                : new Error("Runtime initialize failed"),
+            ),
+          );
           setCapabilities(null);
         }
       });
@@ -568,7 +574,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 
   return (
     <HostPortsProvider ports={ports} capabilities={capabilities}>
-      <div className="altai-shell">
+      <div className="altai-shell altai-shell-root">
         <SurfaceHeader
           title="ALTAI"
           subtitle={hostStatus.message}
@@ -1229,7 +1235,7 @@ function AgentUiShell({
           await dispatchSlashAction(outcome.action, outcome.tail, outcome.toast);
           setPrompt("");
         } catch (err) {
-          setError(err instanceof Error ? err.message : String(err));
+          setError(formatHostUserError(err));
         } finally {
           setBusy(false);
         }
@@ -1683,7 +1689,7 @@ function AgentUiShell({
         onFocusChat({ chatId: ref.chatId });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatHostUserError(err));
     } finally {
       setBusy(false);
     }
@@ -1701,7 +1707,7 @@ function AgentUiShell({
       setMessages((prev) => appendMetaMessage(prev, "Run cancelled"));
       setActiveRunId(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatHostUserError(err));
     }
   };
 
@@ -1754,7 +1760,7 @@ function AgentUiShell({
       setMessages((prev) => appendUserMessage(prev, text));
       setSessionListKey((key) => key + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatHostUserError(err));
     } finally {
       setEditingBusy(false);
     }
@@ -1777,7 +1783,7 @@ function AgentUiShell({
       setRunUsage(ZERO_RUN_USAGE);
       setMessages((prev) => appendMetaMessage(prev, "Retrying…"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(formatHostUserError(err));
     } finally {
       setBusy(false);
     }
@@ -1869,18 +1875,22 @@ function AgentUiShell({
 
   return (
     <main className="altai-shell-body altai-shell-body--chat">
-      <div className="altai-chat-layout">
-        <ChatSessionList
-          activeChatId={activeChatId}
-          onFocusSession={(input) => {
-            if (input.chatId) {
-              rememberTab(input.chatId, input.label);
-            }
-            onFocusChat(input);
-          }}
-          refreshKey={sessionListKey}
-        />
-        <div className="altai-chat-main">
+      <AgentChatLayout
+        density="sidebar"
+        history={
+          <ChatSessionList
+            activeChatId={activeChatId}
+            onFocusSession={(input) => {
+              if (input.chatId) {
+                rememberTab(input.chatId, input.label);
+              }
+              onFocusChat(input);
+            }}
+            refreshKey={sessionListKey}
+          />
+        }
+        main={
+          <>
           {openTabs.length > 0 ? (
             <ChatTabStrip
               tabs={openTabs}
@@ -2381,8 +2391,9 @@ function AgentUiShell({
               {activeChatId ? ` · chat ${activeChatId}` : ""}
             </p>
           </div>
-        </div>
-      </div>
+          </>
+        }
+      />
     </main>
   );
 }

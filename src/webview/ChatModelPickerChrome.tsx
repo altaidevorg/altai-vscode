@@ -12,6 +12,7 @@ import type { ModelInfo } from "@altai/host-contract";
 import { AiBookIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { formatHostUserError } from "../shared/hostUserError.js";
 import {
   AUTO_MODEL_ID,
   canMountModelPicker,
@@ -71,7 +72,7 @@ export function ChatModelPickerChrome({
         if (cancelled) {
           return;
         }
-        setError(err instanceof Error ? err.message : String(err));
+        setError(formatHostUserError(err));
         setReady(false);
         onModelChange?.(null);
       }
@@ -116,7 +117,7 @@ export function ChatModelPickerChrome({
         setOpen(false);
         setSearch("");
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        setError(formatHostUserError(err));
       }
     },
     [ports, onModelChange],

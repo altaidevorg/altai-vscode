@@ -43,6 +43,8 @@ Status for the ALTAI VS Code host against ENGINEERING_PLAN V4–V7 / TASK-012.
 | Live Remote SSH e2e against fleet | Y | checklist in RELEASE.md |
 | Signed host signatures beyond sha256 | Y | org signing pipeline |
 
+Chat visual/Desktop parity program: [DESKTOP_CHAT_PARITY.md](DESKTOP_CHAT_PARITY.md).
+
 For the sequenced program that turns remaining **Y** cells and host-side product
 gaps into green work, see [UNLOCK_PLAN.md](UNLOCK_PLAN.md).
 

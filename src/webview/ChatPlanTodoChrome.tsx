@@ -10,6 +10,7 @@ import {
 } from "@altai/agent-ui";
 import type { PermissionMode } from "@altai/host-contract";
 import { useState } from "react";
+import { formatHostUserError } from "../shared/hostUserError.js";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 import {
   isPlanPermissionMode,
@@ -75,7 +76,7 @@ export function ChatPlanTodoChrome({
         ...(target.filePath ? { path: target.filePath } : {}),
       })
       .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = formatHostUserError(err);
         setError(message);
         onOpenFileError?.(message);
       })
@@ -104,7 +105,7 @@ export function ChatPlanTodoChrome({
                 onModeChange?.(applied);
               })
               .catch((err: unknown) => {
-                setError(err instanceof Error ? err.message : String(err));
+                setError(formatHostUserError(err));
               })
               .finally(() => {
                 setBusy(false);
