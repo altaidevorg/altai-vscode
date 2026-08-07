@@ -189,6 +189,8 @@ sibling `file:` packages until public npm publish.
   erroring (errors open Run Diagnostics).
 - Explorer and editor-title context menus expose Ask About Active File /
   Working Tree; explorer resource URI is preferred when provided.
+- Composer draft persistence is debounced (empty drafts still flush
+  immediately).
 
 ### Security
 

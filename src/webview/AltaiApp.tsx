@@ -47,6 +47,10 @@ import {
   type PersistedWorkHubView,
   type PersistedWebviewState,
 } from "../shared/webviewState.js";
+import {
+  COMPOSER_DRAFT_DEBOUNCE_MS,
+  shouldPersistComposerDraftImmediately,
+} from "../shared/composerDraftPersist.js";
 import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
 import { formatDiagnosticClipboardText } from "./waitShellChrome.js";
@@ -309,11 +313,45 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     [client],
   );
 
+  const draftPersistTimer = useRef<number | null>(null);
+  const pendingDraft = useRef<string | null>(null);
+
+  const flushComposerDraft = useCallback(() => {
+    if (draftPersistTimer.current !== null) {
+      window.clearTimeout(draftPersistTimer.current);
+      draftPersistTimer.current = null;
+    }
+    if (pendingDraft.current !== null) {
+      patchPersistedState(client, { composerDraft: pendingDraft.current });
+      pendingDraft.current = null;
+    }
+  }, [client]);
+
+  useEffect(() => {
+    return () => {
+      flushComposerDraft();
+    };
+  }, [flushComposerDraft]);
+
   const onComposerDraftChange = useCallback(
     (draft: string) => {
-      patchPersistedState(client, { composerDraft: draft });
+      pendingDraft.current = draft;
+      if (shouldPersistComposerDraftImmediately(draft)) {
+        flushComposerDraft();
+        return;
+      }
+      if (draftPersistTimer.current !== null) {
+        window.clearTimeout(draftPersistTimer.current);
+      }
+      draftPersistTimer.current = window.setTimeout(() => {
+        draftPersistTimer.current = null;
+        if (pendingDraft.current !== null) {
+          patchPersistedState(client, { composerDraft: pendingDraft.current });
+          pendingDraft.current = null;
+        }
+      }, COMPOSER_DRAFT_DEBOUNCE_MS);
     },
-    [client],
+    [client, flushComposerDraft],
   );
 
   const onPreferredRootUriChange = useCallback(
