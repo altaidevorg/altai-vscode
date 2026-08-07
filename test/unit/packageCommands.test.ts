@@ -140,4 +140,23 @@ describe("package.json command contributions", () => {
     );
     expect(commands.has("altai.openWalkthrough")).toBe(true);
   });
+
+  it("hides Ask About / Ops palette items when no folder is open", () => {
+    const manifest = JSON.parse(
+      readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    ) as {
+      contributes?: {
+        menus?: Record<string, Array<{ command: string; when?: string }>>;
+      };
+    };
+    const palette = manifest.contributes?.menus?.commandPalette ?? [];
+    for (const id of [
+      "altai.askAboutSelection",
+      "altai.askAboutActiveFile",
+      "altai.openOperations",
+    ]) {
+      const entry = palette.find((item) => item.command === id);
+      expect(entry?.when, id).toContain("workspaceFolderCount > 0");
+    }
+  });
 });
