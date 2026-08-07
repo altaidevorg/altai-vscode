@@ -37,6 +37,19 @@ export function ChatProjectTargetChrome({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const pushPreferredRootToHost = useCallback(
+    async (uri: string | null) => {
+      try {
+        await requestWorkspace("setPreferredRootUri", {
+          uri: uri ?? "",
+        });
+      } catch {
+        // Non-fatal: git attach still falls back to active editor / first dirty repo.
+      }
+    },
+    [requestWorkspace],
+  );
+
   const load = useCallback(async () => {
     if (!canShow) {
       setTarget(projectTargetFromWorkspace(null));
@@ -51,10 +64,17 @@ export function ChatProjectTargetChrome({
       }
       setTarget(projectTargetFromWorkspace(info, next));
       setError(null);
+      await pushPreferredRootToHost(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [ports, canShow, preferredRootUri, onPreferredRootUriChange]);
+  }, [
+    ports,
+    canShow,
+    preferredRootUri,
+    onPreferredRootUriChange,
+    pushPreferredRootToHost,
+  ]);
 
   useEffect(() => {
     void load();
@@ -94,6 +114,7 @@ export function ChatProjectTargetChrome({
                   const uri = (picked as { uri: string }).uri;
                   setPreferredRootUri(uri);
                   onPreferredRootUriChange?.(uri);
+                  await pushPreferredRootToHost(uri);
                   const info = await ports.workspace.getWorkspace();
                   setTarget(projectTargetFromWorkspace(info, uri));
                   rootUri = uri;
