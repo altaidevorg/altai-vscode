@@ -161,7 +161,7 @@ function validateExecutableCandidate(
         code: HostDiagnosticCode.Missing,
         message:
           options.sourceLabel === "packaged"
-            ? "Packaged ALTAI agent host binary not found. For local debug, set ALTAI_AGENT_HOST_PATH to an absolute altai-cli binary (see .vscode/launch.json)."
+            ? "Packaged ALTAI agent host binary not found. For local debug, set altai.agentHostPath or ALTAI_AGENT_HOST_PATH to an absolute altai-cli binary (see .vscode/launch.json)."
             : "ALTAI agent host binary not found",
         details:
           options.sourceLabel === AGENT_HOST_PATH_ENV

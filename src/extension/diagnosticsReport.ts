@@ -91,7 +91,7 @@ export function formatDiagnosticsReport(
     );
   } else if (host.lifecycle === "Error" || host.status === "error") {
     lines.push(
-      "  recovery=Open ALTAI: Open Logs and ALTAI: Restart Agent Host. If the host is missing, reinstall a target VSIX or set ALTAI_AGENT_HOST_PATH.",
+      "  recovery=Open ALTAI: Open Logs and ALTAI: Restart Agent Host. If the host is missing, reinstall a target VSIX, set altai.agentHostPath, or set ALTAI_AGENT_HOST_PATH.",
     );
   } else if (host.lifecycle === "Ready") {
     lines.push("  recovery=(none) host is ready");
