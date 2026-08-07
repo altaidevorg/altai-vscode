@@ -103,6 +103,9 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       extensionUri: this.context.extensionUri,
       nonce,
     });
+    getOutputChannel().appendLine(
+      `[altai] webview loaded from ${this.context.extensionUri.fsPath}`,
+    );
 
     const bridge = new WebviewBridge(webview, {
       onInvalidMessage: () => {

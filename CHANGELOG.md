@@ -12,6 +12,7 @@ sibling `file:` packages until public npm publish.
 
 ### Added
 
+- Force-reload webview when hidden; log extension root; `npm run` helper script for Extension Development Host path.
 - VS Code host chrome: no project-folder chip, no extension/chat-id footer; session history is a History menu (not a side rail).
 - Visual polish: ALTAI lime brand accent (Desktop tokens), compact Ready header, segmented Chat/Operations tabs.
 - Chat layout density auto (sidebar/desktop by width); host error and config patch follow-ups from Desktop parity P2.

@@ -42,7 +42,7 @@ export function buildWebviewHtmlDocument(
   </style>
 </head>
 <body>
-  <div id="root" role="main" aria-label="ALTAI"></div>
+  <div id="root" role="main" aria-label="ALTAI" data-altai-ui="history-menu"></div>
   <script type="module" nonce="${nonce}" src="${scriptSrc}"></script>
 </body>
 </html>`;

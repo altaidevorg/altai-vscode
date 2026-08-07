@@ -35,6 +35,12 @@ export function activate(context: vscode.ExtensionContext): void {
   output.appendLine(
     `[altai] activating extension v${context.extension.packageJSON.version as string}`,
   );
+  output.appendLine(
+    `[altai] extension root: ${context.extensionUri.fsPath}`,
+  );
+  output.appendLine(
+    `[altai] ui build expected: history-menu (no side history rail; no project chip; no Extension×chat footer)`,
+  );
 
   const attentionBar = new AttentionStatusBar();
   const hostStatusBar = new HostStatusBar();
@@ -201,7 +207,11 @@ export function activate(context: vscode.ExtensionContext): void {
   // Persist presentation state via vscodeApi getState/setState (TASK-003).
   // Do not retain hidden Webview contexts.
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(AltaiViewProvider.viewType, provider),
+    vscode.window.registerWebviewViewProvider(AltaiViewProvider.viewType, provider, {
+      // Destroy webview when hidden so a rebuild loads fresh HTML/JS after
+      // reopening ALTAI (avoids stale Extension Development Host shell).
+      webviewOptions: { retainContextWhenHidden: false },
+    }),
     {
       dispose: () => {
         void hostManager?.shutdown();
