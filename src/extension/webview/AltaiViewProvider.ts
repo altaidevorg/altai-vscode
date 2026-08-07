@@ -271,7 +271,14 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     if (resource) {
       const folder = vscode.workspace.getWorkspaceFolder(resource);
       if (folder) {
-        file = { uri: resource.toString(), path: resource.fsPath };
+        try {
+          const stat = await vscode.workspace.fs.stat(resource);
+          if (stat.type === vscode.FileType.File) {
+            file = { uri: resource.toString(), path: resource.fsPath };
+          }
+        } catch {
+          // fall through to active editor
+        }
       }
     }
     if (!file) {
@@ -291,7 +298,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     }
     if (!file) {
       await vscode.window.showInformationMessage(
-        "Open or select a workspace file, then run ALTAI: Ask About Active File.",
+        "Select a workspace file (not a folder), then run ALTAI: Ask About Active File.",
       );
       return;
     }
@@ -301,7 +308,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     });
     if (!payload) {
       await vscode.window.showInformationMessage(
-        "Open or select a workspace file, then run ALTAI: Ask About Active File.",
+        "Select a workspace file, then run ALTAI: Ask About Active File.",
       );
       return;
     }

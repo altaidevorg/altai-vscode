@@ -194,6 +194,7 @@ sibling `file:` packages until public npm publish.
 - Integrated terminal context menu: **Ask About Terminal**.
 - Shared `formatGitDiffSummary` for Extension Host + Webview attach paths.
 - README / architecture / feature matrix note host and attention status bars.
+- Explorer **Ask About Active File** only targets files (not folders).
 
 ### Security
 
