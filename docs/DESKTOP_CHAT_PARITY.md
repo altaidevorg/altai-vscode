@@ -74,6 +74,7 @@ Order (keep each PR reviewable):
 
 ### P4 — Visual + behavior gates
 
+- VS Code inherits Desktop lime primary accent (2026-08-07 polish)
 - Pixel baselines Desktop light/dark (existing tooling).
 - VS Code webview screenshot smoke at 320px and 560px width.
 - Capability matrix: same controls hidden/disabled when host deferred.
