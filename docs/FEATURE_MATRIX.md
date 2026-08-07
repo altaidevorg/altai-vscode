@@ -16,6 +16,7 @@ Status for the ALTAI VS Code host against ENGINEERING_PLAN V4–V7 / TASK-012.
 | Capability-gated Chat + Operations | G | |
 | Diagnostics + recovery + PIN dump | G | host status bar + wait shell |
 | Command palette / menu deep-links | G | Ask About *, Settings, Ops, recovery |
+| Getting Started walkthrough | G | trust / open / connect / diagnostics |
 | Remote `extensionKind: workspace` | G | |
 | Host pin (`PIN.json` + COMPATIBILITY) | G | `verify:host-pin` |
 | Stage / build native host scripts | G | `stage:native-host`, `build:native-host` |
