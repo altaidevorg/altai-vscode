@@ -12,6 +12,7 @@ import type {
 import type * as vscode from "vscode";
 import { isAltaiRecoveryCommand } from "../../shared/hostRecoveryCommands.js";
 import { searchExcludeGlobFromSettings } from "../../shared/searchExcludeGlobs.js";
+import { joinSelectionTexts } from "../../shared/selectionJoin.js";
 import type { TerminalContextTracker } from "./TerminalContextTracker.js";
 import type { GitDiffAdapter } from "./GitDiffAdapter.js";
 
@@ -224,8 +225,20 @@ export class WorkspaceAdapter {
     if (!editor || !this.isWorkspaceUri(editor.document.uri)) {
       return null;
     }
-    const text = editor.document.getText(editor.selection);
-    if (text.length > MAX_SELECTION_CHARACTERS) {
+    const selections = (editor.selections ?? [editor.selection]).map(
+      (selection) => ({
+        startLine: selection.start.line,
+        startCharacter: selection.start.character,
+        endLine: selection.end.line,
+        endCharacter: selection.end.character,
+        text: editor.document.getText(selection),
+      }),
+    );
+    const joined = joinSelectionTexts(selections);
+    if (!joined) {
+      return null;
+    }
+    if (joined.text.length > MAX_SELECTION_CHARACTERS) {
       throw codedError(
         "selection_too_large",
         `Selection exceeds the ${MAX_SELECTION_CHARACTERS}-character limit`,
@@ -233,8 +246,8 @@ export class WorkspaceAdapter {
     }
     return {
       ...fileContext(editor.document),
-      range: toTextRange(editor.selection),
-      text,
+      range: joined.range,
+      text: joined.text,
     };
   }
 
