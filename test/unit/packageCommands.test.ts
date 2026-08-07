@@ -74,5 +74,9 @@ describe("package.json command contributions", () => {
     expect(
       explorer.some((entry) => entry.command === "altai.askAboutWorkingTree"),
     ).toBe(true);
+    const terminal = manifest.contributes?.menus?.["terminal/context"] ?? [];
+    expect(
+      terminal.some((entry) => entry.command === "altai.askAboutTerminal"),
+    ).toBe(true);
   });
 });

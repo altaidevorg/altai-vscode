@@ -201,6 +201,12 @@
           "group": "altai@1",
           "when": "resourceScheme == file && workspaceFolderCount > 0"
         }
+      ],
+      "terminal/context": [
+        {
+          "command": "altai.askAboutTerminal",
+          "group": "altai@1"
+        }
       ]
     },
     "keybindings": [
