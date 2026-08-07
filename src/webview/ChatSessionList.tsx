@@ -1,5 +1,6 @@
 /**
- * Session history as a compact menu (VS Code Activity Bar — no side rail).
+ * Session history as a Desktop-style clock control + popover
+ * (VS Code Activity Bar density — no permanent side rail).
  */
 
 import {
@@ -9,6 +10,8 @@ import {
   useHostPorts,
   type SessionHistoryItem,
 } from "@altai/agent-ui";
+import { Add01Icon, Clock01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   formatHostUserError,
@@ -144,28 +147,34 @@ export function ChatSessionList({
     return null;
   }
 
+  const historyLabel = menuOpen ? "Back to task" : "Chat sessions";
+
   return (
     <div className="altai-history-menu" ref={rootRef}>
       <button
         type="button"
-        className="altai-history-menu-trigger"
+        className="altai-ai-icon-btn"
+        aria-label={historyLabel}
+        title={historyLabel}
         aria-expanded={menuOpen}
+        aria-pressed={menuOpen}
         aria-haspopup="menu"
         onClick={() => {
           setMenuOpen((open) => !open);
         }}
       >
-        History
-        {items.length > 0 ? ` (${items.length})` : ""}
+        <HugeiconsIcon icon={Clock01Icon} size={14} strokeWidth={1.75} />
       </button>
       <button
         type="button"
-        className="altai-history-menu-new"
+        className="altai-ai-icon-btn altai-history-menu-new-icon"
+        aria-label="New chat"
+        title="New chat"
         onClick={() => {
           createSession();
         }}
       >
-        New chat
+        <HugeiconsIcon icon={Add01Icon} size={14} strokeWidth={1.75} />
       </button>
       {menuOpen ? (
         <div className="altai-history-menu-panel" role="menu">

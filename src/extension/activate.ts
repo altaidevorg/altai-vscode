@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext): void {
     `[altai] extension root: ${context.extensionUri.fsPath}`,
   );
   output.appendLine(
-    `[altai] ui build expected: history-menu (no side history rail; no project chip; no Extension×chat footer)`,
+    `[altai] ui build expected: ai-composer-v1 (shared AiComposer tree; settings compaction)`,
   );
 
   const attentionBar = new AttentionStatusBar();
@@ -223,6 +223,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   registerCommands(context, provider, manager);
   output.appendLine("[altai] side panel provider registered");
+
+  if (
+    vscode.workspace.getConfiguration("altai").get<boolean>("openPanelOnStartup")
+  ) {
+    void vscode.commands.executeCommand("altai.openSidePanel");
+  }
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((event) => {

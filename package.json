@@ -2,7 +2,7 @@
   "name": "altai",
   "displayName": "ALTAI",
   "description": "The official ALTAI extension for Visual Studio Code, powered by the shared ALTAI UI and IsanAgent runtime.",
-  "version": "0.1.1",
+  "version": "0.1.10",
   "publisher": "altaidevorg",
   "license": "Apache-2.0",
   "preview": true,
@@ -466,7 +466,156 @@
           "type": "string",
           "default": "",
           "scope": "window",
-          "markdownDescription": "Absolute path to the ALTAI agent host / `altai-cli` executable override for local development. Takes precedence over `ALTAI_AGENT_HOST_PATH`. Leave empty to use the packaged native host when present."
+          "markdownDescription": "Absolute path to the ALTAI agent host / `altai-cli` executable for local development. Empty = packaged host."
+        },
+        "altai.openPanelOnStartup": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "Open the ALTAI side panel when a trusted workspace activates the extension."
+        },
+        "altai.autoFocusComposer": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Focus the chat composer when the ALTAI panel becomes visible."
+        },
+        "altai.showFollowupHints": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show steer / queue follow-up hints during an active run."
+        },
+        "altai.rememberPermissionMode": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Persist permission mode changes to the agent host config."
+        },
+        "altai.agentPickerEnabled": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show the agent picker control in the chat composer toolbar when capabilities allow."
+        },
+        "altai.bypassPermissionsEnabled": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "Allow offering Bypass permissions mode (still requires explicit confirm). Only enable in trusted / sandboxed environments."
+        },
+        "altai.compactionThresholdPercent": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null,
+          "minimum": 1,
+          "maximum": 100,
+          "scope": "window",
+          "markdownDescription": "Optional auto-compaction threshold as percent of context window. Empty = use token threshold."
+        },
+        "altai.compactionThresholdTokens": {
+          "type": "number",
+          "default": 80000,
+          "minimum": 8000,
+          "scope": "window",
+          "markdownDescription": "Absolute token budget that can trigger auto-compaction when no percent is set."
+        },
+        "altai.compactionTailTurns": {
+          "type": "number",
+          "default": 4,
+          "minimum": 0,
+          "maximum": 50,
+          "scope": "window",
+          "markdownDescription": "Recent turns to keep verbatim during compaction."
+        },
+        "altai.compactionPrune": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Prune old tool results outside the recency window (display / UI history hygiene)."
+        },
+        "altai.compactionPruneRecencyTokens": {
+          "type": "number",
+          "default": 12000,
+          "minimum": 1000,
+          "scope": "window",
+          "markdownDescription": "Trailing token budget retained before pruning old tool outputs."
+        },
+        "altai.customInstructions": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "markdownDescription": "Custom agent instructions prepended for this machine (Studio Agents-equivalent)."
+        },
+        "altai.snippetsJson": {
+          "type": "string",
+          "default": "[]",
+          "scope": "window",
+          "markdownDescription": "JSON array of composer snippets `{ id, handle, body }` (Studio Agents snippets)."
+        },
+        "altai.reduceMotion": {
+          "type": "string",
+          "enum": [
+            "system",
+            "always",
+            "never"
+          ],
+          "default": "system",
+          "scope": "window",
+          "markdownDescription": "Reduce motion in the ALTAI webview."
+        },
+        "altai.highContrast": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "Strengthen ALTAI webview contrast for low vision."
+        },
+        "altai.largerText": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "Bump ALTAI webview root font size ~10%."
+        },
+        "altai.underlineLinks": {
+          "type": "boolean",
+          "default": false,
+          "scope": "window",
+          "markdownDescription": "Always underline text links in the ALTAI webview."
+        },
+        "altai.focusRing": {
+          "type": "string",
+          "enum": [
+            "default",
+            "strong"
+          ],
+          "default": "default",
+          "scope": "window",
+          "markdownDescription": "Keyboard focus ring strength in the ALTAI webview."
+        },
+        "altai.chatAnnounce": {
+          "type": "string",
+          "enum": [
+            "off",
+            "polite",
+            "assertive"
+          ],
+          "default": "polite",
+          "scope": "window",
+          "markdownDescription": "ARIA live region priority for streaming chat text."
+        },
+        "altai.approvalAnnounceAssertive": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Announce interactive approvals assertively to screen readers."
+        },
+        "altai.showSkipLinks": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Show skip-to-composer and related accessibility links when applicable."
         }
       }
     },
@@ -553,9 +702,10 @@
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run guard:architecture && npm run verify:package && npm run verify:security && npm run verify:release-docs && npm run verify:host-pin",
     "package": "npm run verify && vsce package --no-dependencies",
     "package:target": "node scripts/package-target.mjs",
+    "package:local": "node scripts/package-and-install-local.mjs",
     "stage:native-host": "node scripts/stage-native-host.mjs",
     "build:native-host": "node scripts/build-and-stage-host.mjs",
-    "publish:pre-release": "node -e \"console.error('Use: npx vsce publish --packagePath <vsix> --pre-release (requires VSCE_PAT)'); process.exit(1)\"",
+    "publish:pre-release": "node scripts/publish-pre-release.mjs",
     "watch": "node scripts/build-extension.mjs --watch & node scripts/build-webview.mjs --watch",
     "vscode:prepublish": "npm run build",
     "dev:extension": "bash scripts/dev-run-extension.sh"

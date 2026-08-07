@@ -1,15 +1,10 @@
 import {
   AgentChatLayout,
   ChatTabStrip,
-  ComposerConfigRow,
-  ComposerPrimaryRow,
-  ComposerShell,
-  ComposerTextArea,
   detectSlashOrSnippetTrigger,
   EmptyState,
   HostPortsProvider,
   SurfaceEmptyState,
-  SurfaceHeader,
   SurfaceSecondaryAction,
   useCapability,
   useHostPorts,
@@ -17,6 +12,7 @@ import {
   type OperationsView,
   type WorkHubView,
 } from "@altai/agent-ui";
+import { AiComposer } from "./AiComposer.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
@@ -59,11 +55,8 @@ import { isEscapeDismissKey } from "./chatKeyboardChrome.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { ChatSettingsHub } from "./ChatSettingsHub.js";
-import {
-  ALTAI_SURFACES,
-  nextAltaiSurface,
-  type AltaiSurfaceId,
-} from "./surfaceTabsChrome.js";
+import { shouldShowSurfaceTextTabs } from "./shellChrome.js";
+import { ChatShellChrome } from "./ChatShellChrome.js";
 import {
   buildOpenChatFocus,
   chatFocusStatusLine,
@@ -89,19 +82,20 @@ import { formatTranscriptForCopy } from "./transcriptCopyChrome.js";
 import { ChatSessionList } from "./ChatSessionList.js";
 import { ChatPermissionModeChrome } from "./ChatPermissionModeChrome.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
+import { ChatAgentPickerChrome } from "./ChatAgentPickerChrome.js";
+import {
+  applyAgentPromptPrefix,
+  DEFAULT_COMPOSER_AGENT_ID,
+  resolveComposerAgent,
+} from "./agentPickerChrome.js";
 import {
   canMountModelPicker,
   modelIdForStartRun,
 } from "./modelPickerChrome.js";
-import { ChatProviderStatusChrome } from "./ChatProviderStatusChrome.js";
-import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
-import { ChatShellTopbar } from "./ChatShellTopbar.js";
 import { ChatInteractivePrompts } from "./ChatInteractivePrompts.js";
-import { ChatMcpStatusChrome } from "./ChatMcpStatusChrome.js";
-import { ChatSkillsStatusChrome } from "./ChatSkillsStatusChrome.js";
+import { ChatProviderConnectBanner } from "./ChatProviderConnectBanner.js";
 import { ChatChangeReviewPanel } from "./ChatChangeReviewPanel.js";
 import { ChatReplayChrome } from "./ChatReplayChrome.js";
-import { ChatEmptyStarters } from "./ChatEmptyStarters.js";
 import { ChatPlanTodoChrome } from "./ChatPlanTodoChrome.js";
 import { ChatRunStatusChrome } from "./ChatRunStatusChrome.js";
 import { ChatAgentStatusPill } from "./ChatAgentStatusPill.js";
@@ -110,6 +104,7 @@ import { ChatCheckpointsChrome } from "./ChatCheckpointsChrome.js";
 import { ChatComposerCompact } from "./ChatComposerCompact.js";
 import { ChatComposerFollowup } from "./ChatComposerFollowup.js";
 import { ChatComposerContext } from "./ChatComposerContext.js";
+import { useExtensionPreferences } from "./useExtensionPreferences.js";
 import {
   ChatComposerAtMention,
   type AtMentionHandle,
@@ -139,6 +134,10 @@ import {
   type Snippet,
 } from "./composerSnippets.js";
 import {
+  parseSnippetsJson,
+} from "../shared/extensionPreferences.js";
+import { mergeSnippetCatalog } from "./settingsSnippetsChrome.js";
+import {
   addContextItem,
   composeRunPrompt,
   newContextItemId,
@@ -155,6 +154,14 @@ import { pathToFileUri } from "./chatHref.js";
 import {
   resolveComposerSubmitMode,
 } from "./composerFollowupChrome.js";
+import { advanceCaretAfterDraftChange } from "./composerCaretChrome.js";
+import {
+  canEnableComposerSend,
+  canEnableComposerStop,
+  composerSubmitChromeMode,
+} from "./composerSubmitChrome.js";
+import { ArrowUpIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   runBlockedMessageFromEvent,
   runWarningMessageFromEvent,
@@ -182,9 +189,10 @@ import {
   type HostRpcTransport,
 } from "./host/createVsCodeHostPorts.js";
 import type { PermissionMode } from "@altai/host-contract";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import {
-  hostStatusPillLabel,
+  formatHostUserError,
+} from "../shared/hostUserError.js";
+import {
   shouldShowHostSubtitle,
 } from "../shared/hostChromeLabels.js";
 
@@ -309,6 +317,42 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const [runInspectorAvailable, setRunInspectorAvailable] = useState(false);
   const [runInspectorOpen, setRunInspectorOpen] = useState(false);
   const [runInspectorOpenRequest, setRunInspectorOpenRequest] = useState(0);
+  const [settingsSection, setSettingsSection] = useState(
+    () => persisted.settingsSection ?? "",
+  );
+  const [settingsFocusKey, setSettingsFocusKey] = useState(0);
+  const [settingsFocusSection, setSettingsFocusSection] = useState<
+    string | undefined
+  >(undefined);
+
+  const extensionPrefsApi = useExtensionPreferences((method, params) =>
+    transport.requestWorkspace(method, params),
+  );
+  const extensionPrefs = extensionPrefsApi.prefs;
+
+  useEffect(() => {
+    if (!extensionPrefsApi.ready) {
+      return;
+    }
+    const root = document.getElementById("root");
+    if (!root) {
+      return;
+    }
+    root.dataset.altaiReduceMotion = extensionPrefs.reduceMotion;
+    root.dataset.altaiHighContrast = extensionPrefs.highContrast ? "1" : "0";
+    root.dataset.altaiLargerText = extensionPrefs.largerText ? "1" : "0";
+    root.dataset.altaiUnderlineLinks = extensionPrefs.underlineLinks
+      ? "1"
+      : "0";
+    root.dataset.altaiFocusRing = extensionPrefs.focusRing;
+  }, [
+    extensionPrefsApi.ready,
+    extensionPrefs.reduceMotion,
+    extensionPrefs.highContrast,
+    extensionPrefs.largerText,
+    extensionPrefs.underlineLinks,
+    extensionPrefs.focusRing,
+  ]);
 
   const selectSurface = useCallback(
     (next: PersistedAltaiSurface) => {
@@ -530,11 +574,22 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 
   useEffect(() => {
     return client.onEvent(OPEN_SETTINGS_EVENT, (payload) => {
-      if (!parseOpenSettingsPayload(payload)) {
+      const parsed = parseOpenSettingsPayload(payload);
+      if (!parsed) {
         return;
       }
       selectSurface("settings");
-      patchPersistedState(client, { surface: "settings" });
+      setSettingsFocusKey(parsed.key);
+      setSettingsFocusSection(parsed.section);
+      if (parsed.section) {
+        setSettingsSection(parsed.section);
+        patchPersistedState(client, {
+          surface: "settings",
+          settingsSection: parsed.section,
+        });
+      } else {
+        patchPersistedState(client, { surface: "settings" });
+      }
     });
   }, [client, selectSurface]);
 
@@ -572,108 +627,75 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   return (
     <HostPortsProvider ports={ports} capabilities={capabilities}>
       <div className="altai-shell altai-shell-root">
-        <div className="altai-dev-banner" role="status">
-          ALTAI plugin 0.1.1 — History menu (no side rail) · no folder chip
-        </div>
-        <SurfaceHeader
-          title="ALTAI"
-          subtitle={
+        <ChatShellChrome
+          surface={surface}
+          operationsView={operationsView}
+          attentionCount={attentionCount}
+          hostStatus={hostStatus.status}
+          hostMessage={
             shouldShowHostSubtitle(hostStatus.status, hostStatus.message)
               ? hostStatus.message
               : undefined
           }
-          className="altai-shell-header"
-          status={
-            <span className="altai-host-pill" data-status={hostStatus.status}>
-              {hostStatusPillLabel(hostStatus.status)}
-            </span>
-          }
-          actions={
-            <ChatShellTopbar
-              surface={surface}
-              operationsView={operationsView}
-              attentionCount={attentionCount}
-              inspectorAvailable={runInspectorAvailable}
-              inspectorOpen={runInspectorOpen}
-              onOpenWork={() => {
-                openOperationsSurface({
-                  view: "work",
-                  workHubView: "runs",
-                });
-              }}
-              onOpenInbox={() => {
-                openOperationsSurface({ view: "inbox" });
-              }}
-              onToggleInspector={() => {
-                if (runInspectorOpen) {
-                  setRunInspectorOpen(false);
-                  return;
-                }
-                selectSurface("chat");
-                setRunInspectorOpen(true);
-                setRunInspectorOpenRequest((value) => value + 1);
-              }}
-            />
-          }
-        />
-        <div
-          className="altai-view-tabs"
-          role="tablist"
-          aria-label="ALTAI surfaces"
-          onKeyDown={(event) => {
-            if (
-              event.key !== "ArrowLeft" &&
-              event.key !== "ArrowRight" &&
-              event.key !== "Home" &&
-              event.key !== "End"
-            ) {
+          inspectorAvailable={runInspectorAvailable}
+          inspectorOpen={runInspectorOpen}
+          onSelectSurface={(next) => {
+            selectSurface(next);
+          }}
+          onOpenWork={() => {
+            openOperationsSurface({
+              view: "work",
+              workHubView: "runs",
+            });
+          }}
+          onOpenInbox={() => {
+            openOperationsSurface({ view: "inbox" });
+          }}
+          onToggleInspector={() => {
+            if (runInspectorOpen) {
+              setRunInspectorOpen(false);
               return;
             }
-            event.preventDefault();
-            const next = nextAltaiSurface(
-              surface as AltaiSurfaceId,
-              event.key,
-              ALTAI_SURFACES,
-            );
-            selectSurface(next);
-            const btn = document.getElementById(`altai-tab-${next}`);
-            btn?.focus();
+            selectSurface("chat");
+            setRunInspectorOpen(true);
+            setRunInspectorOpenRequest((value) => value + 1);
           }}
-        >
-          <button
-            type="button"
-            id="altai-tab-chat"
-            role="tab"
-            aria-selected={surface === "chat"}
-            tabIndex={surface === "chat" ? 0 : -1}
-            className="altai-view-tab"
-            onClick={() => selectSurface("chat")}
+        />
+        {shouldShowSurfaceTextTabs() ? (
+          <div
+            className="altai-view-tabs"
+            role="tablist"
+            aria-label="ALTAI surfaces"
           >
-            Chat
-          </button>
-          <button
-            type="button"
-            id="altai-tab-operations"
-            role="tab"
-            aria-selected={surface === "operations"}
-            tabIndex={surface === "operations" ? 0 : -1}
-            className="altai-view-tab"
-            onClick={() => selectSurface("operations")}
-          >
-            Operations
-          </button>
-          <button
-            type="button"
-            id="altai-tab-settings"
-            role="tab"
-            aria-selected={surface === "settings"}
-            tabIndex={surface === "settings" ? 0 : -1}
-            className="altai-view-tab"
-            onClick={() => selectSurface("settings")}
-          >
-            Settings
-          </button>
-        </div>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={surface === "chat"}
+              className="altai-view-tab"
+              onClick={() => selectSurface("chat")}
+            >
+              Chat
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={surface === "operations"}
+              className="altai-view-tab"
+              onClick={() => selectSurface("operations")}
+            >
+              Operations
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={surface === "settings"}
+              className="altai-view-tab"
+              onClick={() => selectSurface("settings")}
+            >
+              Settings
+            </button>
+          </div>
+        ) : null}
         {hostStatus.status === "ready" && !initError ? (
           surface === "operations" ? (
             <OperationsPanel
@@ -696,6 +718,14 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 requestWorkspace={(method, params) =>
                   transport.requestWorkspace(method, params)
                 }
+                initialSection={settingsSection || undefined}
+                onSectionChange={(section) => {
+                  setSettingsSection(section);
+                  patchPersistedState(client, { settingsSection: section });
+                }}
+                focusSection={settingsFocusSection}
+                focusKey={settingsFocusKey}
+                activeChatId={chatFocus?.chatId ?? null}
               />
             </>
           ) : (
@@ -728,6 +758,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                   client.getPersistedState().composerDraft ?? ""
                 }
                 onComposerDraftChange={onComposerDraftChange}
+                initialAgentId={
+                  client.getPersistedState().activeAgentId ??
+                  DEFAULT_COMPOSER_AGENT_ID
+                }
+                onAgentIdChange={(agentId) => {
+                  patchPersistedState(client, { activeAgentId: agentId });
+                }}
               />
             </>
           )
@@ -759,6 +796,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
               client.getPersistedState().composerDraft ?? ""
             }
             onComposerDraftChange={onComposerDraftChange}
+            initialAgentId={
+              client.getPersistedState().activeAgentId ??
+              DEFAULT_COMPOSER_AGENT_ID
+            }
+            onAgentIdChange={(agentId) => {
+              patchPersistedState(client, { activeAgentId: agentId });
+            }}
           />
         )}
       </div>
@@ -783,6 +827,8 @@ function AgentUiShell({
   requestWorkspace,
   initialComposerDraft = "",
   onComposerDraftChange,
+  initialAgentId = DEFAULT_COMPOSER_AGENT_ID,
+  onAgentIdChange,
 }: {
   hostStatus: HostStatusPayload;
   initError: string | null;
@@ -807,8 +853,12 @@ function AgentUiShell({
   /** Restored unsent composer text (presentation only). */
   initialComposerDraft?: string;
   onComposerDraftChange?: (draft: string) => void;
+  initialAgentId?: string;
+  onAgentIdChange?: (agentId: string) => void;
 }) {
   const ports = useHostPorts();
+  const extensionPrefsApi = useExtensionPreferences(requestWorkspace);
+  const extensionPrefs = extensionPrefsApi.prefs;
   const canInitialize = useCapability("runtime.initialize");
   const canStartRun = useCapability("runtime.startRun");
   const canSteer = useCapability("runtime.steerRun");
@@ -837,10 +887,17 @@ function AgentUiShell({
     settingsGet: canGetSettings,
   });
   const [prompt, setPromptState] = useState(() => initialComposerDraft);
+  const [cursor, setCursor] = useState(0);
+  const [selectedAgentId, setSelectedAgentId] = useState(
+    () => resolveComposerAgent(initialAgentId).id,
+  );
   const setPrompt = useCallback(
     (next: string) => {
       setPromptState(next);
       onComposerDraftChange?.(next);
+      if (next.length === 0) {
+        setCursor(0);
+      }
     },
     [onComposerDraftChange],
   );
@@ -856,6 +913,24 @@ function AgentUiShell({
   );
   const [runDetailsDismissed, setRunDetailsDismissed] = useState(false);
   const [changeReviewOpen, setChangeReviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (!extensionPrefs.autoFocusComposer) {
+      return;
+    }
+    if (hostStatus.status !== "ready") {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      const textarea = document.querySelector<HTMLTextAreaElement>(
+        "textarea.altai-composer-input, .altai-ai-composer textarea, form.altai-ai-composer textarea",
+      );
+      textarea?.focus();
+    }, 80);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [extensionPrefs.autoFocusComposer, hostStatus.status]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -907,7 +982,6 @@ function AgentUiShell({
     ...DEFAULT_SNIPPETS,
   ]);
   const [pickedSnippets, setPickedSnippets] = useState<Snippet[]>([]);
-  const [cursor, setCursor] = useState(0);
   const atMentionRef = useRef<AtMentionHandle | null>(null);
   const slashRef = useRef<SlashCommandHandle | null>(null);
   const snippetRef = useRef<SnippetHandle | null>(null);
@@ -939,12 +1013,22 @@ function AgentUiShell({
     });
   }, []);
 
-  // Built-in snippets + optional workspace `.altai/snippets.json`.
+  // Settings #snippets + optional workspace `.altai/snippets.json` over defaults.
   useEffect(() => {
-    if (!canWorkspaceInfo || !canReadWorkspaceFile) {
+    if (!extensionPrefsApi.ready) {
       return;
     }
     let cancelled = false;
+    const fromPrefs = mergeSnippetCatalog(
+      parseSnippetsJson(extensionPrefs.snippetsJson),
+    );
+    setSnippetCatalog(fromPrefs);
+
+    if (!canWorkspaceInfo || !canReadWorkspaceFile) {
+      return () => {
+        cancelled = true;
+      };
+    }
     void (async () => {
       try {
         const info = await ports.workspace.getWorkspace();
@@ -963,18 +1047,22 @@ function AgentUiShell({
         }
         const workspaceSnips = parseWorkspaceSnippetsJson(file.text);
         if (workspaceSnips.length > 0) {
-          setSnippetCatalog(
-            mergeSnippetCatalogs(DEFAULT_SNIPPETS, workspaceSnips),
-          );
+          setSnippetCatalog(mergeSnippetCatalogs(fromPrefs, workspaceSnips));
         }
       } catch {
-        // Missing file or no workspace is fine — keep defaults.
+        // Missing file or no workspace is fine — keep prefs/defaults.
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [ports, canWorkspaceInfo, canReadWorkspaceFile]);
+  }, [
+    ports,
+    canWorkspaceInfo,
+    canReadWorkspaceFile,
+    extensionPrefsApi.ready,
+    extensionPrefs.snippetsJson,
+  ]);
 
   useEffect(() => {
     if (!chatFocus) {
@@ -1622,6 +1710,10 @@ function AgentUiShell({
       return;
     }
 
+    const agent = resolveComposerAgent(selectedAgentId);
+    const hostPrompt =
+      mode === "steer" ? text : applyAgentPromptPrefix(text, agent);
+
     setBusy(true);
     setError(null);
     setRunBlockedMessage(null);
@@ -1631,7 +1723,7 @@ function AgentUiShell({
         await ports.runtime.steerRun({
           chatId: activeChatId,
           runId: activeRunId,
-          prompt: text,
+          prompt: hostPrompt,
         });
         setMessages((prev) => appendUserMessage(prev, shown));
         setMessages((prev) => appendMetaMessage(prev, "Steer sent"));
@@ -1641,7 +1733,7 @@ function AgentUiShell({
       }
 
       const composed = composeRunPrompt(
-        text || "Please review the attached context.",
+        hostPrompt || "Please review the attached context.",
         contextItems,
       );
       const chips = toContextChips(contextItems);
@@ -1741,8 +1833,10 @@ function AgentUiShell({
         withStableUserTurnIds(truncateDisplayAfterUserTurn(prev, turn)),
       );
       const editModelId = modelIdForStartRun(selectedModelId);
+      const agent = resolveComposerAgent(selectedAgentId);
+      const editPrompt = applyAgentPromptPrefix(text, agent);
       const ref = await ports.runtime.startRun({
-        prompt: text,
+        prompt: editPrompt,
         chatId: activeChatId,
         ...(permissionMode ? { permissionMode } : {}),
         ...(editModelId ? { modelId: editModelId } : {}),
@@ -1883,37 +1977,41 @@ function AgentUiShell({
               }}
               refreshKey={sessionListKey}
             />
-          </div>
-          {openTabs.length > 0 ? (
-            <ChatTabStrip
-              tabs={openTabs}
-              activeId={activeChatId}
-              onSelect={(id) => {
-                const tab = openTabs.find((item) => item.id === id);
-                onFocusChat({ chatId: id, label: tab?.title });
-              }}
-              onClose={(id) => {
-                setOpenTabs((prev) => prev.filter((tab) => tab.id !== id));
-                if (id === activeChatId) {
-                  const remaining = openTabs.filter((tab) => tab.id !== id);
-                  const next = remaining[remaining.length - 1];
-                  if (next) {
-                    onFocusChat({ chatId: next.id, label: next.title });
-                  } else {
+            {openTabs.length > 0 ? (
+              <div className="altai-chat-toolbar-tabs">
+                <ChatTabStrip
+                  tabs={openTabs}
+                  activeId={activeChatId}
+                  onSelect={(id) => {
+                    const tab = openTabs.find((item) => item.id === id);
+                    onFocusChat({ chatId: id, label: tab?.title });
+                  }}
+                  onClose={(id) => {
+                    setOpenTabs((prev) => prev.filter((tab) => tab.id !== id));
+                    if (id === activeChatId) {
+                      const remaining = openTabs.filter((tab) => tab.id !== id);
+                      const next = remaining[remaining.length - 1];
+                      if (next) {
+                        onFocusChat({ chatId: next.id, label: next.title });
+                      } else {
+                        setActiveChatId(null);
+                        setMessages([]);
+                        onFocusChat({});
+                      }
+                    }
+                  }}
+                  onNewChat={() => {
                     setActiveChatId(null);
+                    setActiveRunId(null);
                     setMessages([]);
                     onFocusChat({});
-                  }
-                }
-              }}
-              onNewChat={() => {
-                setActiveChatId(null);
-                setActiveRunId(null);
-                setMessages([]);
-                onFocusChat({});
-              }}
-            />
-          ) : null}
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="altai-chat-toolbar-tabs" aria-hidden="true" />
+            )}
+          </div>
           <ChatPlanTodoChrome
             permissionMode={permissionMode}
             messages={messages}
@@ -1979,33 +2077,7 @@ function AgentUiShell({
           ) : null}
           <div className="altai-chat-scroll">
             {showEmptyHome ? (
-              <>
-                <EmptyState agentName="ALTAI" />
-                <ChatEmptyStarters
-                  emptyHome
-                  onSelect={(value) => {
-                    const trimmed = value.trim();
-                    if (trimmed.startsWith("/")) {
-                      const outcome = tryRunSlashCommand(trimmed);
-                      if (outcome.kind === "handled") {
-                        void dispatchSlashAction(
-                          outcome.action,
-                          outcome.tail,
-                          outcome.toast,
-                        );
-                        setPrompt("");
-                        return;
-                      }
-                      if (outcome.kind === "send-prompt") {
-                        void submitExpandedPrompt(outcome.prompt, false);
-                        return;
-                      }
-                    }
-                    setPrompt(value);
-                    setCursor(value.length);
-                  }}
-                />
-              </>
+              <EmptyState agentName="ALTAI" />
             ) : (
               <>
                 <div
@@ -2128,9 +2200,11 @@ function AgentUiShell({
                 void onSubmit();
               }}
             >
-              <ComposerShell busy={busy}>
-                <div className="px-2.5 pt-2">
+              <AiComposer
+                busy={busy}
+                attachments={
                   <ChatComposerContext
+                    surface="attachments"
                     items={contextItems}
                     onChange={setContextItems}
                     snippets={pickedSnippets}
@@ -2141,239 +2215,281 @@ function AgentUiShell({
                     }}
                     disabled={busy}
                   />
-                  <ChatComposerAtMention
-                    prompt={prompt}
-                    cursor={cursor}
-                    items={contextItems}
-                    onChangePrompt={setPrompt}
-                    onChangeItems={setContextItems}
-                    disabled={busy}
-                    handleRef={atMentionRef}
-                  />
-                  <ChatComposerSlash
-                    prompt={prompt}
-                    cursor={cursor}
-                    disabled={busy}
-                    handleRef={slashRef}
-                    onPickCommand={(command: SlashCommandMeta) => {
-                      const next = `/${command.name} `;
-                      setPrompt(next);
-                      setCursor(next.length);
-                    }}
-                  />
-                  <ChatComposerSnippet
-                    prompt={prompt}
-                    cursor={cursor}
-                    catalog={snippetCatalog}
-                    disabled={busy}
-                    handleRef={snippetRef}
-                    onPickSnippet={(snippet: Snippet) => {
-                      const trigger = detectSlashOrSnippetTrigger(
-                        prompt,
-                        cursor,
-                      );
-                      if (trigger && trigger.prefix === "#") {
-                        const next = insertSnippetHandle(
-                          prompt,
-                          trigger,
-                          snippet.handle,
-                        );
-                        setPrompt(next);
-                        setCursor(trigger.start + snippet.handle.length + 2);
-                      } else {
-                        const next =
-                          prompt.trimEnd().length > 0
-                            ? `${prompt.trimEnd()} #${snippet.handle} `
-                            : `#${snippet.handle} `;
+                }
+                value={prompt}
+                onChange={(next) => {
+                  setCursor((prev) =>
+                    advanceCaretAfterDraftChange(prev, next, prompt.length),
+                  );
+                  setPrompt(next);
+                }}
+                onCaretChange={setCursor}
+                placeholder={
+                  activeRunId
+                    ? canQueue || canSteer
+                      ? "Add a follow-up, steer the active run, or queue the next task…"
+                      : "Describe a task or ask a follow-up…"
+                    : canStartRun
+                      ? "Describe a task or ask a follow-up…  @ files  / commands  # snippets"
+                      : "Start run capability unavailable"
+                }
+                disabled={
+                  busy ||
+                  (!canStartRun && !(activeRunId && (canSteer || canQueue)))
+                }
+                pickers={
+                  <>
+                    <ChatComposerAtMention
+                      prompt={prompt}
+                      cursor={cursor}
+                      items={contextItems}
+                      onChangePrompt={(next) => {
                         setPrompt(next);
                         setCursor(next.length);
-                      }
-                      setPickedSnippets((prev) =>
-                        addPickedSnippet(prev, snippet),
-                      );
-                    }}
-                  />
-                  <ComposerTextArea
-                    value={prompt}
-                    onChange={(event) => {
-                      setPrompt(event.target.value);
-                      setCursor(event.target.selectionStart ?? 0);
-                    }}
-                    onSelect={(event) => {
-                      setCursor(
-                        (event.target as HTMLTextAreaElement).selectionStart ??
-                          0,
-                      );
-                    }}
-                    onClick={(event) => {
-                      setCursor(
-                        (event.target as HTMLTextAreaElement).selectionStart ??
-                          0,
-                      );
-                    }}
-                    onKeyUp={(event) => {
-                      setCursor(
-                        (event.target as HTMLTextAreaElement).selectionStart ??
-                          0,
-                      );
-                    }}
-                    placeholder={
-                      activeRunId
-                        ? canQueue || canSteer
-                          ? "Follow up — Enter queues · ⌘/Ctrl+Enter steers"
-                          : "Describe what should change…"
-                        : canStartRun
-                          ? "Describe what should change… / commands · # snippets · @ files"
-                          : "Start run capability unavailable"
-                    }
-                    disabled={
-                      busy ||
-                      (!canStartRun &&
-                        !(activeRunId && (canSteer || canQueue)))
-                    }
-                    rows={2}
-                    onKeyDown={(event) => {
-                      if (snippetRef.current?.isOpen()) {
-                        if (snippetRef.current.handleKeyDown(event.key)) {
-                          event.preventDefault();
-                          return;
-                        }
-                      }
-                      if (slashRef.current?.isOpen()) {
-                        if (slashRef.current.handleKeyDown(event.key)) {
-                          event.preventDefault();
-                          return;
-                        }
-                      }
-                      if (atMentionRef.current?.isOpen()) {
-                        if (
-                          atMentionRef.current.handleKeyDown(event.key)
-                        ) {
-                          event.preventDefault();
-                          return;
-                        }
-                      }
-                      if (
-                        event.key === "Enter" &&
-                        !event.shiftKey &&
-                        !event.nativeEvent.isComposing
-                      ) {
-                        event.preventDefault();
-                        void onSubmit(event.metaKey || event.ctrlKey);
-                      }
-                    }}
-                  />
-                </div>
-                <ChatComposerFollowup
-                  hasActiveRun={Boolean(activeRunId && activeChatId)}
-                  hasPrompt={Boolean(
-                    prompt.trim() ||
-                      contextItems.length > 0 ||
-                      pickedSnippets.length > 0,
-                  )}
-                  onSteer={() => void onSubmit(true)}
-                  onQueue={() => void onSubmit(false)}
-                />
-                {canModelConfigRow ? (
-                  <ComposerConfigRow
-                    modelSlot={
-                      <ChatModelPickerChrome
-                        onModelChange={setSelectedModelId}
-                      />
-                    }
-                  />
-                ) : null}
-                <ComposerPrimaryRow
-                  tools={
-                    <>
-                      <ChatComposerCompact
-                        chatId={activeChatId}
-                        composerBusy={busy}
-                        onCompacted={() => {
-                          setMessages((prev) =>
-                            appendMetaMessage(
-                              prev,
-                              "Context compaction requested",
-                            ),
-                          );
-                        }}
-                        onError={(message) => {
-                          setError(message);
-                        }}
-                      />
-                      <ChatCheckpointsChrome
-                        chatId={activeChatId}
-                        onRestored={() => {
-                          setMessages((prev) =>
-                            appendMetaMessage(
-                              prev,
-                              "Checkpoint restore requested",
-                            ),
-                          );
-                        }}
-                        onError={(message) => {
-                          setError(message);
-                        }}
-                      />
-                      <ChatReplayChrome
-                        chatId={activeChatId}
-                        runId={activeRunId ?? lastReplayRunId}
-                        disabled={busy}
-                        onReplayEvents={(count) => {
-                          setMessages((prev) =>
-                            appendMetaMessage(
-                              prev,
-                              `Replayed ${count} host event${count === 1 ? "" : "s"}`,
-                            ),
-                          );
-                        }}
-                        onError={(message) => {
-                          setError(message);
-                        }}
-                      />
-                    </>
-                  }
-                  permission={
-                    <ChatPermissionModeChrome
-                      onModeChange={setPermissionMode}
+                      }}
+                      onChangeItems={setContextItems}
+                      disabled={busy}
+                      handleRef={atMentionRef}
                     />
+                    <ChatComposerSlash
+                      prompt={prompt}
+                      cursor={cursor}
+                      disabled={busy}
+                      handleRef={slashRef}
+                      onPickCommand={(command: SlashCommandMeta) => {
+                        const next = `/${command.name} `;
+                        setPrompt(next);
+                        setCursor(next.length);
+                      }}
+                    />
+                    <ChatComposerSnippet
+                      prompt={prompt}
+                      cursor={cursor}
+                      catalog={snippetCatalog}
+                      disabled={busy}
+                      handleRef={snippetRef}
+                      onPickSnippet={(snippet: Snippet) => {
+                        const trigger = detectSlashOrSnippetTrigger(
+                          prompt,
+                          cursor,
+                        );
+                        if (trigger && trigger.prefix === "#") {
+                          const next = insertSnippetHandle(
+                            prompt,
+                            trigger,
+                            snippet.handle,
+                          );
+                          setPrompt(next);
+                          setCursor(trigger.start + snippet.handle.length + 2);
+                        } else {
+                          const next =
+                            prompt.trimEnd().length > 0
+                              ? `${prompt.trimEnd()} #${snippet.handle} `
+                              : `#${snippet.handle} `;
+                          setPrompt(next);
+                          setCursor(next.length);
+                        }
+                        setPickedSnippets((prev) =>
+                          addPickedSnippet(prev, snippet),
+                        );
+                      }}
+                    />
+                  </>
+                }
+                onKeyDown={(event) => {
+                  if (snippetRef.current?.isOpen()) {
+                    if (snippetRef.current.handleKeyDown(event.key)) {
+                      event.preventDefault();
+                      return;
+                    }
                   }
-                  submit={
-                    <>
-                      <button
-                        type="button"
-                        className="altai-composer-stop"
-                        disabled={!activeRunId || busy}
-                        onClick={() => void onCancel()}
-                      >
-                        Stop
-                      </button>
+                  if (slashRef.current?.isOpen()) {
+                    if (slashRef.current.handleKeyDown(event.key)) {
+                      event.preventDefault();
+                      return;
+                    }
+                  }
+                  if (atMentionRef.current?.isOpen()) {
+                    if (atMentionRef.current.handleKeyDown(event.key)) {
+                      event.preventDefault();
+                      return;
+                    }
+                  }
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault();
+                    void onSubmit(event.metaKey || event.ctrlKey);
+                  }
+                }}
+                followup={
+                  extensionPrefs.showFollowupHints ? (
+                    <ChatComposerFollowup
+                      hasActiveRun={Boolean(activeRunId && activeChatId)}
+                      hasPrompt={Boolean(
+                        prompt.trim() ||
+                          contextItems.length > 0 ||
+                          pickedSnippets.length > 0,
+                      )}
+                      onSteer={() => void onSubmit(true)}
+                      onQueue={() => void onSubmit(false)}
+                    />
+                  ) : undefined
+                }
+                agentSlot={
+                  extensionPrefs.agentPickerEnabled ? (
+                    <ChatAgentPickerChrome
+                      agentId={selectedAgentId}
+                      disabled={busy}
+                      enabled={extensionPrefs.agentPickerEnabled}
+                      onAgentChange={(agent) => {
+                        setSelectedAgentId(agent.id);
+                        onAgentIdChange?.(agent.id);
+                      }}
+                    />
+                  ) : undefined
+                }
+                modelSlot={
+                  canModelConfigRow ? (
+                    <ChatModelPickerChrome
+                      onModelChange={setSelectedModelId}
+                    />
+                  ) : undefined
+                }
+                tools={
+                  <>
+                    <ChatComposerContext
+                      surface="toolbar"
+                      items={contextItems}
+                      onChange={setContextItems}
+                      snippets={pickedSnippets}
+                      onRemoveSnippet={(id) => {
+                        setPickedSnippets((prev) =>
+                          removePickedSnippet(prev, id),
+                        );
+                      }}
+                      disabled={busy}
+                    />
+                    <ChatComposerCompact
+                      chatId={activeChatId}
+                      composerBusy={busy}
+                      onCompacted={() => {
+                        setMessages((prev) =>
+                          appendMetaMessage(
+                            prev,
+                            "Context compaction requested",
+                          ),
+                        );
+                      }}
+                      onError={(message) => {
+                        setError(message);
+                      }}
+                    />
+                    <ChatCheckpointsChrome
+                      chatId={activeChatId}
+                      onRestored={() => {
+                        setMessages((prev) =>
+                          appendMetaMessage(
+                            prev,
+                            "Checkpoint restore requested",
+                          ),
+                        );
+                      }}
+                      onError={(message) => {
+                        setError(message);
+                      }}
+                    />
+                    <ChatReplayChrome
+                      chatId={activeChatId}
+                      runId={activeRunId ?? lastReplayRunId}
+                      disabled={busy}
+                      onReplayEvents={(count) => {
+                        setMessages((prev) =>
+                          appendMetaMessage(
+                            prev,
+                            `Replayed ${count} host event${count === 1 ? "" : "s"}`,
+                          ),
+                        );
+                      }}
+                      onError={(message) => {
+                        setError(message);
+                      }}
+                    />
+                  </>
+                }
+                permission={
+                  <ChatPermissionModeChrome
+                    variant="toolbar-icon"
+                    onModeChange={setPermissionMode}
+                    showBypassAlways={extensionPrefs.bypassPermissionsEnabled}
+                  />
+                }
+                submit={
+                  (() => {
+                    const submitMode = composerSubmitChromeMode({
+                      busy,
+                      hasActiveRun: Boolean(activeRunId),
+                    });
+                    const hasPrompt = Boolean(
+                      prompt.trim() ||
+                        contextItems.length > 0 ||
+                        pickedSnippets.length > 0,
+                    );
+                    if (submitMode === "stop") {
+                      return (
+                        <button
+                          type="button"
+                          className="altai-composer-stop"
+                          disabled={
+                            !canEnableComposerStop({
+                              hasActiveRun: Boolean(activeRunId),
+                              busy,
+                            })
+                          }
+                          onClick={() => void onCancel()}
+                          aria-label="Stop"
+                          title="Stop"
+                        >
+                          <span
+                            className="altai-composer-stop-square"
+                            aria-hidden="true"
+                          />
+                          <span className="altai-ai-composer-submit-label">
+                            {busy ? "Stopping" : "Stop"}
+                          </span>
+                        </button>
+                      );
+                    }
+                    return (
                       <button
                         type="submit"
-                        className="altai-composer-submit"
+                        className="altai-composer-submit altai-composer-submit--icon"
                         disabled={
-                          busy ||
-                          (!prompt.trim() && contextItems.length === 0) ||
-                          (!canStartRun &&
-                            !(activeRunId && (canSteer || canQueue)))
+                          !canEnableComposerSend({
+                            busy,
+                            hasPrompt,
+                            canStartRun,
+                            hasActiveRun: Boolean(activeRunId),
+                            canSteer,
+                            canQueue,
+                          })
                         }
+                        aria-label="Send"
+                        title="Send · Enter"
                       >
-                        {busy
-                          ? "Working…"
-                          : activeRunId && canQueue
-                            ? "Queue"
-                            : "Send"}
+                        <HugeiconsIcon
+                          icon={ArrowUpIcon}
+                          size={13}
+                          strokeWidth={2.25}
+                        />
                       </button>
-                    </>
-                  }
-                />
-              </ComposerShell>
+                    );
+                  })()
+                }
+              />
             </form>
-          </div>
-          <div className="altai-chat-footer">
-            <ChatProviderStatusChrome />
-            <ChatMcpStatusChrome />
-            <ChatSkillsStatusChrome />
           </div>
           </>
         }

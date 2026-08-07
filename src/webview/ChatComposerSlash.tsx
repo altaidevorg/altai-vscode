@@ -89,7 +89,7 @@ export function ChatComposerSlash({
   useImperativeHandle(
     handleRef,
     () => ({
-      isOpen: () => slashOpen && matches.length >= 0 && Boolean(trigger),
+      isOpen: () => slashOpen && Boolean(trigger),
       handleKeyDown: (key: string) => {
         if (!slashOpen) {
           return false;
@@ -99,6 +99,7 @@ export function ChatComposerSlash({
           setForceClosed(true);
           return true;
         }
+        // Empty list: do not steal Enter (submit) or arrows.
         if (snap.matches.length === 0) {
           return false;
         }

@@ -72,8 +72,9 @@ See the [engineering plan](docs/ENGINEERING_PLAN.md) and
   responsibilities and the Desktop, VS Code, service, and IsanAgent data flow.
 - [Engineering plan](docs/ENGINEERING_PLAN.md) — implementation phases and
   non-negotiable architecture rules.
-- [Desktop chat UI parity](docs/DESKTOP_CHAT_PARITY.md) — extract `AiSidePanel`
-  and replace the VS Code composite shell.
+- [Desktop chat UI parity](docs/DESKTOP_CHAT_PARITY.md) — early phases / layout.
+- [**Side chat birebir plan**](docs/SIDECHAT_DESKTOP_PARITY.md) — full `AiSidePanel`
+  extract + feature matrix + cutover (authoritative for 1:1 Desktop side chat).
 - [Protocol compatibility](docs/PROTOCOL_COMPATIBILITY.md) — pinned extension,
   protocol, shared-package, and native-host versions.
 - [Feature matrix](docs/FEATURE_MATRIX.md) — internal channel surface status.
@@ -143,6 +144,7 @@ Useful scripts:
 
 | Script | Purpose |
 |---|---|
+| `npm run package:local` | **Build + VSIX + install** into Cursor/VS Code (local host) |
 | `npm run typecheck` | Strict TypeScript for extension + webview |
 | `npm run lint` | ESLint, including no-`vscode` in webview |
 | `npm test` | Unit tests |
