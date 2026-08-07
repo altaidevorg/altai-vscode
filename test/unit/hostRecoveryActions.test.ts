@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  ALTAI_RECOVERY_COMMANDS,
   isAltaiRecoveryCommand,
   listRecoveryActions,
-} from "../../src/webview/hostRecoveryActions.js";
+} from "../../src/shared/hostRecoveryCommands.js";
 
 describe("host recovery actions", () => {
   it("allowlists open logs, diagnostics, restart, and version", () => {
@@ -13,7 +14,14 @@ describe("host recovery actions", () => {
       "altai.showVersionCompatibility",
     ]);
     expect(isAltaiRecoveryCommand("altai.openLogs")).toBe(true);
+    expect(isAltaiRecoveryCommand("altai.connectProvider")).toBe(true);
+    expect(isAltaiRecoveryCommand("altai.clearProviderCredential")).toBe(true);
     expect(isAltaiRecoveryCommand("workbench.action.quit")).toBe(false);
+  });
+
+  it("includes slash-facing credential commands in the allowlist", () => {
+    expect(ALTAI_RECOVERY_COMMANDS).toContain("altai.connectProvider");
+    expect(ALTAI_RECOVERY_COMMANDS).toContain("altai.clearProviderCredential");
   });
 
   it("prepends manage workspace trust when host is untrusted", () => {
