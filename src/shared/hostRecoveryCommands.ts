@@ -6,6 +6,7 @@
 export const ALTAI_RECOVERY_COMMANDS = [
   "altai.openLogs",
   "altai.runDiagnostics",
+  "altai.copyDiagnosticsReport",
   "altai.restartAgentHost",
   "altai.showVersionCompatibility",
   "altai.connectProvider",
@@ -59,6 +60,7 @@ export function listRecoveryActions(input?: {
   actions.push(
     { command: "altai.openLogs", label: "Open logs" },
     { command: "altai.runDiagnostics", label: "Run diagnostics" },
+    { command: "altai.copyDiagnosticsReport", label: "Copy diagnostics" },
     { command: "altai.restartAgentHost", label: "Restart host" },
     { command: "altai.showVersionCompatibility", label: "Version" },
     { command: "altai.openWalkthrough", label: "Get started" },

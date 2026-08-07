@@ -155,6 +155,11 @@
         "icon": "$(pulse)"
       },
       {
+        "command": "altai.copyDiagnosticsReport",
+        "title": "ALTAI: Copy Diagnostics Report",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.restartAgentHost",
         "title": "ALTAI: Restart Agent Host",
         "category": "ALTAI",

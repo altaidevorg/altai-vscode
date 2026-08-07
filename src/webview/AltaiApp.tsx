@@ -1439,6 +1439,11 @@ function AgentUiShell({
           command: "altai.openExtensionSettings",
         });
         break;
+      case "copy-diag":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.copyDiagnosticsReport",
+        });
+        break;
       case "attach-diff": {
         if (!canGitDiff) {
           setMessages((prev) =>

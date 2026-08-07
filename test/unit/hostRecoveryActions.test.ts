@@ -10,6 +10,7 @@ describe("host recovery actions", () => {
     expect(listRecoveryActions().map((a) => a.command)).toEqual([
       "altai.openLogs",
       "altai.runDiagnostics",
+      "altai.copyDiagnosticsReport",
       "altai.restartAgentHost",
       "altai.showVersionCompatibility",
       "altai.openWalkthrough",
@@ -35,6 +36,7 @@ describe("host recovery actions", () => {
       "workbench.action.manageWorkspaceTrust",
       "altai.openLogs",
       "altai.runDiagnostics",
+      "altai.copyDiagnosticsReport",
       "altai.restartAgentHost",
       "altai.showVersionCompatibility",
       "altai.openWalkthrough",

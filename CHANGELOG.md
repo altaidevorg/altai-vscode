@@ -247,6 +247,8 @@ sibling `file:` packages until public npm publish.
 - Diagnostics report includes the last host `--workspace` root.
 - Preferred multi-root host folder is restored from workspaceState before the
   first host start; `getWorkspace().currentDir` follows that preference.
+- **ALTAI: Copy Diagnostics Report** (palette, recovery, `/copy-diag`) copies
+  the report via Extension Host clipboard.
 
 ### Security
 
