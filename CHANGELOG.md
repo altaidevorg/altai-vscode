@@ -198,6 +198,8 @@ sibling `file:` packages until public npm publish.
 - ALTAI side-panel view title actions: Open Settings, Open Operations, Run
   Diagnostics.
 - Keyboard shortcut Cmd/Ctrl+Shift+Alt+R restarts the agent host.
+- Toast when the agent host recovers from error to ready (for example after
+  restart).
 
 ### Security
 
