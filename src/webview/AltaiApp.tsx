@@ -1,5 +1,6 @@
 import {
   AgentChatLayout,
+  AiSidePanelFrame,
   ChatTabStrip,
   detectSlashOrSnippetTrigger,
   EmptyState,
@@ -626,41 +627,46 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
 
   return (
     <HostPortsProvider ports={ports} capabilities={capabilities}>
-      <div className="altai-shell altai-shell-root">
-        <ChatShellChrome
-          surface={surface}
-          operationsView={operationsView}
-          attentionCount={attentionCount}
-          hostStatus={hostStatus.status}
-          hostMessage={
-            shouldShowHostSubtitle(hostStatus.status, hostStatus.message)
-              ? hostStatus.message
-              : undefined
-          }
-          inspectorAvailable={runInspectorAvailable}
-          inspectorOpen={runInspectorOpen}
-          onSelectSurface={(next) => {
-            selectSurface(next);
-          }}
-          onOpenWork={() => {
-            openOperationsSurface({
-              view: "work",
-              workHubView: "runs",
-            });
-          }}
-          onOpenInbox={() => {
-            openOperationsSurface({ view: "inbox" });
-          }}
-          onToggleInspector={() => {
-            if (runInspectorOpen) {
-              setRunInspectorOpen(false);
-              return;
+      <AiSidePanelFrame
+        className="altai-shell altai-shell-root"
+        variant="sidebar"
+        topbar={
+          <ChatShellChrome
+            surface={surface}
+            operationsView={operationsView}
+            attentionCount={attentionCount}
+            hostStatus={hostStatus.status}
+            hostMessage={
+              shouldShowHostSubtitle(hostStatus.status, hostStatus.message)
+                ? hostStatus.message
+                : undefined
             }
-            selectSurface("chat");
-            setRunInspectorOpen(true);
-            setRunInspectorOpenRequest((value) => value + 1);
-          }}
-        />
+            inspectorAvailable={runInspectorAvailable}
+            inspectorOpen={runInspectorOpen}
+            onSelectSurface={(next) => {
+              selectSurface(next);
+            }}
+            onOpenWork={() => {
+              openOperationsSurface({
+                view: "work",
+                workHubView: "runs",
+              });
+            }}
+            onOpenInbox={() => {
+              openOperationsSurface({ view: "inbox" });
+            }}
+            onToggleInspector={() => {
+              if (runInspectorOpen) {
+                setRunInspectorOpen(false);
+                return;
+              }
+              selectSurface("chat");
+              setRunInspectorOpen(true);
+              setRunInspectorOpenRequest((value) => value + 1);
+            }}
+          />
+        }
+      >
         {shouldShowSurfaceTextTabs() ? (
           <div
             className="altai-view-tabs"
@@ -805,7 +811,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             }}
           />
         )}
-      </div>
+      </AiSidePanelFrame>
     </HostPortsProvider>
   );
 }
@@ -1963,7 +1969,7 @@ function AgentUiShell({
   return (
     <main className="altai-shell-body altai-shell-body--chat">
       <AgentChatLayout
-        density="sidebar"
+        density="auto"
         main={
           <>
           <div className="altai-chat-toolbar">
