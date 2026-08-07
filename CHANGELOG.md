@@ -220,6 +220,8 @@ sibling `file:` packages until public npm publish.
 - **ALTAI: Open Extension Settings** opens VS Code settings filtered to this
   extension; recovery shows it when the host binary is missing.
 - **Run Diagnostics** toast offers Copy report and Open logs actions.
+- Side-panel title icons plus Inbox / Logs / Restart / Get started overflow;
+  walkthrough completion events + optional host-path step.
 
 ### Security
 

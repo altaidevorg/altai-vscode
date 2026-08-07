@@ -77,7 +77,8 @@
       {
         "command": "altai.openSettings",
         "title": "ALTAI: Open Settings",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "altai.openExtensionSettings",
@@ -107,7 +108,8 @@
       {
         "command": "altai.openOperations",
         "title": "ALTAI: Open Operations",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(list-tree)"
       },
       {
         "command": "altai.openOperationsWork",
@@ -132,7 +134,8 @@
       {
         "command": "altai.openOperationsInbox",
         "title": "ALTAI: Open Operations Inbox",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(bell)"
       },
       {
         "command": "altai.openOperationsScheduled",
@@ -142,17 +145,20 @@
       {
         "command": "altai.openLogs",
         "title": "ALTAI: Open Logs",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(output)"
       },
       {
         "command": "altai.runDiagnostics",
         "title": "ALTAI: Run Diagnostics",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(pulse)"
       },
       {
         "command": "altai.restartAgentHost",
         "title": "ALTAI: Restart Agent Host",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(debug-restart)"
       },
       {
         "command": "altai.showVersionCompatibility",
@@ -172,7 +178,8 @@
       {
         "command": "altai.openWalkthrough",
         "title": "ALTAI: Get Started Walkthrough",
-        "category": "ALTAI"
+        "category": "ALTAI",
+        "icon": "$(info)"
       }
     ],
     "menus": {
@@ -233,6 +240,26 @@
           "command": "altai.runDiagnostics",
           "when": "view == altai.sidePanel",
           "group": "navigation@3"
+        },
+        {
+          "command": "altai.openOperationsInbox",
+          "when": "view == altai.sidePanel",
+          "group": "1_altai@1"
+        },
+        {
+          "command": "altai.openLogs",
+          "when": "view == altai.sidePanel",
+          "group": "1_altai@2"
+        },
+        {
+          "command": "altai.restartAgentHost",
+          "when": "view == altai.sidePanel",
+          "group": "1_altai@3"
+        },
+        {
+          "command": "altai.openWalkthrough",
+          "when": "view == altai.sidePanel",
+          "group": "1_altai@4"
         }
       ],
       "scm/resourceState/context": [
@@ -327,7 +354,10 @@
             "description": "ALTAI does not start the native agent host until Workspace Trust is granted.\n\n[Manage Workspace Trust](command:workbench.action.manageWorkspaceTrust)",
             "media": {
               "markdown": "media/walkthrough/trust.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:workbench.action.manageWorkspaceTrust"
+            ]
           },
           {
             "id": "altai.open",
@@ -335,7 +365,10 @@
             "description": "Use the Activity Bar ALTAI icon or the Open Side Panel command.\n\n[Open ALTAI](command:altai.openSidePanel)",
             "media": {
               "markdown": "media/walkthrough/open.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:altai.openSidePanel"
+            ]
           },
           {
             "id": "altai.connect",
@@ -343,7 +376,10 @@
             "description": "Credentials stay in the Extension Host (never the Webview).\n\n[Connect provider](command:altai.connectProvider)",
             "media": {
               "markdown": "media/walkthrough/connect.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:altai.connectProvider"
+            ]
           },
           {
             "id": "altai.diags",
@@ -351,7 +387,21 @@
             "description": "If the host stays red, write recovery hints to the ALTAI output channel.\n\n[Run Diagnostics](command:altai.runDiagnostics)",
             "media": {
               "markdown": "media/walkthrough/diagnostics.md"
-            }
+            },
+            "completionEvents": [
+              "onCommand:altai.runDiagnostics"
+            ]
+          },
+          {
+            "id": "altai.hostPath",
+            "title": "Optional: set local host path",
+            "description": "When the packaged native host is missing, set **ALTAI: Agent Host Path**.\n\n[Open Extension Settings](command:altai.openExtensionSettings)",
+            "media": {
+              "markdown": "media/walkthrough/host-path.md"
+            },
+            "completionEvents": [
+              "onCommand:altai.openExtensionSettings"
+            ]
           }
         ]
       }
