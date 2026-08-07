@@ -260,6 +260,11 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     });
   }
 
+  /** Multi-root preferred host workspace path (fs), when set. */
+  public getPreferredHostRootFsPath(): string | undefined {
+    return this.workspaceAdapter.getPreferredHostRootFsPath();
+  }
+
   /**
    * Context attach (Ask About *) requires a trusted workspace before host
    * materializes workspace bytes / attachments.

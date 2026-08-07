@@ -148,7 +148,11 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.runDiagnostics", async () => {
       const channel = getOutputChannel();
       channel.show(true);
-      const lines = await buildDiagnosticsReportLines(context, hostManager);
+      const lines = await buildDiagnosticsReportLines(
+        context,
+        hostManager,
+        provider,
+      );
       for (const line of lines) {
         channel.appendLine(line);
       }
@@ -171,7 +175,11 @@ export function registerCommands(
       }
     }),
     vscode.commands.registerCommand("altai.copyDiagnosticsReport", async () => {
-      const lines = await buildDiagnosticsReportLines(context, hostManager);
+      const lines = await buildDiagnosticsReportLines(
+        context,
+        hostManager,
+        provider,
+      );
       await vscode.env.clipboard.writeText(lines.join("\n"));
       await vscode.window.showInformationMessage(
         "ALTAI diagnostics report copied to the clipboard.",
@@ -233,6 +241,7 @@ const PROVIDERS = [
 async function buildDiagnosticsReportLines(
   context: vscode.ExtensionContext,
   hostManager: HostManager,
+  provider: AltaiViewProvider,
 ): Promise<string[]> {
   const status = hostManager.getStatus();
   const lines = formatDiagnosticsReport({
@@ -251,6 +260,10 @@ async function buildDiagnosticsReportLines(
       message: status.message,
       diagnostic: hostManager.getLastDiagnostic(),
       workspaceRoot: hostManager.getLastSpawnedWorkspaceRoot(),
+      preferredWorkspaceRoot: provider.getPreferredHostRootFsPath(),
+      workspaceFolders: (vscode.workspace.workspaceFolders ?? []).map(
+        (folder) => folder.uri.fsPath,
+      ),
     },
   });
   try {

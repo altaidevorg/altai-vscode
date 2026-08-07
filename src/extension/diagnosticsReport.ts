@@ -32,6 +32,10 @@ export type DiagnosticsHostSnapshot = {
   diagnostic: HostDiagnostic | undefined;
   /** Effective --workspace path preferred or first folder. */
   workspaceRoot?: string | undefined;
+  /** Multi-root preferred host root (fs path), if set. */
+  preferredWorkspaceRoot?: string | undefined;
+  /** Open workspace folder fs paths (multi-root visibility). */
+  workspaceFolders?: readonly string[] | undefined;
 };
 
 export type DiagnosticsReportInput = {
@@ -74,6 +78,12 @@ export function formatDiagnosticsReport(
 
   lines.push(
     `  workspaceRoot=${host.workspaceRoot ?? "(none)"}`,
+    `  preferredWorkspaceRoot=${host.preferredWorkspaceRoot ?? "(none)"}`,
+    `  workspaceFolders=${
+      host.workspaceFolders && host.workspaceFolders.length > 0
+        ? host.workspaceFolders.join("|")
+        : "(none)"
+    }`,
     `  resolvedPath=${host.resolvedPath ?? "(none)"}`,
     `  lifecycle=${host.lifecycle}`,
     `  diagnosticCode=${host.diagnostic?.code ?? "(none)"}`,
