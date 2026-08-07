@@ -140,16 +140,28 @@ export function registerCommands(
         const pinBytes = await vscode.workspace.fs.readFile(pinUri);
         const pinText = Buffer.from(pinBytes).toString("utf8");
         channel.appendLine("  hostPin=" + pinText.replace(/\s+/g, " ").trim());
+        lines.push(`  hostPin=${pinText.replace(/\s+/g, " ").trim()}`);
       } catch {
         channel.appendLine("  hostPin=(missing)");
+        lines.push("  hostPin=(missing)");
       }
       const recovery = lines.find((line) => line.startsWith("  recovery="));
       const summary = recovery
         ? recovery.slice("  recovery=".length)
         : "Diagnostics written to the ALTAI output channel.";
-      await vscode.window.showInformationMessage(
+      const choice = await vscode.window.showInformationMessage(
         summary.length > 160 ? `${summary.slice(0, 157)}…` : summary,
+        "Copy report",
+        "Open logs",
       );
+      if (choice === "Copy report") {
+        await vscode.env.clipboard.writeText(lines.join("\n"));
+        await vscode.window.showInformationMessage(
+          "ALTAI diagnostics copied to the clipboard.",
+        );
+      } else if (choice === "Open logs") {
+        channel.show(true);
+      }
     }),
     vscode.commands.registerCommand("altai.showVersionCompatibility", async () => {
       await vscode.window.showInformationMessage(
