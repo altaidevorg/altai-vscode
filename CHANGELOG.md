@@ -187,6 +187,8 @@ sibling `file:` packages until public npm publish.
 - Empty-home starters for `/attach-diff` and `/tasks`.
 - Status bar host badge when the agent host is connecting, disconnected, or
   erroring (errors open Run Diagnostics).
+- Explorer and editor-title context menus expose Ask About Active File /
+  Working Tree; explorer resource URI is preferred when provided.
 
 ### Security
 

@@ -58,4 +58,21 @@ describe("package.json command contributions", () => {
     expect(registered.size).toBeGreaterThan(0);
     expect([...registered].sort()).toEqual([...contributed].sort());
   });
+
+  it("exposes Ask About Active File in explorer context", () => {
+    const manifest = JSON.parse(
+      readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    ) as {
+      contributes?: {
+        menus?: Record<string, Array<{ command: string }>>;
+      };
+    };
+    const explorer = manifest.contributes?.menus?.["explorer/context"] ?? [];
+    expect(
+      explorer.some((entry) => entry.command === "altai.askAboutActiveFile"),
+    ).toBe(true);
+    expect(
+      explorer.some((entry) => entry.command === "altai.askAboutWorkingTree"),
+    ).toBe(true);
+  });
 });

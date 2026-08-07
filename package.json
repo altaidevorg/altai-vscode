@@ -182,6 +182,25 @@
           "group": "altai@3",
           "when": "workspaceFolderCount > 0"
         }
+      ],
+      "explorer/context": [
+        {
+          "command": "altai.askAboutActiveFile",
+          "group": "altai@1",
+          "when": "resourceScheme == file && workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutWorkingTree",
+          "group": "altai@2",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "altai.askAboutActiveFile",
+          "group": "altai@1",
+          "when": "resourceScheme == file && workspaceFolderCount > 0"
+        }
       ]
     },
     "keybindings": [

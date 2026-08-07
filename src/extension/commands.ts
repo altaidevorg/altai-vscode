@@ -21,9 +21,12 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.askAboutSelection", async () => {
       await provider.openChatWithSelection();
     }),
-    vscode.commands.registerCommand("altai.askAboutActiveFile", async () => {
-      await provider.openChatWithActiveFile();
-    }),
+    vscode.commands.registerCommand(
+      "altai.askAboutActiveFile",
+      async (resource?: vscode.Uri) => {
+        await provider.openChatWithActiveFile(resource);
+      },
+    ),
     vscode.commands.registerCommand("altai.askAboutWorkingTree", async () => {
       await provider.openChatWithWorkingTree();
     }),

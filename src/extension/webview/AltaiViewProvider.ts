@@ -263,27 +263,35 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Capture the active workspace file URI in Extension Host, open Chat, and
-   * attach it as a file chip (contents stay on host until run/start).
+   * Capture a workspace file URI (explorer selection or active editor), open Chat,
+   * and attach it as a file chip (contents stay on host until run/start).
    */
-  public async openChatWithActiveFile(): Promise<void> {
-    let file: { uri: string; path: string } | null;
-    try {
-      file = (await this.workspaceAdapter.request("getActiveFile")) as {
-        uri: string;
-        path: string;
-      } | null;
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "active_file_unavailable";
-      await vscode.window.showErrorMessage(
-        `ALTAI could not read the active file: ${message}`,
-      );
-      return;
+  public async openChatWithActiveFile(resource?: vscode.Uri): Promise<void> {
+    let file: { uri: string; path: string } | null = null;
+    if (resource) {
+      const folder = vscode.workspace.getWorkspaceFolder(resource);
+      if (folder) {
+        file = { uri: resource.toString(), path: resource.fsPath };
+      }
+    }
+    if (!file) {
+      try {
+        file = (await this.workspaceAdapter.request("getActiveFile")) as {
+          uri: string;
+          path: string;
+        } | null;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "active_file_unavailable";
+        await vscode.window.showErrorMessage(
+          `ALTAI could not read the active file: ${message}`,
+        );
+        return;
+      }
     }
     if (!file) {
       await vscode.window.showInformationMessage(
-        "Open a workspace file, then run ALTAI: Ask About Active File.",
+        "Open or select a workspace file, then run ALTAI: Ask About Active File.",
       );
       return;
     }
@@ -293,7 +301,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     });
     if (!payload) {
       await vscode.window.showInformationMessage(
-        "Open a workspace file, then run ALTAI: Ask About Active File.",
+        "Open or select a workspace file, then run ALTAI: Ask About Active File.",
       );
       return;
     }
