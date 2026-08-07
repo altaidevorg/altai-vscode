@@ -3,7 +3,7 @@
  * Update docs/PROTOCOL_COMPATIBILITY.md and resources/native/PIN.json together.
  */
 export const COMPATIBILITY = {
-  extension: "0.1.0",
+  extension: "0.1.1",
   /** Matches sibling @altai/agent-ui package version (file: link until npm publish). */
   agentUi: "0.1.0",
   protocol: 1,

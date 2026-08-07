@@ -572,6 +572,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   return (
     <HostPortsProvider ports={ports} capabilities={capabilities}>
       <div className="altai-shell altai-shell-root">
+        <div className="altai-dev-banner" role="status">
+          ALTAI plugin 0.1.1 — History menu (no side rail) · no folder chip
+        </div>
         <SurfaceHeader
           title="ALTAI"
           subtitle={

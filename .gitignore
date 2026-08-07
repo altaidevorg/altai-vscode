@@ -20,3 +20,4 @@ resources/native/*/*.sha256
 # Local agent-host state (created by altai-cli against this workspace)
 .altai/
 .isanagent/
+altai-*.vsix
