@@ -224,6 +224,7 @@ sibling `file:` packages until public npm publish.
   walkthrough completion events + optional host-path step.
 - Host error/recovery toasts pick actions from diagnostic code (Trust / Host
   path / Open ALTAI).
+- README shortcut table for common keybindings.
 
 ### Security
 

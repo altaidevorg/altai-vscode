@@ -79,6 +79,25 @@ See the [engineering plan](docs/ENGINEERING_PLAN.md) and
 - [Security and privacy](docs/SECURITY.md) — trust, secrets, host, logging.
 - [Changelog](CHANGELOG.md) — shipped user-visible changes per version.
 
+
+## Shortcuts
+
+| Action | Default keybinding |
+|---|---|
+| Open Side Panel | Cmd/Ctrl+Shift+Alt+A |
+| Open Settings (panel) | Cmd/Ctrl+Alt+, |
+| Ask About Selection | Cmd/Ctrl+Alt+A |
+| Ask About Active File | Cmd/Ctrl+Alt+F |
+| Ask About Working Tree | Cmd/Ctrl+Alt+G |
+| Ask About Terminal | Cmd/Ctrl+Alt+T (terminal focused) |
+| Open Operations | Cmd/Ctrl+Shift+Alt+O |
+| Open Inbox | Cmd/Ctrl+Shift+Alt+I |
+| Open Logs | Cmd/Ctrl+Shift+Alt+L |
+| Run Diagnostics | Cmd/Ctrl+Shift+Alt+D |
+| Restart Host | Cmd/Ctrl+Shift+Alt+R |
+
+Command palette also exposes provider connect/clear, walkthrough, and deep-links.
+
 ## Develop
 
 Layout (sibling packages):
