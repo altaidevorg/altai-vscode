@@ -261,6 +261,8 @@ sibling `file:` packages until public npm publish.
 - Side-panel title overflow includes Copy Diagnostics Report.
 - **ALTAI: Ask About Problems** attaches language diagnostics for the active
   file as selection context.
+- Problems panel context menu and workspace-wide Problems attach (when no file
+  is focused) with multi-file caps.
 - **ALTAI: Pick Project Root** sets multi-root preferred host folder (palette /
   explorer folder context).
 - Composer `@file` search scopes to the preferred host project root when set.

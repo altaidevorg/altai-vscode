@@ -88,6 +88,10 @@ describe("package.json command contributions", () => {
     expect(
       scmTitle.some((entry) => entry.command === "altai.askAboutWorkingTree"),
     ).toBe(true);
+    const problems = manifest.contributes?.menus?.["problems/context"] ?? [];
+    expect(
+      problems.some((entry) => entry.command === "altai.askAboutProblems"),
+    ).toBe(true);
     const scm = manifest.contributes?.menus?.["scm/resourceState/context"] ?? [];
     expect(
       scm.some((entry) => entry.command === "altai.askAboutActiveFile"),

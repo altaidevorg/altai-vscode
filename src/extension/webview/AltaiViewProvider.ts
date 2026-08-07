@@ -15,7 +15,10 @@ import {
   buildOpenSettingsPayload,
 } from "../../shared/settingsDeepLink.js";
 import { formatTerminalAttachText } from "../../shared/terminalAttach.js";
-import { formatProblemsContextText } from "../../shared/problemsContext.js";
+import {
+  formatProblemsBundles,
+  formatProblemsContextText,
+} from "../../shared/problemsContext.js";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
@@ -302,48 +305,89 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Attach language diagnostics for a workspace file as selection-style context.
+   * Attach language diagnostics for a workspace file (or workspace-wide when no
+   * resource) as selection-style context.
    */
   public async openChatWithProblems(resource?: vscode.Uri): Promise<void> {
-    let target =
+    const target =
       resource ??
       vscode.window.activeTextEditor?.document.uri;
-    if (!target) {
-      await vscode.window.showInformationMessage(
-        "Open a workspace file, then run ALTAI: Ask About Problems.",
+
+    let text: string | null = null;
+    let payloadUri: string;
+    let payloadPath: string;
+
+    if (target && vscode.workspace.getWorkspaceFolder(target)) {
+      const diagnostics = vscode.languages.getDiagnostics(target);
+      const relative =
+        vscode.workspace.asRelativePath(target, false) || target.fsPath;
+      text = formatProblemsContextText(
+        relative,
+        diagnostics.map((d) => ({
+          severity: d.severity as number,
+          message: d.message,
+          startLine: d.range.start.line,
+          startCharacter: d.range.start.character,
+          endLine: d.range.end.line,
+          endCharacter: d.range.end.character,
+          ...(d.source ? { source: d.source } : {}),
+        })),
       );
-      return;
-    }
-    if (!vscode.workspace.getWorkspaceFolder(target)) {
+      payloadUri = target.toString();
+      payloadPath = target.fsPath;
+      if (!text) {
+        await vscode.window.showInformationMessage(
+          "No Problems reported for this file.",
+        );
+        return;
+      }
+    } else if (!target) {
+      const all = vscode.languages.getDiagnostics();
+      const bundles = [];
+      let primaryUri: vscode.Uri | undefined;
+      for (const [uri, diagnostics] of all) {
+        if (!vscode.workspace.getWorkspaceFolder(uri)) {
+          continue;
+        }
+        if (diagnostics.length === 0) {
+          continue;
+        }
+        if (!primaryUri) {
+          primaryUri = uri;
+        }
+        bundles.push({
+          pathLabel:
+            vscode.workspace.asRelativePath(uri, false) || uri.fsPath,
+          diagnostics: diagnostics.map((d) => ({
+            severity: d.severity as number,
+            message: d.message,
+            startLine: d.range.start.line,
+            startCharacter: d.range.start.character,
+            endLine: d.range.end.line,
+            endCharacter: d.range.end.character,
+            ...(d.source ? { source: d.source } : {}),
+          })),
+        });
+      }
+      text = formatProblemsBundles(bundles);
+      if (!text || !primaryUri) {
+        await vscode.window.showInformationMessage(
+          "No workspace Problems to attach. Open a file with diagnostics, or fix the workspace Issues list.",
+        );
+        return;
+      }
+      payloadUri = primaryUri.toString();
+      payloadPath = primaryUri.fsPath;
+    } else {
       await vscode.window.showInformationMessage(
         "ALTAI can only attach problems for files inside the workspace.",
       );
       return;
     }
-    const diagnostics = vscode.languages.getDiagnostics(target);
-    const relative =
-      vscode.workspace.asRelativePath(target, false) || target.fsPath;
-    const text = formatProblemsContextText(
-      relative,
-      diagnostics.map((d) => ({
-        severity: d.severity as number,
-        message: d.message,
-        startLine: d.range.start.line,
-        startCharacter: d.range.start.character,
-        endLine: d.range.end.line,
-        endCharacter: d.range.end.character,
-        ...(d.source ? { source: d.source } : {}),
-      })),
-    );
-    if (!text) {
-      await vscode.window.showInformationMessage(
-        "No Problems reported for this file.",
-      );
-      return;
-    }
+
     const payload = buildOpenChatWithSelectionPayload({
-      uri: target.toString(),
-      path: target.fsPath,
+      uri: payloadUri,
+      path: payloadPath,
       text,
     });
     if (!payload) {

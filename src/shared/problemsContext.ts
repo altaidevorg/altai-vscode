@@ -12,6 +12,11 @@ export type DiagnosticLike = {
   source?: string;
 };
 
+export type FileDiagnosticsBundle = {
+  pathLabel: string;
+  diagnostics: readonly DiagnosticLike[];
+};
+
 const SEVERITY_LABEL: Record<number, string> = {
   0: "Error",
   1: "Warning",
@@ -21,30 +26,56 @@ const SEVERITY_LABEL: Record<number, string> = {
 
 const MAX_PROBLEMS = 40;
 const MAX_CHARS = 12_000;
+const MAX_FILES = 12;
 
 export function formatProblemsContextText(
   pathLabel: string,
   diagnostics: readonly DiagnosticLike[],
 ): string | null {
-  if (diagnostics.length === 0) {
+  return formatProblemsBundles([{ pathLabel, diagnostics }]);
+}
+
+/**
+ * Format one or more files' diagnostics into a single attach payload body.
+ */
+export function formatProblemsBundles(
+  files: readonly FileDiagnosticsBundle[],
+): string | null {
+  const nonEmpty = files.filter((file) => file.diagnostics.length > 0);
+  if (nonEmpty.length === 0) {
     return null;
   }
-  // Prefer errors then warnings.
-  const sorted = [...diagnostics].sort((a, b) => a.severity - b.severity);
-  const lines: string[] = [`Problems in ${pathLabel}:`];
-  let count = 0;
-  for (const d of sorted) {
-    if (count >= MAX_PROBLEMS) {
-      lines.push(`…and ${sorted.length - count} more`);
+
+  const lines: string[] = [];
+  let total = 0;
+  let filesUsed = 0;
+
+  for (const file of nonEmpty) {
+    if (filesUsed >= MAX_FILES || total >= MAX_PROBLEMS) {
       break;
     }
-    const label = SEVERITY_LABEL[d.severity] ?? `Severity ${d.severity}`;
-    const src = d.source?.trim() ? ` [${d.source.trim()}]` : "";
-    const range = `L${d.startLine + 1}:${d.startCharacter + 1}`;
-    lines.push(`- ${label}${src} ${range}: ${d.message.trim()}`);
-    count += 1;
+    const sorted = [...file.diagnostics].sort((a, b) => a.severity - b.severity);
+    lines.push(`Problems in ${file.pathLabel}:`);
+    filesUsed += 1;
+    for (const d of sorted) {
+      if (total >= MAX_PROBLEMS) {
+        lines.push(`…and more (capped at ${MAX_PROBLEMS})`);
+        break;
+      }
+      const label = SEVERITY_LABEL[d.severity] ?? `Severity ${d.severity}`;
+      const src = d.source?.trim() ? ` [${d.source.trim()}]` : "";
+      const range = `L${d.startLine + 1}:${d.startCharacter + 1}`;
+      lines.push(`- ${label}${src} ${range}: ${d.message.trim()}`);
+      total += 1;
+    }
+    lines.push("");
   }
-  let text = lines.join("\n");
+
+  if (total === 0) {
+    return null;
+  }
+
+  let text = lines.join("\n").trimEnd();
   if (text.length > MAX_CHARS) {
     text = `${text.slice(0, MAX_CHARS - 1)}…`;
   }
