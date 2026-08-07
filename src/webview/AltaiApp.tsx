@@ -1876,7 +1876,7 @@ function AgentUiShell({
   return (
     <main className="altai-shell-body altai-shell-body--chat">
       <AgentChatLayout
-        density="sidebar"
+        density="auto"
         history={
           <ChatSessionList
             activeChatId={activeChatId}

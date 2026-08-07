@@ -50,13 +50,14 @@ ALTAI Desktop.
 | VS Code mounts `AgentChatLayout` | vscode | PR #208 ✓ |
 | Desktop `AiSidePanel` history\|main migrate off ad-hoc markup where resizable allows | altai-app | **next** |
 
-### P2 — Port-backed session surface
+### P2 — Port-backed session surface (**in progress** 2026-08-07)
 
 | Item | Repo | Acceptance |
 |---|---|---|
-| History mutations only via `ports.sessions.*` inside agent-ui container | agent-ui | |
-| Soft-fail journal: empty history UI, not raw codes | both | |
-| Align `config/update` patches Desktop ↔ stdio CLI | altai-cli | No `unsupported_config_patch` for permission/model |
+| History mutations only via `ports.sessions.*` inside agent-ui container | agent-ui | next |
+| Soft-fail journal: empty history UI, not raw codes | vscode | P0 humanize ✓ |
+| Align `config/update` patches (camelCase aliases + ignore noise) | altai-cli | PR follow-up |
+| `AgentChatLayout` density=`auto` | agent-ui + vscode | ResizeObserver switch |
 
 ### P3 — Extract `AiSidePanel` tree
 
