@@ -25,6 +25,40 @@ export function registerCommands(
         false,
       );
     }),
+    vscode.commands.registerCommand(
+      "altai.pickProjectRoot",
+      async (resource?: vscode.Uri) => {
+        if (resource && vscode.workspace.getWorkspaceFolder(resource)) {
+          const folder = vscode.workspace.getWorkspaceFolder(resource)!;
+          await provider.setPreferredProjectRoot(folder.uri);
+          await vscode.window.showInformationMessage(
+            `ALTAI host root set to ${folder.name}.`,
+          );
+          return;
+        }
+        const folders = vscode.workspace.workspaceFolders ?? [];
+        if (folders.length === 0) {
+          await vscode.window.showInformationMessage(
+            "Open a workspace folder, then run ALTAI: Pick Project Root.",
+          );
+          return;
+        }
+        if (folders.length === 1) {
+          await provider.setPreferredProjectRoot(folders[0]!.uri);
+          await vscode.window.showInformationMessage(
+            `ALTAI host root is ${folders[0]!.name}.`,
+          );
+          return;
+        }
+        const picked = await provider.pickPreferredProjectRoot();
+        if (!picked) {
+          return;
+        }
+        await vscode.window.showInformationMessage(
+          `ALTAI host root set to ${picked.name}.`,
+        );
+      },
+    ),
     vscode.commands.registerCommand("altai.askAboutSelection", async () => {
       await provider.openChatWithSelection();
     }),

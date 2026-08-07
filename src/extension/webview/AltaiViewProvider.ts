@@ -227,6 +227,35 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
    * Capture the active editor selection in Extension Host, open Chat, and
    * attach it as composer context. Empty selection surfaces a local message.
    */
+  /**
+   * Multi-root QuickPick → set Preferred host root (and git preference).
+   */
+  public async pickPreferredProjectRoot(): Promise<{
+    name: string;
+    uri: vscode.Uri;
+  } | null> {
+    const picked = (await this.workspaceAdapter.request(
+      "pickWorkspaceFolder",
+      {},
+    )) as { uri?: string } | null;
+    if (!picked?.uri) {
+      return null;
+    }
+    await this.workspaceAdapter.request("setPreferredRootUri", {
+      uri: picked.uri,
+    });
+    const name =
+      vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(picked.uri))?.name ??
+      path.basename(picked.uri);
+    return { name, uri: vscode.Uri.parse(picked.uri) };
+  }
+
+  public async setPreferredProjectRoot(uri: vscode.Uri): Promise<void> {
+    await this.workspaceAdapter.request("setPreferredRootUri", {
+      uri: uri.toString(),
+    });
+  }
+
   public async openChatWithSelection(): Promise<void> {
     let selection: {
       uri: string;

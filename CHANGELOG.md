@@ -263,6 +263,8 @@ sibling `file:` packages until public npm publish.
 - Side-panel title overflow includes Copy Diagnostics Report.
 - **ALTAI: Ask About Problems** attaches language diagnostics for the active
   file as selection context.
+- **ALTAI: Pick Project Root** sets multi-root preferred host folder (palette /
+  explorer folder context).
 
 ### Security
 
