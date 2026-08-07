@@ -28,7 +28,7 @@ Architecture detail lives in [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md) §13.
 - The host is started with an **explicit executable path and argument array**
   (no shell). Prefer packaged `resources/native/<platform-arch>/` binaries with
   optional `.sha256` integrity checks; local debug may set
-  `ALTAI_AGENT_HOST_PATH` to an absolute path.
+  `altai.agentHostPath` or `ALTAI_AGENT_HOST_PATH` to an absolute path.
 - Remote SSH / WSL / Dev Containers: the extension uses `extensionKind:
   workspace` so the host runs on the **remote** machine next to the workspace.
 
