@@ -254,6 +254,30 @@ body {
   overflow: visible;
 }
 
+/* Shared AiChatMainColumn (agent-ui A6.24) */
+.altai-ai-chat-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.altai-ai-chat-transcript {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.altai-ai-chat-transcript > .altai-chat-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
 .altai-shell-meta {
   margin: 0;
   font-size: 0.7rem;
