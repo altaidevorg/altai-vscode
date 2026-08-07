@@ -99,7 +99,7 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.restartAgentHost", async () => {
       const channel = getOutputChannel();
       channel.appendLine("[altai] restart requested");
-      await hostManager.restart();
+      await hostManager.restart({ force: true });
       const status = hostManager.getStatus();
       await vscode.window.showInformationMessage(
         `ALTAI host: ${status.status} — ${status.message}`,

@@ -171,6 +171,27 @@ describe("HostManager", () => {
     expect(logs.some((line) => line.includes("restart skipped"))).toBe(true);
   });
 
+  it("force-restarts even when the workspace root is unchanged", async () => {
+    const logs: string[] = [];
+    const manager = new HostManager({
+      extensionPath: "/tmp/ext",
+      getWorkspaceRoot: () => "/tmp/ws",
+      isTrusted: () => true,
+      extensionVersion: "0.1.0",
+      processFactory: mockProcessFactory(),
+      env: { [AGENT_HOST_PATH_ENV]: createFakeBinary() },
+      initializeTimeoutMs: 2_000,
+      log: (line) => logs.push(line),
+    });
+    managers.push(manager);
+
+    await manager.start();
+    expect(manager.getLifecycleState()).toBe("Ready");
+    await manager.restart({ force: true });
+    expect(manager.getLifecycleState()).toBe("Ready");
+    expect(logs.some((line) => line.includes("restart skipped"))).toBe(false);
+  });
+
   it("reports missing binary", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext-missing",
