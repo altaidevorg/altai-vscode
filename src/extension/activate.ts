@@ -13,6 +13,8 @@ import {
   isWorkspaceTrusted,
   onDidGrantWorkspaceTrust,
 } from "./workspaceTrust.js";
+import { shouldNotifyHostRecovered } from "../shared/hostStatusNotify.js";
+import type { HostStatusPayload } from "../shared/messages.js";
 
 let hostManager: HostManager | undefined;
 
@@ -24,6 +26,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   let provider: AltaiViewProvider | undefined;
+  let lastHostStatus: HostStatusPayload["status"] | undefined;
 
   const attentionBar = new AttentionStatusBar();
   const hostStatusBar = new HostStatusBar();
@@ -39,6 +42,12 @@ export function activate(context: vscode.ExtensionContext): void {
     onStatus: (status) => {
       hostStatusBar.setStatus(status);
       provider?.publishHostStatus(status);
+      if (shouldNotifyHostRecovered(lastHostStatus, status.status)) {
+        void vscode.window.showInformationMessage(
+          "ALTAI agent host is ready again.",
+        );
+      }
+      lastHostStatus = status.status;
     },
   });
 

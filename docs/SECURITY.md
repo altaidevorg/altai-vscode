@@ -9,6 +9,9 @@ Architecture detail lives in [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md) §13.
 - The **native agent host is not started** until Workspace Trust is granted.
 - Visible agent actions are enabled only when the host advertises the matching
   **capability** after a successful initialize.
+- Webview recovery buttons only invoke an **allowlisted** set of Extension Host
+  commands (logs, diagnostics, restart, version, provider connect/clear, manage
+  workspace trust). Free-form `executeCommand` is not exposed.
 
 ## Secrets
 
