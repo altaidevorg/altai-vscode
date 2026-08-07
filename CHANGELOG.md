@@ -213,6 +213,8 @@ sibling `file:` packages until public npm publish.
   before the API key.
 - Terminal context uses the right-clicked terminal and tracks last shell
   command (shell integration) for Attach / Ask About Terminal.
+- Working-tree attach prefers Explorer resource repo, then falls back to the
+  first multi-root repository with presentation changes.
 
 ### Security
 

@@ -12,6 +12,7 @@ import type {
 import type * as vscode from "vscode";
 import { isAltaiRecoveryCommand } from "../../shared/hostRecoveryCommands.js";
 import type { TerminalContextTracker } from "./TerminalContextTracker.js";
+import type { GitDiffAdapter } from "./GitDiffAdapter.js";
 
 const MAX_SEARCH_RESULTS = 100;
 const MAX_QUERY_LENGTH = 256;
@@ -46,11 +47,17 @@ export class WorkspaceAdapter {
     private readonly createReviewUri: ReviewUriFactory,
     private readonly getGitDiffContext: () => Promise<GitDiffContext | null>,
     private readonly terminalTracker?: TerminalContextTracker,
+    private readonly gitDiffAdapter?: GitDiffAdapter,
   ) {}
 
   /** Prefer a right-clicked terminal for the next getTerminalContext. */
   setPreferredTerminal(terminal: vscode.Terminal | undefined): void {
     this.terminalTracker?.setPreferredTerminal(terminal);
+  }
+
+  /** Prefer explorer / resource URI for the next getGitDiff. */
+  setPreferredGitUri(uri: vscode.Uri | undefined): void {
+    this.gitDiffAdapter?.setPreferredTargetUri(uri);
   }
 
   async request(method: string, params?: unknown): Promise<unknown> {
