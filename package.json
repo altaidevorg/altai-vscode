@@ -218,6 +218,21 @@
         "key": "ctrl+alt+t",
         "mac": "cmd+alt+t",
         "when": "terminalFocus"
+      },
+      {
+        "command": "altai.openLogs",
+        "key": "ctrl+shift+alt+l",
+        "mac": "cmd+shift+alt+l"
+      },
+      {
+        "command": "altai.runDiagnostics",
+        "key": "ctrl+shift+alt+d",
+        "mac": "cmd+shift+alt+d"
+      },
+      {
+        "command": "altai.openOperations",
+        "key": "ctrl+shift+alt+o",
+        "mac": "cmd+shift+alt+o"
       }
     ]
   },

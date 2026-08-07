@@ -183,6 +183,8 @@ sibling `file:` packages until public npm publish.
 - Manifest `contributes.commands` must match `registerCommands` (unit gated).
 - Recovery command allowlist is shared (`src/shared/hostRecoveryCommands.ts`)
   between Extension Host and Webview wait-shell buttons.
+- Keybindings: Cmd/Ctrl+Shift+Alt+L logs, +D diagnostics, +O Operations.
+- Empty-home starters for `/attach-diff` and `/tasks`.
 
 ### Security
 
