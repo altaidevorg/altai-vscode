@@ -21,6 +21,10 @@ import {
   HOST_ERROR_ACTION_LABELS,
   shouldPromptHostErrorActions,
 } from "../shared/hostErrorActions.js";
+import {
+  markFirstRunWalkthroughOffered,
+  shouldOfferFirstRunWalkthrough,
+} from "../shared/firstRunWalkthrough.js";
 import type { HostStatusPayload } from "../shared/messages.js";
 
 let hostManager: HostManager | undefined;
@@ -152,6 +156,29 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   void hostManager.start();
+  void maybeOfferFirstRunWalkthrough(context);
+}
+
+async function maybeOfferFirstRunWalkthrough(
+  context: vscode.ExtensionContext,
+): Promise<void> {
+  const openOnInstall = vscode.workspace
+    .getConfiguration("altai")
+    .get<boolean>("openWalkthroughOnInstall", true);
+  if (
+    !shouldOfferFirstRunWalkthrough(
+      context.globalState,
+      openOnInstall !== false,
+    )
+  ) {
+    return;
+  }
+  await markFirstRunWalkthroughOffered(context.globalState);
+  try {
+    await vscode.commands.executeCommand("altai.openWalkthrough");
+  } catch {
+    // Walkthrough APIs can be unavailable in some hosts/tests; marker is set.
+  }
 }
 
 export async function deactivate(): Promise<void> {
