@@ -67,6 +67,7 @@ describe("package.json command contributions", () => {
     ) as {
       contributes?: {
         menus?: Record<string, Array<{ command: string; when?: string }>>;
+        walkthroughs?: Array<{ id: string; steps?: Array<{ id: string }> }>;
       };
     };
     const explorer = manifest.contributes?.menus?.["explorer/context"] ?? [];
@@ -91,6 +92,17 @@ describe("package.json command contributions", () => {
     expect(
       viewTitle.some((entry) => entry.command === "altai.openOperations"),
     ).toBe(true);
+    expect(viewTitle.some((entry) => entry.command === "altai.openLogs")).toBe(
+      true,
+    );
+    const walkthroughs = manifest.contributes?.walkthroughs ?? [];
+    expect(walkthroughs.some((w) => w.id === "altai.gettingStarted")).toBe(
+      true,
+    );
+    const step = walkthroughs[0]?.steps?.find(
+      (s: { id: string }) => s.id === "altai.hostPath",
+    );
+    expect(step).toBeDefined();
   });
 
   it("exposes agent host path setting", () => {
