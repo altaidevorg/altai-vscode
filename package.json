@@ -270,10 +270,15 @@
         {
           "command": "altai.openOperationsInbox",
           "when": "view == altai.sidePanel",
-          "group": "1_altai@1"
+          "group": "1_altai@0"
         },
         {
           "command": "altai.openLogs",
+          "when": "view == altai.sidePanel",
+          "group": "1_altai@1"
+        },
+        {
+          "command": "altai.copyDiagnosticsReport",
           "when": "view == altai.sidePanel",
           "group": "1_altai@2"
         },
