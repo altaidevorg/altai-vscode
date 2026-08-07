@@ -7,33 +7,7 @@
 
 import type { GitDiffContext } from "@altai/host-contract" with { "resolution-mode": "import" };
 import type * as vscode from "vscode";
-
-// Keep this formatter local so Extension Host builds stay free of webview deps.
-function formatGitDiffSummary(input: {
-  branch?: string;
-  files: readonly { path: string; status: string }[];
-}): string | null {
-  if (input.files.length === 0) {
-    return null;
-  }
-  const head = input.branch?.trim()
-    ? `Working tree changes on ${input.branch.trim()}`
-    : "Working tree changes";
-  const lines = input.files
-    .map((file) => {
-      const path = file.path.trim();
-      const status = file.status.trim();
-      if (!path) {
-        return null;
-      }
-      return status ? `- ${status}  ${path}` : `- ${path}`;
-    })
-    .filter((line): line is string => Boolean(line));
-  if (lines.length === 0) {
-    return null;
-  }
-  return [`${head}:`, ...lines].join("\n");
-}
+import { formatGitDiffSummary } from "../../shared/gitDiffSummary.js";
 
 type GitChange = {
   uri: vscode.Uri;
