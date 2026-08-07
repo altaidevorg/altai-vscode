@@ -267,6 +267,7 @@ sibling `file:` packages until public npm publish.
   explorer folder context).
 - Composer `@file` search scopes to the preferred host project root when set.
 - Composer slash `/attach-problems` (`/errors`) runs Ask About Problems.
+- Composer slash `/pick-root` runs Pick Project Root.
 
 ### Security
 
