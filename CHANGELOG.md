@@ -181,6 +181,8 @@ sibling `file:` packages until public npm publish.
 - Terminal context attach falls back to the integrated terminal name when
   shell integration has not reported a cwd yet.
 - Manifest `contributes.commands` must match `registerCommands` (unit gated).
+- Recovery command allowlist is shared (`src/shared/hostRecoveryCommands.ts`)
+  between Extension Host and Webview wait-shell buttons.
 
 ### Security
 

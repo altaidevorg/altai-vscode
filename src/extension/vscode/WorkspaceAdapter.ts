@@ -10,6 +10,7 @@ import type {
   WorkspaceInfo,
 } from "@altai/host-contract" with { "resolution-mode": "import" };
 import type * as vscode from "vscode";
+import { isAltaiRecoveryCommand } from "../../shared/hostRecoveryCommands.js";
 
 const MAX_SEARCH_RESULTS = 100;
 const MAX_QUERY_LENGTH = 256;
@@ -30,17 +31,6 @@ export type WorkspaceRequestMethod =
   | "getGitDiff"
   | "getTerminalContext"
   | "executeAltaiCommand";
-
-/** Recovery / diagnostic commands the Webview may invoke (no free-form execute). */
-const ALTAI_RECOVERY_COMMANDS = new Set([
-  "altai.openLogs",
-  "altai.runDiagnostics",
-  "altai.restartAgentHost",
-  "altai.showVersionCompatibility",
-  "altai.connectProvider",
-  "altai.clearProviderCredential",
-  "workbench.action.manageWorkspaceTrust",
-]);
 
 export type ReviewUriFactory = (label: string, text: string) => vscode.Uri;
 
@@ -94,7 +84,7 @@ export class WorkspaceAdapter {
   }
 
   private async executeAltaiCommand(command: string): Promise<{ ok: true }> {
-    if (!ALTAI_RECOVERY_COMMANDS.has(command)) {
+    if (!isAltaiRecoveryCommand(command)) {
       throw codedError(
         "command_not_allowed",
         `ALTAI command is not allowlisted: ${command}`,
