@@ -178,6 +178,8 @@ sibling `file:` packages until public npm publish.
   attach the active editor file and selection the same way.
 - Status-bar attention badge opens **Operations Inbox** when count > 0
   (overview when zero).
+- Terminal context attach falls back to the integrated terminal name when
+  shell integration has not reported a cwd yet.
 
 ### Security
 
