@@ -56,6 +56,8 @@ describe("formatDiagnosticsReport", () => {
     expect(lines[0]).toBe("[altai] diagnostics");
     expect(lines).toContain("  extension=0.1.0");
     expect(lines).toContain("  workspaceRoot=/Users/me/project");
+    expect(lines).toContain("  preferredWorkspaceRoot=(none)");
+    expect(lines).toContain("  workspaceFolders=(none)");
     expect(lines).toContain("  remoteName=ssh-remote");
     expect(lines).toContain("  extensionPath=/ext/altai");
     expect(lines.some((l) => l.startsWith("  diagnostic=[host.missing]"))).toBe(
