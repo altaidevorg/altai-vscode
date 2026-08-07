@@ -3,6 +3,7 @@
  */
 
 import * as vscode from "vscode";
+import { attentionStatusBarCommand } from "../shared/attention.js";
 
 export class AttentionStatusBar implements vscode.Disposable {
   private readonly item: vscode.StatusBarItem;
@@ -13,7 +14,6 @@ export class AttentionStatusBar implements vscode.Disposable {
       vscode.StatusBarAlignment.Left,
       50,
     );
-    this.item.command = "altai.openOperations";
     this.render();
     this.item.show();
   }
@@ -32,10 +32,11 @@ export class AttentionStatusBar implements vscode.Disposable {
   }
 
   private render(): void {
+    this.item.command = attentionStatusBarCommand(this.count);
     if (this.count > 0) {
       const label = this.count > 99 ? "99+" : String(this.count);
       this.item.text = `$(bell) ALTAI ${label}`;
-      this.item.tooltip = `${this.count} ALTAI item(s) need attention — open Operations`;
+      this.item.tooltip = `${this.count} ALTAI item(s) need attention — open Inbox`;
       this.item.backgroundColor = new vscode.ThemeColor(
         "statusBarItem.warningBackground",
       );
