@@ -1,5 +1,6 @@
 import {
   AgentChatLayout,
+  AiChatMainColumn,
   AiSidePanelFrame,
   ChatTabStrip,
   detectSlashOrSnippetTrigger,
@@ -2018,6 +2019,9 @@ function AgentUiShell({
               <div className="altai-chat-toolbar-tabs" aria-hidden="true" />
             )}
           </div>
+          <AiChatMainColumn
+            planMode={
+              <>
           <ChatPlanTodoChrome
             permissionMode={permissionMode}
             messages={messages}
@@ -2081,7 +2085,10 @@ function AgentUiShell({
               }}
             />
           ) : null}
-          <div className="altai-chat-scroll">
+              </>
+            }
+            transcript={
+              <div className="altai-chat-scroll">
             {showEmptyHome ? (
               <EmptyState agentName="ALTAI" />
             ) : (
@@ -2139,6 +2146,10 @@ function AgentUiShell({
                 />
               </>
             )}
+              </div>
+            }
+            runChrome={
+              <>
             {error ? (
               <div
                 className="altai-chat-error"
@@ -2196,7 +2207,9 @@ function AgentUiShell({
               onApprovalsChange={setPendingApprovals}
               onClarificationChange={setPendingClarification}
             />
-          </div>
+              </>
+            }
+            composer={
           <div className="altai-chat-composer-dock">
             <ChatProviderConnectBanner />
             <form
@@ -2497,6 +2510,8 @@ function AgentUiShell({
               />
             </form>
           </div>
+            }
+          />
           </>
         }
       />

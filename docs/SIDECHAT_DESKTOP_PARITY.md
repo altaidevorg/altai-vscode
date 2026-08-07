@@ -255,7 +255,8 @@ User-visible:
 5. **Freeze rule:** no new `Chat*Chrome` composer features — expand host ports or package only.
 6. ~~Shared `AiComposer` re-export + Desktop mount path~~ (**altai-app** main).
 7. ~~`AiSidePanelFrame` + layout breakpoints + composer availability~~ (agent-ui A6.20–23; VS Code mounts frame).
-8. **Next extract:** ports-first `useComposer` + Desktop picker adapters → package; then full `AiSidePanel` body cutover.
+8. ~~`AiChatMainColumn` chat body slots~~ (agent-ui A6.24; Desktop Body + VS Code chat column).
+9. **Next extract:** ports-first `useComposer` adapters + true `AiChatView` package path (message mapping without host duplicates).
 
 ## 9. Risks
 
