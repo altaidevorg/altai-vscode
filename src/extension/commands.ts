@@ -29,6 +29,12 @@ export function registerCommands(
       await provider.openChatWithSelection();
     }),
     vscode.commands.registerCommand(
+      "altai.askAboutProblems",
+      async (resource?: vscode.Uri) => {
+        await provider.openChatWithProblems(resource);
+      },
+    ),
+    vscode.commands.registerCommand(
       "altai.askAboutActiveFile",
       async (resource?: vscode.Uri, selectedResources?: vscode.Uri[]) => {
         await provider.openChatWithActiveFile(resource, selectedResources);

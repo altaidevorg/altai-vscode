@@ -103,6 +103,12 @@
         "icon": "$(git-compare)"
       },
       {
+        "command": "altai.askAboutProblems",
+        "title": "ALTAI: Ask About Problems",
+        "category": "ALTAI",
+        "icon": "$(warning)"
+      },
+      {
         "command": "altai.askAboutTerminal",
         "title": "ALTAI: Ask About Terminal",
         "category": "ALTAI"
@@ -205,6 +211,11 @@
           "command": "altai.askAboutWorkingTree",
           "group": "altai@3",
           "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutProblems",
+          "group": "altai@4",
+          "when": "editorTextFocus && workspaceFolderCount > 0"
         }
       ],
       "explorer/context": [
@@ -236,6 +247,11 @@
           "command": "altai.askAboutWorkingTree",
           "group": "navigation@91",
           "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutProblems",
+          "group": "navigation@92",
+          "when": "resourceScheme != untitled && resourceScheme != output && workspaceFolderCount > 0"
         }
       ],
       "scm/title": [
@@ -311,6 +327,10 @@
         },
         {
           "command": "altai.askAboutWorkingTree",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "altai.askAboutProblems",
           "when": "workspaceFolderCount > 0"
         },
         {

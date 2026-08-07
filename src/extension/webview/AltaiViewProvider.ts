@@ -15,6 +15,7 @@ import {
   buildOpenSettingsPayload,
 } from "../../shared/settingsDeepLink.js";
 import { formatTerminalAttachText } from "../../shared/terminalAttach.js";
+import { formatProblemsContextText } from "../../shared/problemsContext.js";
 import {
   HOST_RPC_NOTIFICATION_EVENT,
   HOST_STATUS_EVENT,
@@ -261,6 +262,62 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       await vscode.window.showInformationMessage(
         "Select code in a workspace file, then run ALTAI: Ask About Selection.",
       );
+      return;
+    }
+    await vscode.commands.executeCommand("altai.sidePanel.focus");
+    if (this.bridge && !this.bridge.isDisposed) {
+      this.bridge.postEvent(OPEN_CHAT_WITH_SELECTION_EVENT, payload);
+      return;
+    }
+    this.pendingSelectionAttach = payload;
+  }
+
+  /**
+   * Attach language diagnostics for a workspace file as selection-style context.
+   */
+  public async openChatWithProblems(resource?: vscode.Uri): Promise<void> {
+    let target =
+      resource ??
+      vscode.window.activeTextEditor?.document.uri;
+    if (!target) {
+      await vscode.window.showInformationMessage(
+        "Open a workspace file, then run ALTAI: Ask About Problems.",
+      );
+      return;
+    }
+    if (!vscode.workspace.getWorkspaceFolder(target)) {
+      await vscode.window.showInformationMessage(
+        "ALTAI can only attach problems for files inside the workspace.",
+      );
+      return;
+    }
+    const diagnostics = vscode.languages.getDiagnostics(target);
+    const relative =
+      vscode.workspace.asRelativePath(target, false) || target.fsPath;
+    const text = formatProblemsContextText(
+      relative,
+      diagnostics.map((d) => ({
+        severity: d.severity as number,
+        message: d.message,
+        startLine: d.range.start.line,
+        startCharacter: d.range.start.character,
+        endLine: d.range.end.line,
+        endCharacter: d.range.end.character,
+        ...(d.source ? { source: d.source } : {}),
+      })),
+    );
+    if (!text) {
+      await vscode.window.showInformationMessage(
+        "No Problems reported for this file.",
+      );
+      return;
+    }
+    const payload = buildOpenChatWithSelectionPayload({
+      uri: target.toString(),
+      path: target.fsPath,
+      text,
+    });
+    if (!payload) {
       return;
     }
     await vscode.commands.executeCommand("altai.sidePanel.focus");
