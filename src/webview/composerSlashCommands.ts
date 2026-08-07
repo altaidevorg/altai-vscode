@@ -54,7 +54,8 @@ export type SlashHostAction =
   | "attach-diff"
   | "attach-terminal"
   | "attach-file"
-  | "attach-selection";
+  | "attach-selection"
+  | "walkthrough";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -113,6 +114,7 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "copy", invocation: "/copy", label: "Copy chat", description: "Copy the current transcript as plain text.", aliases: ["export"], category: "session", behavior: "action" },
   { name: "connect", invocation: "/connect", label: "Connect provider", description: "Connect an AI provider credential via the Extension Host.", aliases: ["provider"], category: "settings", behavior: "action" },
   { name: "disconnect", invocation: "/disconnect", label: "Clear credential", description: "Remove a stored provider credential via the Extension Host.", aliases: ["clear-credential"], category: "settings", behavior: "action" },
+  { name: "walkthrough", invocation: "/walkthrough", label: "Getting started", description: "Open the ALTAI Getting Started walkthrough.", aliases: ["intro", "getting-started"], category: "settings", behavior: "action" },
   { name: "attach-diff", invocation: "/attach-diff", label: "Attach working tree", description: "Attach the git working-tree summary to the composer.", aliases: ["diff-attach", "wt"], category: "workspace", behavior: "action" },
   { name: "attach-terminal", invocation: "/attach-terminal", label: "Attach terminal", description: "Attach active terminal context to the composer.", aliases: ["terminal", "tty"], category: "workspace", behavior: "action" },
   { name: "attach-file", invocation: "/attach-file", label: "Attach active file", description: "Attach the active editor file URI to the composer.", aliases: ["file", "active-file"], category: "workspace", behavior: "action" },
@@ -282,6 +284,8 @@ function toastFor(name: string, tail: string): string | undefined {
       return "Opening provider connection";
     case "disconnect":
       return "Opening credential removal";
+    case "walkthrough":
+      return "Opening Getting Started walkthrough";
     case "attach-diff":
       return undefined;
     case "attach-terminal":
