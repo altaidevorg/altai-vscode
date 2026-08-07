@@ -231,6 +231,7 @@ sibling `file:` packages until public npm publish.
   Diagnostics); disconnected-with-diagnostic uses the same recovery command.
 - Composer slash `/extension-settings` (`/host-path`) opens ALTAI extension
   settings.
+- One-shot Getting Started walkthrough on first activate (`altai.openWalkthroughOnInstall`).
 
 ### Security
 

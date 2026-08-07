@@ -119,6 +119,7 @@ describe("package.json command contributions", () => {
     };
     const props = manifest.contributes?.configuration?.properties ?? {};
     expect(props["altai.agentHostPath"]).toBeDefined();
+    expect(props["altai.openWalkthroughOnInstall"]).toBeDefined();
     const walkthroughs = manifest.contributes?.walkthroughs ?? [];
     expect(walkthroughs.some((w) => w.id === "altai.gettingStarted")).toBe(
       true,
