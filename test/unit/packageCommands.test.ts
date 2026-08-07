@@ -96,9 +96,19 @@ describe("package.json command contributions", () => {
         configuration?: {
           properties?: Record<string, unknown>;
         };
+        walkthroughs?: Array<{ id: string }>;
+        commands?: Array<{ command: string }>;
       };
     };
     const props = manifest.contributes?.configuration?.properties ?? {};
     expect(props["altai.agentHostPath"]).toBeDefined();
+    const walkthroughs = manifest.contributes?.walkthroughs ?? [];
+    expect(walkthroughs.some((w) => w.id === "altai.gettingStarted")).toBe(
+      true,
+    );
+    const commands = new Set(
+      (manifest.contributes?.commands ?? []).map((c) => c.command),
+    );
+    expect(commands.has("altai.openWalkthrough")).toBe(true);
   });
 });

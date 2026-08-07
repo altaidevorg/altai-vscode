@@ -205,6 +205,7 @@ sibling `file:` packages until public npm publish.
 - Host-missing recovery copy mentions `altai.agentHostPath`.
 - Host error status shows a toast with Run Diagnostics / Restart Host actions
   (once per error entry).
+- Getting Started walkthrough plus **ALTAI: Get Started Walkthrough** command.
 
 ### Security
 
