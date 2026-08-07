@@ -9,7 +9,8 @@ export type HostErrorAction =
   | "altai.restartAgentHost"
   | "workbench.action.manageWorkspaceTrust"
   | "altai.openExtensionSettings"
-  | "altai.openSidePanel";
+  | "altai.openSidePanel"
+  | "workbench.action.files.openFolder";
 
 export const HOST_ERROR_ACTION_LABELS: Record<HostErrorAction, string> = {
   "altai.runDiagnostics": "Run Diagnostics",
@@ -17,6 +18,7 @@ export const HOST_ERROR_ACTION_LABELS: Record<HostErrorAction, string> = {
   "workbench.action.manageWorkspaceTrust": "Manage Trust",
   "altai.openExtensionSettings": "Host Path Settings",
   "altai.openSidePanel": "Open ALTAI",
+  "workbench.action.files.openFolder": "Open Folder",
 };
 
 /**
@@ -44,6 +46,9 @@ export function hostErrorActionCommands(input?: {
   }
   if (code === "host.missing") {
     return ["altai.openExtensionSettings", "altai.runDiagnostics"];
+  }
+  if (code === "host.no_workspace") {
+    return ["workbench.action.files.openFolder", "altai.runDiagnostics"];
   }
   return ["altai.runDiagnostics", "altai.restartAgentHost"];
 }

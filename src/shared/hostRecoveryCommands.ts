@@ -13,6 +13,7 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.openWalkthrough",
   "altai.openExtensionSettings",
   "workbench.action.manageWorkspaceTrust",
+  "workbench.action.files.openFolder",
 ] as const;
 
 export type AltaiRecoveryCommand = (typeof ALTAI_RECOVERY_COMMANDS)[number];
@@ -47,6 +48,12 @@ export function listRecoveryActions(input?: {
     actions.push({
       command: "altai.openExtensionSettings",
       label: "Host path settings",
+    });
+  }
+  if (input?.diagnosticCode === "host.no_workspace") {
+    actions.push({
+      command: "workbench.action.files.openFolder",
+      label: "Open folder",
     });
   }
   actions.push(

@@ -46,4 +46,13 @@ describe("host recovery actions", () => {
       listRecoveryActions({ diagnosticCode: "host.missing" })[0]?.command,
     ).toBe("altai.openExtensionSettings");
   });
+
+  it("surfaces open folder when no workspace is open", () => {
+    expect(
+      listRecoveryActions({ diagnosticCode: "host.no_workspace" })[0]?.command,
+    ).toBe("workbench.action.files.openFolder");
+    expect(isAltaiRecoveryCommand("workbench.action.files.openFolder")).toBe(
+      true,
+    );
+  });
 });

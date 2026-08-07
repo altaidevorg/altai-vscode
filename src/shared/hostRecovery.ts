@@ -21,6 +21,8 @@ export function recoveryHintForDiagnosticCode(
       return "Host stdio framing failed — restart the agent host. Report if it repeats after a clean restart.";
     case "host.spawn_failed":
       return "The host process could not be spawned. Check execute permission, Remote extensionKind (workspace), and path validity.";
+    case "host.no_workspace":
+      return "Open a workspace folder so ALTAI can start the native agent host with a project root.";
     default:
       return undefined;
   }
