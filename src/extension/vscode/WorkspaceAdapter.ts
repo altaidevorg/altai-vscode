@@ -452,15 +452,6 @@ function fileContext(document: vscode.TextDocument): FileContext {
   };
 }
 
-function toTextRange(selection: vscode.Selection): TextRange {
-  return {
-    startLine: selection.start.line,
-    startCharacter: selection.start.character,
-    endLine: selection.end.line,
-    endCharacter: selection.end.character,
-  };
-}
-
 function readQuery(value: unknown): string {
   if (!isRecord(value) || typeof value.query !== "string") {
     throw codedError("invalid_params", "searchFiles requires a query string");
