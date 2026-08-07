@@ -80,6 +80,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.openExtensionSettings",
+        "title": "ALTAI: Open Extension Settings",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.askAboutSelection",
         "title": "ALTAI: Ask About Selection",
         "category": "ALTAI"
@@ -192,7 +197,7 @@
         {
           "command": "altai.askAboutActiveFile",
           "group": "altai@1",
-          "when": "resourceScheme == file && !explorerResourceIsFolder && workspaceFolderCount > 0"
+          "when": "resourceScheme != untitled && !explorerResourceIsFolder && workspaceFolderCount > 0"
         },
         {
           "command": "altai.askAboutWorkingTree",
@@ -204,7 +209,7 @@
         {
           "command": "altai.askAboutActiveFile",
           "group": "altai@1",
-          "when": "resourceScheme == file && workspaceFolderCount > 0"
+          "when": "resourceScheme != untitled && workspaceFolderCount > 0"
         }
       ],
       "terminal/context": [
@@ -228,6 +233,13 @@
           "command": "altai.runDiagnostics",
           "when": "view == altai.sidePanel",
           "group": "navigation@3"
+        }
+      ],
+      "scm/resourceState/context": [
+        {
+          "command": "altai.askAboutActiveFile",
+          "group": "altai@1",
+          "when": "scmResourceState & workspaceFolderCount > 0"
         }
       ]
     },
@@ -285,6 +297,11 @@
         "command": "altai.restartAgentHost",
         "key": "ctrl+shift+alt+r",
         "mac": "cmd+shift+alt+r"
+      },
+      {
+        "command": "altai.openOperationsInbox",
+        "key": "ctrl+shift+alt+i",
+        "mac": "cmd+shift+alt+i"
       }
     ],
     "configuration": {

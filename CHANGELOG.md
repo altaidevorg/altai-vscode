@@ -215,6 +215,10 @@ sibling `file:` packages until public npm publish.
   command (shell integration) for Attach / Ask About Terminal.
 - Working-tree attach prefers Explorer resource repo, then falls back to the
   first multi-root repository with presentation changes.
+- SCM resource context Ask About File; Inbox keybinding Cmd/Ctrl+Shift+Alt+I;
+  menus no longer require `file://` scheme only.
+- **ALTAI: Open Extension Settings** opens VS Code settings filtered to this
+  extension; recovery shows it when the host binary is missing.
 
 ### Security
 
