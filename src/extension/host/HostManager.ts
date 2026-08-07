@@ -35,6 +35,8 @@ export type HostManagerOptions = {
   processFactory?: HostProcessFactory;
   env?: NodeJS.ProcessEnv;
   initializeTimeoutMs?: number;
+  /** Absolute agent host path from `altai.agentHostPath` (may be empty). */
+  getAgentHostPathOverride?: () => string | undefined;
 };
 
 type ActiveSession = {
@@ -142,9 +144,11 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
     this.lastDiagnostic = undefined;
     this.publishStatus();
 
+    const pathOverride = this.options.getAgentHostPathOverride?.()?.trim();
     const resolved = resolveHostBinary({
       extensionPath: this.options.extensionPath,
       ...(this.options.env !== undefined ? { env: this.options.env } : {}),
+      ...(pathOverride ? { agentHostPathOverride: pathOverride } : {}),
     });
     if (!resolved.ok) {
       this.fail(resolved.diagnostic);

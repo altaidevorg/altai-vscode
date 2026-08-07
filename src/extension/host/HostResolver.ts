@@ -11,10 +11,12 @@ import { HostDiagnosticCode, type HostDiagnostic } from "./HostDiagnostics.js";
 import { nativeHostFileName } from "./nativeTargets.js";
 
 export const AGENT_HOST_PATH_ENV = "ALTAI_AGENT_HOST_PATH";
+/** package.json `altai.agentHostPath` configuration key. */
+export const AGENT_HOST_PATH_SETTING = "altai.agentHostPath";
 
 export type ResolvedHostBinary = {
   executablePath: string;
-  source: "env" | "packaged";
+  source: "settings" | "env" | "packaged";
 };
 
 export type ResolveHostResult =
@@ -26,19 +28,40 @@ export type HostResolverOptions = {
   env?: NodeJS.ProcessEnv;
   platform?: NodeJS.Platform;
   arch?: string;
+  /**
+   * Absolute path override from VS Code settings (`altai.agentHostPath`).
+   * Takes precedence over `ALTAI_AGENT_HOST_PATH` when non-empty.
+   */
+  agentHostPathOverride?: string;
 };
 
 /**
  * Resolve the native agent host executable.
- * Prefers `ALTAI_AGENT_HOST_PATH`, else packaged resources/native/<platform>-<arch>/.
+ * Prefers `altai.agentHostPath` setting, then `ALTAI_AGENT_HOST_PATH`, else
+ * packaged `resources/native/<platform>-<arch>/`.
  *
- * Env override is an intentional local-debug escape hatch. It must be an absolute
- * path to a regular file with execute permission (Unix); relative / unsafe paths
- * are rejected.
+ * Overrides are intentional local-debug escape hatches. They must be absolute
+ * paths to a regular file with execute permission (Unix); relative / unsafe
+ * paths are rejected.
  */
 export function resolveHostBinary(options: HostResolverOptions): ResolveHostResult {
   const env = options.env ?? process.env;
   const platform = options.platform ?? process.platform;
+  const settingsOverride = options.agentHostPathOverride?.trim();
+  if (settingsOverride) {
+    const validated = validateExecutableCandidate(settingsOverride, {
+      sourceLabel: AGENT_HOST_PATH_SETTING,
+      requireAbsolute: true,
+      platform,
+    });
+    if (!validated.ok) {
+      return validated;
+    }
+    return {
+      ok: true,
+      binary: { executablePath: validated.path, source: "settings" },
+    };
+  }
   const override = env[AGENT_HOST_PATH_ENV]?.trim();
   if (override) {
     const validated = validateExecutableCandidate(override, {

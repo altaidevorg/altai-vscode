@@ -39,6 +39,12 @@ export function activate(context: vscode.ExtensionContext): void {
     onDidGrantTrust: (listener) => onDidGrantWorkspaceTrust(listener),
     extensionVersion: COMPATIBILITY.extension,
     log: (line) => output.appendLine(line),
+    getAgentHostPathOverride: () => {
+      const value = vscode.workspace
+        .getConfiguration("altai")
+        .get<string>("agentHostPath");
+      return typeof value === "string" ? value : undefined;
+    },
     onStatus: (status) => {
       hostStatusBar.setStatus(status);
       provider?.publishHostStatus(status);
@@ -81,6 +87,16 @@ export function activate(context: vscode.ExtensionContext): void {
 
   registerCommands(context, provider, hostManager);
   output.appendLine("[altai] side panel provider registered");
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration("altai.agentHostPath")) {
+        return;
+      }
+      output.appendLine("[altai] altai.agentHostPath changed; restarting host");
+      void hostManager?.restart();
+    }),
+  );
 
   void hostManager.start();
 }
