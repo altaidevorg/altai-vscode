@@ -48,8 +48,11 @@ Webview reload via getState/setState, including Runs/Scheduled toggles on the
 Work hub. Active
 overview runs expose a Cancel action; failed
 runs Retry and unread inbox Mark read. Attention count drives a status-bar
-badge that opens Operations; the badge also refreshes while Chat is open
-(Operations unmounted) via lifecycle/notification host events. Work/Runs offer
+badge that opens Operations Inbox when the count is non-zero (Operations
+overview when zero); the badge also refreshes while Chat is open
+(Operations unmounted) via lifecycle/notification host events. A separate
+host lifecycle badge appears when the agent host is connecting, disconnected,
+or erroring (errors open Run Diagnostics). Work/Runs offer
 a New task composer (createTaskRun)
 and Scheduled offers a New automation composer (createAutomation). Command
 palette includes **ALTAI: New Operations Task** and **New Operations Automation**.

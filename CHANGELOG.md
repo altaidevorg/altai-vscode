@@ -193,6 +193,7 @@ sibling `file:` packages until public npm publish.
   immediately).
 - Integrated terminal context menu: **Ask About Terminal**.
 - Shared `formatGitDiffSummary` for Extension Host + Webview attach paths.
+- README / architecture / feature matrix note host and attention status bars.
 
 ### Security
 

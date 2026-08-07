@@ -229,7 +229,11 @@ The extension is an **internal-channel (0.1.0)** thin VS Code host:
   Trust when host is untrusted; Copy diagnostic);
 - Status-bar attention badge (Inbox when count > 0);
 - packaging audit, single-target VSIX tooling, fixture package CI, secret and
-  license scans, CHANGELOG / RELEASE gates.
+  license scans, CHANGELOG / RELEASE gates;
+- Extension Host status bar: host lifecycle (non-ready) and Operations
+  attention (Inbox when count > 0);
+- Command palette / Explorer / terminal context menus for Ask About * and
+  recovery deep-links; slash attach helpers for composer context chips.
 
 Remaining external gates for alpha+: signed native hosts per target, published
 shared npm packages, Remote e2e automation, deeper Desktop settings parity
