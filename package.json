@@ -281,7 +281,18 @@
         "key": "ctrl+shift+alt+r",
         "mac": "cmd+shift+alt+r"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "ALTAI",
+      "properties": {
+        "altai.agentHostPath": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "markdownDescription": "Absolute path to the ALTAI agent host / `altai-cli` executable override for local development. Takes precedence over `ALTAI_AGENT_HOST_PATH`. Leave empty to use the packaged native host when present."
+        }
+      }
+    }
   },
   "scripts": {
     "clean": "rm -rf dist out .vscode-test",

@@ -32,6 +32,27 @@ describe("resolveHostBinary", () => {
     }
   });
 
+  it("prefers settings override over env", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "altai-resolve-set-"));
+    const fromSettings = path.join(dir, "from-settings");
+    const fromEnv = path.join(dir, "from-env");
+    writeFileSync(fromSettings, "settings");
+    writeFileSync(fromEnv, "env");
+    chmodSync(fromSettings, 0o755);
+    chmodSync(fromEnv, 0o755);
+
+    const result = resolveHostBinary({
+      extensionPath: "/unused",
+      env: { [AGENT_HOST_PATH_ENV]: fromEnv },
+      agentHostPathOverride: fromSettings,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.binary.source).toBe("settings");
+      expect(result.binary.executablePath).toContain("from-settings");
+    }
+  });
+
   it("detects corrupt packaged digest", () => {
     const ext = mkdtempSync(path.join(tmpdir(), "altai-pack-"));
     const native = path.join(ext, "resources", "native", "darwin-arm64");

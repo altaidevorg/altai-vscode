@@ -111,7 +111,9 @@ Build that binary once if missing:
 cd ../altai-app-main/src-tauri && cargo build -p altai-cli
 ```
 
-Or export any absolute `altai-cli` path yourself before launching.
+Or set **ALTAI: Agent Host Path** (`altai.agentHostPath`) in VS Code settings
+to an absolute `altai-cli` / host binary. Empty means packaged host (or
+`ALTAI_AGENT_HOST_PATH` when set).
 
 Useful scripts:
 
