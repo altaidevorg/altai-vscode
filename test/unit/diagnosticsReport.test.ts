@@ -44,6 +44,7 @@ describe("formatDiagnosticsReport", () => {
         resolvedPath: undefined,
         status: "error",
         message: "Packaged ALTAI agent host binary not found",
+        workspaceRoot: "/Users/me/project",
         diagnostic: {
           code: HostDiagnosticCode.Missing,
           message: "Packaged ALTAI agent host binary not found",
@@ -54,6 +55,7 @@ describe("formatDiagnosticsReport", () => {
 
     expect(lines[0]).toBe("[altai] diagnostics");
     expect(lines).toContain("  extension=0.1.0");
+    expect(lines).toContain("  workspaceRoot=/Users/me/project");
     expect(lines).toContain("  remoteName=ssh-remote");
     expect(lines).toContain("  extensionPath=/ext/altai");
     expect(lines.some((l) => l.startsWith("  diagnostic=[host.missing]"))).toBe(
