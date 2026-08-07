@@ -57,6 +57,14 @@ export const DEFAULT_CHAT_STARTERS: readonly PromptTemplate[] = [
     label: "New chat (/new)",
     value: "/new",
   },
+  {
+    label: "Attach working tree (/wt)",
+    value: "/attach-diff",
+  },
+  {
+    label: "Operations work (/tasks)",
+    value: "/tasks",
+  },
 ];
 
 export function shouldShowChatStarters(input: {
