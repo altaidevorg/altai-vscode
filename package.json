@@ -421,6 +421,12 @@
         "when": "workspaceFolderCount > 0"
       },
       {
+        "command": "altai.askAboutProblems",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p",
+        "when": "workspaceFolderCount > 0"
+      },
+      {
         "command": "altai.askAboutTerminal",
         "key": "ctrl+alt+t",
         "mac": "cmd+alt+t",

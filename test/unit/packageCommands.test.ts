@@ -52,6 +52,7 @@ describe("package.json command contributions", () => {
     expect(keybound.has("altai.openOperations")).toBe(true);
     expect(keybound.has("altai.restartAgentHost")).toBe(true);
     expect(keybound.has("altai.openOperationsInbox")).toBe(true);
+    expect(keybound.has("altai.askAboutProblems")).toBe(true);
   });
 
   it("keeps package contributes.commands in sync with registerCommands", () => {
