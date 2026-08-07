@@ -180,6 +180,7 @@ sibling `file:` packages until public npm publish.
   (overview when zero).
 - Terminal context attach falls back to the integrated terminal name when
   shell integration has not reported a cwd yet.
+- Manifest `contributes.commands` must match `registerCommands` (unit gated).
 
 ### Security
 
