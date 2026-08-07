@@ -26,7 +26,8 @@ export type HostLifecycleState =
 
 export type HostManagerOptions = {
   extensionPath: string;
-  workspaceRoot: string | undefined;
+  /** Current workspace root for the host `--workspace` arg (re-read on each start). */
+  getWorkspaceRoot: () => string | undefined;
   isTrusted: () => boolean;
   onDidGrantTrust?: (listener: () => void) => { dispose: () => void };
   log?: (line: string) => void;
@@ -131,7 +132,8 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
       });
       return;
     }
-    if (!this.options.workspaceRoot) {
+    const workspaceRoot = this.options.getWorkspaceRoot();
+    if (!workspaceRoot) {
       this.fail({
         code: HostDiagnosticCode.NoWorkspace,
         message: "No workspace folder open for the agent host",
@@ -170,7 +172,7 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
           "--protocol",
           "1",
           "--workspace",
-          this.options.workspaceRoot,
+          workspaceRoot,
         ],
         env: this.options.env ?? process.env,
       });

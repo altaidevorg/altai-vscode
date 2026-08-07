@@ -17,7 +17,7 @@ describe("HostManager.request", () => {
 
     const manager = new HostManager({
       extensionPath: "/tmp/altai-ext",
-      workspaceRoot: "/tmp/ws",
+      getWorkspaceRoot: () => "/tmp/ws",
       isTrusted: () => true,
       extensionVersion: "0.1.0",
       env: {
@@ -93,7 +93,7 @@ describe("HostManager.request", () => {
   it("rejects request when host is not ready", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/altai-ext",
-      workspaceRoot: undefined,
+      getWorkspaceRoot: () => undefined,
       isTrusted: () => true,
       extensionVersion: "0.1.0",
     });

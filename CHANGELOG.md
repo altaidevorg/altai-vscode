@@ -234,6 +234,8 @@ sibling `file:` packages until public npm publish.
 - One-shot Getting Started walkthrough on first activate (`altai.openWalkthroughOnInstall`).
 - No open folder yields `host.no_workspace` with Open Folder recovery (toast,
   status bar, wait shell).
+- Host re-reads the first workspace folder on each start and restarts when
+  folders change (empty window → open folder without reloading the window).
 
 ### Security
 
