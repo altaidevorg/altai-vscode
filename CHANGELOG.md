@@ -12,6 +12,7 @@ sibling `file:` packages until public npm publish.
 
 ### Added
 
+- Visual polish: ALTAI lime brand accent (Desktop tokens), compact Ready header, segmented Chat/Operations tabs.
 - Chat layout density auto (sidebar/desktop by width); host error and config patch follow-ups from Desktop parity P2.
 - Narrow Activity Bar chat layout: stack history above chat, collapsible Sessions rail; humanize host error codes in the panel.
 - Ask About * menus/keybindings require a trusted workspace; untrusted attempts offer Manage Workspace Trust.

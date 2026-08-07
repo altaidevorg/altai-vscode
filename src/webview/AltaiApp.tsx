@@ -184,6 +184,10 @@ import {
 } from "./host/createVsCodeHostPorts.js";
 import type { PermissionMode } from "@altai/host-contract";
 import { formatHostUserError } from "../shared/hostUserError.js";
+import {
+  hostStatusPillLabel,
+  shouldShowHostSubtitle,
+} from "../shared/hostChromeLabels.js";
 
 export type AltaiAppProps = {
   client: WebviewClient;
@@ -577,10 +581,15 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       <div className="altai-shell altai-shell-root">
         <SurfaceHeader
           title="ALTAI"
-          subtitle={hostStatus.message}
+          subtitle={
+            shouldShowHostSubtitle(hostStatus.status, hostStatus.message)
+              ? hostStatus.message
+              : undefined
+          }
+          className="altai-shell-header"
           status={
             <span className="altai-host-pill" data-status={hostStatus.status}>
-              {hostStatus.status}
+              {hostStatusPillLabel(hostStatus.status)}
             </span>
           }
           actions={

@@ -36,25 +36,35 @@
 
 :root {
   color-scheme: light dark;
-  /* Map shared agent-ui token names onto VS Code theme variables. */
-  --foreground: var(--vscode-foreground, #cccccc);
+  /*
+   * Surfaces lean on VS Code so the panel sits in the IDE.
+   * Brand accent is ALTAI lime (Desktop globals.css) so shared agent-ui
+   * buttons, links, and empty-state pills match the product — not plain
+   * vscode button blue.
+   */
+  --foreground: var(--vscode-foreground, #e8e8e8);
   --muted-foreground: var(--vscode-descriptionForeground, #9d9d9d);
-  --background: var(--vscode-sideBar-background, transparent);
-  --card: var(--vscode-editorWidget-background, var(--vscode-sideBar-background, #252526));
-  --card-foreground: var(--vscode-foreground, #cccccc);
+  --background: var(--vscode-sideBar-background, #1a1a1c);
+  --card: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, #252526) 92%,
+    oklch(0.87 0.21 125) 4%
+  );
+  --card-foreground: var(--vscode-foreground, #e8e8e8);
   --popover: var(--vscode-editorWidget-background, var(--card));
-  --popover-foreground: var(--vscode-foreground, #cccccc);
+  --popover-foreground: var(--vscode-foreground, #e8e8e8);
   --border: var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
   --border-subtle: var(--vscode-sideBar-border, var(--border));
   --muted: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
   --accent: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
   --accent-foreground: var(--vscode-list-hoverForeground, var(--foreground));
-  --primary: var(--vscode-button-background, #0e639c);
-  --primary-foreground: var(--vscode-button-foreground, #ffffff);
+  /* Desktop dark primary: oklch(0.87 0.21 125) */
+  --primary: oklch(0.87 0.21 125);
+  --primary-foreground: oklch(0.17 0.03 130);
   --destructive: var(--vscode-errorForeground, #f48771);
   --success: var(--vscode-testing-iconPassed, #73c991);
   --warning: var(--vscode-editorWarning-foreground, #cca700);
-  --ring: var(--vscode-focusBorder, #007fd4);
+  --ring: color-mix(in srgb, oklch(0.87 0.21 125) 55%, var(--vscode-focusBorder, #007fd4));
   --input: var(--vscode-input-border, var(--border));
 
   --altai-fg: var(--foreground);
@@ -62,6 +72,18 @@
   --altai-bg: var(--background);
   --altai-font: var(--vscode-font-family, system-ui, sans-serif);
   --altai-font-size: var(--vscode-font-size, 13px);
+}
+
+/* Light IDE themes: Desktop light lime (slightly deeper for contrast on white). */
+body.vscode-light {
+  --primary: oklch(0.72 0.17 128);
+  --primary-foreground: oklch(0.99 0.01 130);
+  --card: color-mix(
+    in srgb,
+    var(--vscode-editorWidget-background, #ffffff) 96%,
+    oklch(0.80 0.19 128) 4%
+  );
+  --ring: color-mix(in srgb, oklch(0.72 0.17 128) 50%, var(--vscode-focusBorder, #005fb8));
 }
 
 * {
@@ -654,26 +676,38 @@ body {
 }
 
 /* —— Host status & capabilities (init / error only) —— */
+.altai-shell-header {
+  min-height: 2.75rem !important;
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
+  background: color-mix(in srgb, var(--background) 88%, var(--primary) 3%);
+}
+
 .altai-host-pill {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
   border: 1px solid var(--border);
-  padding: 0.1rem 0.45rem;
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0.02em;
   color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
 }
 
 .altai-host-pill[data-status="ready"] {
-  color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 40%, transparent);
+  color: var(--primary-foreground);
+  border-color: color-mix(in srgb, var(--primary) 45%, transparent);
+  background: color-mix(in srgb, var(--primary) 82%, transparent);
 }
 
 .altai-host-pill[data-status="error"],
 .altai-host-pill[data-status="crashed"] {
   color: var(--destructive);
+  border-color: color-mix(in srgb, var(--destructive) 40%, transparent);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
 }
 
 .altai-capability-list {
@@ -969,31 +1003,38 @@ body {
 /* —— Surface tabs —— */
 .altai-view-tabs {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.35rem 0.75rem 0;
+  gap: 0.15rem;
+  margin: 0.35rem 0.65rem 0;
+  padding: 0.2rem;
   flex-shrink: 0;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--muted) 40%, transparent);
 }
 
 .altai-view-tab {
+  flex: 1;
   border: 1px solid transparent;
   border-radius: 0.35rem;
-  padding: 0.25rem 0.6rem;
+  padding: 0.3rem 0.45rem;
   background: transparent;
   color: var(--muted-foreground);
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
+  text-align: center;
 }
 
 .altai-view-tab:hover {
-  background: var(--muted);
   color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
 }
 
 .altai-view-tab[aria-selected="true"] {
-  background: var(--accent);
+  background: color-mix(in srgb, var(--card) 80%, var(--primary) 8%);
   color: var(--foreground);
-  border-color: var(--border-subtle);
+  border-color: color-mix(in srgb, var(--primary) 28%, transparent);
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--primary) 65%, transparent);
 }
 
 /* —— Operations host glue —— */
