@@ -191,6 +191,7 @@ sibling `file:` packages until public npm publish.
   Working Tree; explorer resource URI is preferred when provided.
 - Composer draft persistence is debounced (empty drafts still flush
   immediately).
+- Integrated terminal context menu: **Ask About Terminal**.
 
 ### Security
 
