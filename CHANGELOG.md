@@ -209,6 +209,8 @@ sibling `file:` packages until public npm publish.
 - Composer slash `/walkthrough` (`/intro`) opens the Getting Started walkthrough.
 - Empty-home starter and wait-shell / Settings recovery include **Get started**.
 - Architecture overview + feature matrix list Getting Started walkthrough.
+- OpenAI Compatible connect (palette / webview) prompts for http(s) base URL
+  before the API key.
 
 ### Security
 

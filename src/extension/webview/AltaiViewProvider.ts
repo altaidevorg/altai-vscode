@@ -31,6 +31,10 @@ import {
   type WorkspaceRequestParams,
 } from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
+import {
+  normalizeProviderBaseUrl,
+  providerRequiresBaseUrl,
+} from "../../shared/providerBaseUrl.js";
 import type { HostManager } from "../host/HostManager.js";
 import { getOutputChannel } from "../output.js";
 import { WebviewBridge } from "./WebviewBridge.js";
@@ -480,6 +484,37 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     providerId: string,
     baseUrl?: string,
   ): Promise<unknown> {
+    let resolvedBaseUrl = baseUrl?.trim() || undefined;
+    if (providerRequiresBaseUrl(providerId) && !resolvedBaseUrl) {
+      const entered = await vscode.window.showInputBox({
+        prompt: "OpenAI Compatible base URL (http or https)",
+        placeHolder: "https://api.example.com/v1",
+        ignoreFocusOut: true,
+      });
+      if (!entered || entered.trim().length === 0) {
+        throw Object.assign(new Error("provider_connection_cancelled"), {
+          code: "cancelled",
+        });
+      }
+      const normalized = normalizeProviderBaseUrl(entered);
+      if (!normalized) {
+        throw Object.assign(
+          new Error("Invalid base URL (must be http:// or https://)"),
+          { code: "invalid_params" },
+        );
+      }
+      resolvedBaseUrl = normalized;
+    } else if (resolvedBaseUrl) {
+      const normalized = normalizeProviderBaseUrl(resolvedBaseUrl);
+      if (!normalized) {
+        throw Object.assign(
+          new Error("Invalid base URL (must be http:// or https://)"),
+          { code: "invalid_params" },
+        );
+      }
+      resolvedBaseUrl = normalized;
+    }
+
     const credential = await vscode.window.showInputBox({
       prompt: `Enter the API key for ${providerId}`,
       password: true,
@@ -495,7 +530,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     return this.hostManager.request("providers/connect", {
       provider_id: providerId,
       credential: credential.trim(),
-      ...(baseUrl ? { base_url: baseUrl } : {}),
+      ...(resolvedBaseUrl ? { base_url: resolvedBaseUrl } : {}),
     });
   }
 
@@ -698,12 +733,8 @@ export function parseProviderConnectionParams(
   if (value.base_url === undefined) {
     return { providerId };
   }
-  const baseUrl = typeof value.base_url === "string" ? value.base_url.trim() : "";
-  if (
-    baseUrl.length === 0
-    || baseUrl.length > 2048
-    || (!baseUrl.startsWith("https://") && !baseUrl.startsWith("http://"))
-  ) {
+  const baseUrl = normalizeProviderBaseUrl(value.base_url);
+  if (!baseUrl) {
     return undefined;
   }
   return { providerId, baseUrl };
