@@ -207,6 +207,23 @@
           "command": "altai.askAboutTerminal",
           "group": "altai@1"
         }
+      ],
+      "view/title": [
+        {
+          "command": "altai.openSettings",
+          "when": "view == altai.sidePanel",
+          "group": "navigation@1"
+        },
+        {
+          "command": "altai.openOperations",
+          "when": "view == altai.sidePanel",
+          "group": "navigation@2"
+        },
+        {
+          "command": "altai.runDiagnostics",
+          "when": "view == altai.sidePanel",
+          "group": "navigation@3"
+        }
       ]
     },
     "keybindings": [

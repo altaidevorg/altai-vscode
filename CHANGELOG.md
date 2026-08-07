@@ -195,6 +195,8 @@ sibling `file:` packages until public npm publish.
 - Shared `formatGitDiffSummary` for Extension Host + Webview attach paths.
 - README / architecture / feature matrix note host and attention status bars.
 - Explorer **Ask About Active File** only targets files (not folders).
+- ALTAI side-panel view title actions: Open Settings, Open Operations, Run
+  Diagnostics.
 
 ### Security
 
