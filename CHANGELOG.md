@@ -260,6 +260,7 @@ sibling `file:` packages until public npm publish.
 - Command palette hides Ask About / Operations entries when no folder is open.
 - Architecture overview / feature matrix reflect preferred-root persistence and
   virtual-workspace diagnostics.
+- Side-panel title overflow includes Copy Diagnostics Report.
 
 ### Security
 
