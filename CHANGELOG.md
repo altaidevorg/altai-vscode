@@ -185,6 +185,8 @@ sibling `file:` packages until public npm publish.
   between Extension Host and Webview wait-shell buttons.
 - Keybindings: Cmd/Ctrl+Shift+Alt+L logs, +D diagnostics, +O Operations.
 - Empty-home starters for `/attach-diff` and `/tasks`.
+- Status bar host badge when the agent host is connecting, disconnected, or
+  erroring (errors open Run Diagnostics).
 
 ### Security
 

@@ -4,6 +4,7 @@ import { COMPATIBILITY } from "./compatibility.js";
 import { HostManager } from "./host/HostManager.js";
 import { getOutputChannel } from "./output.js";
 import { AttentionStatusBar } from "./AttentionStatusBar.js";
+import { HostStatusBar } from "./HostStatusBar.js";
 import { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
 import { DiffContentProvider } from "./vscode/DiffContentProvider.js";
 import { GitDiffAdapter } from "./vscode/GitDiffAdapter.js";
@@ -25,7 +26,8 @@ export function activate(context: vscode.ExtensionContext): void {
   let provider: AltaiViewProvider | undefined;
 
   const attentionBar = new AttentionStatusBar();
-  context.subscriptions.push(attentionBar);
+  const hostStatusBar = new HostStatusBar();
+  context.subscriptions.push(attentionBar, hostStatusBar);
 
   hostManager = new HostManager({
     extensionPath: context.extensionUri.fsPath,
@@ -35,6 +37,7 @@ export function activate(context: vscode.ExtensionContext): void {
     extensionVersion: COMPATIBILITY.extension,
     log: (line) => output.appendLine(line),
     onStatus: (status) => {
+      hostStatusBar.setStatus(status);
       provider?.publishHostStatus(status);
     },
   });
