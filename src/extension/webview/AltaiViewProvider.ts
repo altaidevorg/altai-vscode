@@ -399,7 +399,12 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
    * Attach a presentation-only working-tree summary (path/status list) as
    * composer context using the selection deep-link path.
    */
-  public async openChatWithWorkingTree(): Promise<void> {
+  public async openChatWithWorkingTree(
+    resource?: vscode.Uri,
+  ): Promise<void> {
+    if (resource) {
+      this.workspaceAdapter.setPreferredGitUri(resource);
+    }
     let diff: {
       branch?: string;
       patch?: string;
@@ -412,6 +417,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
         files?: readonly { path: string; status: string }[];
       } | null;
     } catch (error) {
+      this.workspaceAdapter.setPreferredGitUri(undefined);
       const message =
         error instanceof Error ? error.message : "git_diff_unavailable";
       await vscode.window.showErrorMessage(
@@ -419,6 +425,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       );
       return;
     }
+    this.workspaceAdapter.setPreferredGitUri(undefined);
     const text = diff?.patch?.trim() ?? "";
     if (!text) {
       await vscode.window.showInformationMessage(
@@ -427,6 +434,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       return;
     }
     const root =
+      resource?.toString() ??
       vscode.workspace.workspaceFolders?.[0]?.uri.toString() ??
       "file:///workspace";
     const pathLabel = diff?.branch

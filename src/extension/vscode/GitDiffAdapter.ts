@@ -34,22 +34,48 @@ type GitExtension = {
 };
 
 export class GitDiffAdapter {
+  private preferredTargetUri: vscode.Uri | undefined;
+
   constructor(private readonly api: typeof vscode) {}
 
-  async getDiffContext(): Promise<GitDiffContext | null> {
+  /** Prefer a resource/folder when the next getDiffContext has no explicit uri. */
+  setPreferredTargetUri(uri: vscode.Uri | undefined): void {
+    this.preferredTargetUri = uri;
+  }
+
+  async getDiffContext(targetUri?: vscode.Uri): Promise<GitDiffContext | null> {
     const git = await this.getGitApi();
     if (!git) {
       return null;
     }
     const target =
+      targetUri ??
+      this.preferredTargetUri ??
       this.api.window.activeTextEditor?.document.uri ??
       this.api.workspace.workspaceFolders?.[0]?.uri;
-    const repository =
+    let repository =
       (target ? git.getRepository(target) : null) ?? git.repositories[0];
     if (!repository) {
       return null;
     }
+    // If the preferred repository has no presentation changes, fall back to the
+    // first repository that does (common multi-root: editor in A, dirty repo B).
+    const preferredSummary = this.summaryForRepository(repository);
+    if (!preferredSummary) {
+      for (const candidate of git.repositories) {
+        const summary = this.summaryForRepository(candidate);
+        if (summary) {
+          return summary;
+        }
+      }
+      return null;
+    }
+    return preferredSummary;
+  }
 
+  private summaryForRepository(
+    repository: GitRepository,
+  ): GitDiffContext | null {
     const files = new Map<string, string>();
     for (const [group, changes] of [
       ["working-tree", repository.state.workingTreeChanges],

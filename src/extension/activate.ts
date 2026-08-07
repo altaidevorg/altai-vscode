@@ -94,6 +94,7 @@ export function activate(context: vscode.ExtensionContext): void {
     (label, text) => diffContentProvider.createUri(label, text),
     () => gitDiffAdapter.getDiffContext(),
     terminalTracker,
+    gitDiffAdapter,
   );
   provider = new AltaiViewProvider(
     context,
