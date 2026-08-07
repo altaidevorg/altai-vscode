@@ -219,6 +219,7 @@ sibling `file:` packages until public npm publish.
   menus no longer require `file://` scheme only.
 - **ALTAI: Open Extension Settings** opens VS Code settings filtered to this
   extension; recovery shows it when the host binary is missing.
+- **Run Diagnostics** toast offers Copy report and Open logs actions.
 
 ### Security
 
