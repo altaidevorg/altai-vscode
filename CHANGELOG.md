@@ -261,6 +261,8 @@ sibling `file:` packages until public npm publish.
 - Architecture overview / feature matrix reflect preferred-root persistence and
   virtual-workspace diagnostics.
 - Side-panel title overflow includes Copy Diagnostics Report.
+- **ALTAI: Ask About Problems** attaches language diagnostics for the active
+  file as selection context.
 
 ### Security
 
