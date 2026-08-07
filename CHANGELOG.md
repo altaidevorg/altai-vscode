@@ -211,6 +211,8 @@ sibling `file:` packages until public npm publish.
 - Architecture overview + feature matrix list Getting Started walkthrough.
 - OpenAI Compatible connect (palette / webview) prompts for http(s) base URL
   before the API key.
+- Terminal context uses the right-clicked terminal and tracks last shell
+  command (shell integration) for Attach / Ask About Terminal.
 
 ### Security
 

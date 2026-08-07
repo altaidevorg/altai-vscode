@@ -37,9 +37,12 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.askAboutWorkingTree", async () => {
       await provider.openChatWithWorkingTree();
     }),
-    vscode.commands.registerCommand("altai.askAboutTerminal", async () => {
-      await provider.openChatWithTerminal();
-    }),
+    vscode.commands.registerCommand(
+      "altai.askAboutTerminal",
+      async (terminal?: vscode.Terminal) => {
+        await provider.openChatWithTerminal(terminal);
+      },
+    ),
     vscode.commands.registerCommand("altai.openSettings", async () => {
       await provider.openSettings();
     }),

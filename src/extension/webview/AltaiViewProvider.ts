@@ -328,7 +328,12 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
    * Attach presentation-only terminal context (selection, last command, or cwd)
    * as composer context using the selection deep-link path.
    */
-  public async openChatWithTerminal(): Promise<void> {
+  public async openChatWithTerminal(
+    resource?: vscode.Terminal,
+  ): Promise<void> {
+    if (resource) {
+      this.workspaceAdapter.setPreferredTerminal(resource);
+    }
     let terminal: {
       cwd?: string;
       selectedText?: string;
@@ -341,6 +346,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
         lastCommand?: string;
       } | null;
     } catch (error) {
+      this.workspaceAdapter.setPreferredTerminal(undefined);
       const message =
         error instanceof Error ? error.message : "terminal_unavailable";
       await vscode.window.showErrorMessage(
@@ -348,6 +354,7 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       );
       return;
     }
+    this.workspaceAdapter.setPreferredTerminal(undefined);
     const text = formatTerminalAttachText({
       ...(terminal?.selectedText !== undefined
         ? { selectedText: terminal.selectedText }

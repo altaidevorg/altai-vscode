@@ -8,6 +8,7 @@ import { HostStatusBar } from "./HostStatusBar.js";
 import { AltaiViewProvider } from "./webview/AltaiViewProvider.js";
 import { DiffContentProvider } from "./vscode/DiffContentProvider.js";
 import { GitDiffAdapter } from "./vscode/GitDiffAdapter.js";
+import { TerminalContextTracker } from "./vscode/TerminalContextTracker.js";
 import { WorkspaceAdapter } from "./vscode/WorkspaceAdapter.js";
 import {
   isWorkspaceTrusted,
@@ -85,11 +86,14 @@ export function activate(context: vscode.ExtensionContext): void {
   const diffContentProvider = new DiffContentProvider(vscode);
   diffContentProvider.register(context);
   const gitDiffAdapter = new GitDiffAdapter(vscode);
+  const terminalTracker = new TerminalContextTracker(vscode);
+  context.subscriptions.push(terminalTracker);
   const workspaceAdapter = new WorkspaceAdapter(
     vscode,
     () => isWorkspaceTrusted(),
     (label, text) => diffContentProvider.createUri(label, text),
     () => gitDiffAdapter.getDiffContext(),
+    terminalTracker,
   );
   provider = new AltaiViewProvider(
     context,

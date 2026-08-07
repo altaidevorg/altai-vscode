@@ -246,4 +246,40 @@ describe("WorkspaceAdapter", () => {
       cwd: "/workspace",
     });
   });
+
+  it("prefers an explicit terminal and last-command from tracker", async () => {
+    const preferred = {
+      name: "side",
+      creationOptions: { cwd: "/preferred" },
+    };
+    const tracker = {
+      getTerminal: () => preferred,
+      getLastCommand: () => "npm test",
+      setPreferredTerminal: vi.fn(),
+    };
+    const adapter = new WorkspaceAdapter(
+      {
+        workspace: {
+          isTrusted: true,
+          workspaceFolders: [{ uri: uri("/workspace") }],
+          getWorkspaceFolder: () => ({ uri: uri("/workspace") }),
+        },
+        window: {
+          activeTerminal: {
+            name: "main",
+            creationOptions: { cwd: "/main" },
+          },
+        },
+        commands: { executeCommand: vi.fn() },
+      } as never,
+      () => true,
+      () => uri("/review/x") as never,
+      async () => null,
+      tracker as never,
+    );
+    await expect(adapter.request("getTerminalContext")).resolves.toEqual({
+      cwd: "/preferred",
+      lastCommand: "npm test",
+    });
+  });
 });

@@ -11,6 +11,7 @@ import type {
 } from "@altai/host-contract" with { "resolution-mode": "import" };
 import type * as vscode from "vscode";
 import { isAltaiRecoveryCommand } from "../../shared/hostRecoveryCommands.js";
+import type { TerminalContextTracker } from "./TerminalContextTracker.js";
 
 const MAX_SEARCH_RESULTS = 100;
 const MAX_QUERY_LENGTH = 256;
@@ -44,7 +45,13 @@ export class WorkspaceAdapter {
     private readonly isTrusted: () => boolean,
     private readonly createReviewUri: ReviewUriFactory,
     private readonly getGitDiffContext: () => Promise<GitDiffContext | null>,
+    private readonly terminalTracker?: TerminalContextTracker,
   ) {}
+
+  /** Prefer a right-clicked terminal for the next getTerminalContext. */
+  setPreferredTerminal(terminal: vscode.Terminal | undefined): void {
+    this.terminalTracker?.setPreferredTerminal(terminal);
+  }
 
   async request(method: string, params?: unknown): Promise<unknown> {
     // Recovery commands stay available when the workspace is untrusted so the
@@ -262,10 +269,12 @@ export class WorkspaceAdapter {
   }
 
   private getTerminalContext(): TerminalContext | null {
-    const terminal = this.api.window.activeTerminal;
+    const terminal =
+      this.terminalTracker?.getTerminal() ?? this.api.window.activeTerminal;
     if (!terminal) {
       return null;
     }
+    const lastCommand = this.terminalTracker?.getLastCommand(terminal);
     const creationOptions = terminal.creationOptions;
     const configuredCwd =
       "cwd" in creationOptions ? creationOptions.cwd : undefined;
@@ -273,7 +282,11 @@ export class WorkspaceAdapter {
     if (cwd) {
       return {
         cwd: typeof cwd === "string" ? cwd : cwd.toString(),
+        ...(lastCommand ? { lastCommand } : {}),
       };
+    }
+    if (lastCommand) {
+      return { lastCommand };
     }
     // Fallback when shellIntegration has not reported a cwd yet: still attach
     // a presentation-only label so Attach Terminal / Ask About Terminal work.
