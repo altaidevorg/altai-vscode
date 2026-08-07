@@ -258,6 +258,8 @@ sibling `file:` packages until public npm publish.
 - Explorer multi-select Ask About Active File attaches up to four file chips.
 - Window progress “ALTAI agent host is starting…” while host status is connecting.
 - Command palette hides Ask About / Operations entries when no folder is open.
+- Architecture overview / feature matrix reflect preferred-root persistence and
+  virtual-workspace diagnostics.
 
 ### Security
 
