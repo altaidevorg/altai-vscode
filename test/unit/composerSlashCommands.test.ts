@@ -146,6 +146,17 @@ describe("tryRunSlashCommand", () => {
     });
   });
 
+  it("opens ALTAI extension settings", () => {
+    expect(tryRunSlashCommand("/extension-settings")).toMatchObject({
+      kind: "handled",
+      action: "extension-settings",
+    });
+    expect(tryRunSlashCommand("/host-path")).toMatchObject({
+      kind: "handled",
+      action: "extension-settings",
+    });
+  });
+
   it("attaches working tree and terminal context", () => {
     expect(tryRunSlashCommand("/attach-diff")).toMatchObject({
       kind: "handled",
