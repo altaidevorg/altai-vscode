@@ -275,6 +275,11 @@
         "command": "altai.openOperations",
         "key": "ctrl+shift+alt+o",
         "mac": "cmd+shift+alt+o"
+      },
+      {
+        "command": "altai.restartAgentHost",
+        "key": "ctrl+shift+alt+r",
+        "mac": "cmd+shift+alt+r"
       }
     ]
   },
