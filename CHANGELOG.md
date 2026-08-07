@@ -242,6 +242,8 @@ sibling `file:` packages until public npm publish.
   only when the root actually changes).
 - Palette **Restart Agent Host** always force-restarts (skip applies only to
   automatic same-root restarts).
+- `altai.agentHostPath` and workspace-folder changes also force-restart so root
+  skip cannot leave a stale binary/process.
 
 ### Security
 

@@ -162,14 +162,14 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!event.affectsConfiguration("altai.agentHostPath")) {
         return;
       }
-      output.appendLine("[altai] altai.agentHostPath changed; restarting host");
-      void manager.restart();
+      output.appendLine("[altai] altai.agentHostPath changed; force-restarting host");
+      void manager.restart({ force: true });
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       output.appendLine(
         "[altai] workspace folders changed; restarting agent host for new root",
       );
-      void manager.restart();
+      void manager.restart({ force: true });
     }),
   );
 
