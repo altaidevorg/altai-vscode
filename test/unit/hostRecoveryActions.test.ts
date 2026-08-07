@@ -12,10 +12,12 @@ describe("host recovery actions", () => {
       "altai.runDiagnostics",
       "altai.restartAgentHost",
       "altai.showVersionCompatibility",
+      "altai.openWalkthrough",
     ]);
     expect(isAltaiRecoveryCommand("altai.openLogs")).toBe(true);
     expect(isAltaiRecoveryCommand("altai.connectProvider")).toBe(true);
     expect(isAltaiRecoveryCommand("altai.clearProviderCredential")).toBe(true);
+    expect(isAltaiRecoveryCommand("altai.openWalkthrough")).toBe(true);
     expect(isAltaiRecoveryCommand("workbench.action.quit")).toBe(false);
   });
 
@@ -35,6 +37,7 @@ describe("host recovery actions", () => {
       "altai.runDiagnostics",
       "altai.restartAgentHost",
       "altai.showVersionCompatibility",
+      "altai.openWalkthrough",
     ]);
   });
 });

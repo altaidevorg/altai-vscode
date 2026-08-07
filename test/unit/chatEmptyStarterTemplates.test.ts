@@ -48,5 +48,8 @@ describe("DEFAULT_CHAT_STARTERS", () => {
     expect(
       DEFAULT_CHAT_STARTERS.some((s) => s.value.trim() === "/tasks"),
     ).toBe(true);
+    expect(
+      DEFAULT_CHAT_STARTERS.some((s) => s.value.trim() === "/walkthrough"),
+    ).toBe(true);
   });
 });
