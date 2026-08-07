@@ -4,6 +4,10 @@ Status: **active program** (Phase 3 / TASK-007 of ENGINEERING_PLAN)
 Owners: `altai-app` (extract + Desktop), `altai-vscode` (thin host mount)  
 Last updated: 2026-08-07  
 
+> **Progress 2026-08-07 (vscode PR composer UI):** VS Code mounts Desktop-density
+> composer (agent | model config row, permission + send primary), opaque menus,
+> and agent profile switcher. Still **not** full `AiSidePanel` cutover.
+>
 > **Birebir side-chat (settings + all controls):** see
 > [`SIDECHAT_DESKTOP_PARITY.md`](./SIDECHAT_DESKTOP_PARITY.md) — full matrix,
 > extraction order, host protocol workstreams, cutover gate.
