@@ -1,6 +1,5 @@
 /**
- * Capability-gated Chat session history using shared ChatHistoryPanel.
- * Collapsed by default so the narrow Activity Bar retains the main chat column.
+ * Session history as a compact menu (VS Code Activity Bar — no side rail).
  */
 
 import {
@@ -44,9 +43,10 @@ export function ChatSessionList({
   const [search, setSearch] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [expanded, setExpanded] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     if (!canList) {
@@ -79,6 +79,33 @@ export function ChatSessionList({
     }
   }, [renamingId]);
 
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+    void load();
+    const onDoc = (event: MouseEvent) => {
+      if (
+        rootRef.current &&
+        event.target instanceof Node &&
+        !rootRef.current.contains(event.target)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen, load]);
+
   const filtered = useMemo(
     () => filterSessionsBySearch(items, search),
     [items, search],
@@ -92,7 +119,7 @@ export function ChatSessionList({
   const createSession = useCallback(() => {
     if (!canCreate) {
       setError("Create session is unavailable on this host.");
-      setExpanded(true);
+      setMenuOpen(true);
       return;
     }
     void (async () => {
@@ -104,11 +131,11 @@ export function ChatSessionList({
           label: created.title,
         });
         setError(null);
-        setJournalBroken(false);
+        setMenuOpen(false);
       } catch (err) {
         setJournalBroken(isJournalUnavailableError(err));
         setError(formatHostUserError(err));
-        setExpanded(true);
+        setMenuOpen(true);
       }
     })();
   }, [canCreate, ports, load, onFocusSession]);
@@ -117,52 +144,41 @@ export function ChatSessionList({
     return null;
   }
 
-  const journalBlocked = journalBroken;
-  // When journal fails the list always empty-errors; keep collapsed message compact.
-  const showBody = expanded || (error !== null && !journalBlocked);
-
   return (
-    <aside
-      className={
-        showBody
-          ? "altai-chat-history-rail"
-          : "altai-chat-history-rail altai-chat-history-rail--collapsed"
-      }
-      aria-label="Chat sessions"
-    >
-      <div className="altai-chat-history-toolbar">
-        <button
-          type="button"
-          className="is-primary"
-          onClick={() => {
-            createSession();
-          }}
-        >
-          New chat
-        </button>
-        <button
-          type="button"
-          aria-expanded={showBody}
-          onClick={() => {
-            setExpanded((value) => !value);
-          }}
-        >
-          {showBody ? "Hide sessions" : "Sessions"}
-          {items.length > 0 ? ` (${items.length})` : ""}
-        </button>
-      </div>
-      {error ? (
-        <p className="altai-chat-history-error" role="alert">
-          {error}
-        </p>
-      ) : null}
-      {showBody ? (
-        <div className="altai-chat-history-body">
+    <div className="altai-history-menu" ref={rootRef}>
+      <button
+        type="button"
+        className="altai-history-menu-trigger"
+        aria-expanded={menuOpen}
+        aria-haspopup="menu"
+        onClick={() => {
+          setMenuOpen((open) => !open);
+        }}
+      >
+        History
+        {items.length > 0 ? ` (${items.length})` : ""}
+      </button>
+      <button
+        type="button"
+        className="altai-history-menu-new"
+        onClick={() => {
+          createSession();
+        }}
+      >
+        New chat
+      </button>
+      {menuOpen ? (
+        <div className="altai-history-menu-panel" role="menu">
+          {error ? (
+            <p className="altai-chat-history-error" role="alert">
+              {error}
+            </p>
+          ) : null}
           {loading && items.length === 0 && !error ? (
             <p className="altai-shell-meta" style={{ padding: "0.75rem" }}>
               Loading sessions…
             </p>
-          ) : journalBlocked ? (
+          ) : journalBroken ? (
             <p className="altai-shell-meta" style={{ padding: "0.75rem" }}>
               Session history will return when the host journal is available.
             </p>
@@ -172,13 +188,16 @@ export function ChatSessionList({
               activeId={activeChatId}
               search={search}
               onSearchChange={setSearch}
-              onNewChat={createSession}
+              onNewChat={() => {
+                createSession();
+              }}
               onPick={(id) => {
                 const session = items.find((s) => s.id === id);
                 onFocusSession({
                   chatId: id,
                   label: session?.title,
                 });
+                setMenuOpen(false);
               }}
               onDelete={(id) => {
                 if (!canDelete) {
@@ -254,6 +273,6 @@ export function ChatSessionList({
           )}
         </div>
       ) : null}
-    </aside>
+    </div>
   );
 }

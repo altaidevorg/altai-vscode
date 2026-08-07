@@ -675,6 +675,83 @@ body {
   padding: 0 0.75rem 0.5rem;
 }
 
+/* History as top toolbar menu (no side rail in the VS Code host) */
+.altai-chat-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--background) 90%, var(--card));
+}
+
+.altai-history-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.altai-history-menu-trigger,
+.altai-history-menu-new {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.65rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.altai-history-menu-new {
+  background: color-mix(in srgb, var(--primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.altai-history-menu-trigger:hover,
+.altai-history-menu-new:hover {
+  background: var(--accent);
+}
+
+.altai-history-menu-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  width: min(18.5rem, calc(100vw - 1.5rem));
+  max-height: min(55vh, 22rem);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.5rem;
+  background: var(--popover, var(--card));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.altai-history-menu-panel > * {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.altai-chat-history-error {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--destructive);
+  flex: 0 0 auto;
+}
+
 /* —— Host status & capabilities (init / error only) —— */
 .altai-shell-header {
   min-height: 2.75rem !important;
