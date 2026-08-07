@@ -64,6 +64,8 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
   private readonly trustDisposable: { dispose: () => void } | undefined;
   private startGeneration = 0;
   private disposed = false;
+  /** Last --workspace path passed to a successful or attempted spawn. */
+  private lastSpawnedWorkspaceRoot: string | undefined;
 
   constructor(private readonly options: HostManagerOptions) {
     super();
@@ -140,6 +142,7 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
       });
       return;
     }
+    this.lastSpawnedWorkspaceRoot = workspaceRoot;
 
     const generation = ++this.startGeneration;
     this.setState("Starting");
@@ -312,6 +315,17 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
 
   async restart(): Promise<void> {
     if (this.disposed) {
+      return;
+    }
+    const nextRoot = this.options.getWorkspaceRoot();
+    if (
+      this.state === "Ready" &&
+      nextRoot !== undefined &&
+      nextRoot === this.lastSpawnedWorkspaceRoot
+    ) {
+      this.log(
+        "[altai] restart skipped; host already ready for current workspace root",
+      );
       return;
     }
     this.setState("Restarting");

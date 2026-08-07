@@ -42,6 +42,8 @@ export type ReviewUriFactory = (label: string, text: string) => vscode.Uri;
  * in the Extension Host; callers can only address URIs inside an open folder.
  */
 export class WorkspaceAdapter {
+  private preferredHostRootFsPath: string | undefined;
+
   constructor(
     private readonly api: typeof vscode,
     private readonly isTrusted: () => boolean,
@@ -49,7 +51,28 @@ export class WorkspaceAdapter {
     private readonly getGitDiffContext: () => Promise<GitDiffContext | null>,
     private readonly terminalTracker?: TerminalContextTracker,
     private readonly gitDiffAdapter?: GitDiffAdapter,
+    private readonly onPreferredHostRootChange?: (
+      fsPath: string | undefined,
+    ) => void,
   ) {}
+
+  /**
+   * Preferred multi-root folder for native-host `--workspace` (project chip).
+   * Falls back to undefined when the preferred folder was closed.
+   */
+  getPreferredHostRootFsPath(): string | undefined {
+    if (!this.preferredHostRootFsPath) {
+      return undefined;
+    }
+    const stillOpen = (this.api.workspace.workspaceFolders ?? []).some(
+      (folder) => folder.uri.fsPath === this.preferredHostRootFsPath,
+    );
+    if (!stillOpen) {
+      this.preferredHostRootFsPath = undefined;
+      return undefined;
+    }
+    return this.preferredHostRootFsPath;
+  }
 
   /** Prefer a right-clicked terminal for the next getTerminalContext. */
   setPreferredTerminal(terminal: vscode.Terminal | undefined): void {
@@ -101,14 +124,15 @@ export class WorkspaceAdapter {
   }
 
   /**
-   * Multi-root project chip: prefer this workspace folder for getGitDiff
-   * until another resource (Explorer/SCM) overrides the preferred git URI.
+   * Multi-root project chip: prefer this workspace folder for getGitDiff and
+   * native-host `--workspace` until Explorer/SCM or another pick overrides.
    */
   private setPreferredRootUri(
     uriValue: string | undefined,
   ): { ok: true } {
     if (!uriValue) {
       this.setPreferredGitUri(undefined);
+      this.updatePreferredHostRoot(undefined);
       return { ok: true };
     }
     const uri = this.parseWorkspaceUri(uriValue);
@@ -120,7 +144,16 @@ export class WorkspaceAdapter {
       );
     }
     this.setPreferredGitUri(folder.uri);
+    this.updatePreferredHostRoot(folder.uri.fsPath);
     return { ok: true };
+  }
+
+  private updatePreferredHostRoot(fsPath: string | undefined): void {
+    if (this.preferredHostRootFsPath === fsPath) {
+      return;
+    }
+    this.preferredHostRootFsPath = fsPath;
+    this.onPreferredHostRootChange?.(fsPath);
   }
 
   private async executeAltaiCommand(command: string): Promise<{ ok: true }> {

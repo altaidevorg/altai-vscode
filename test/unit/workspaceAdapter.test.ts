@@ -202,10 +202,12 @@ describe("WorkspaceAdapter", () => {
     expect(setPreferredTargetUri).toHaveBeenCalledWith(
       expect.objectContaining({ path: "/workspace" }),
     );
+    expect(adapter.getPreferredHostRootFsPath()).toBe("/workspace");
     await expect(adapter.request("setPreferredRootUri", { uri: "" })).resolves.toEqual({
       ok: true,
     });
     expect(setPreferredTargetUri).toHaveBeenLastCalledWith(undefined);
+    expect(adapter.getPreferredHostRootFsPath()).toBeUndefined();
   });
 
   it("rejects preferred roots outside open folders", async () => {
