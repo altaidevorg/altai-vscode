@@ -11,6 +11,7 @@ import type {
 } from "@altai/host-contract" with { "resolution-mode": "import" };
 import type * as vscode from "vscode";
 import { isAltaiRecoveryCommand } from "../../shared/hostRecoveryCommands.js";
+import { searchExcludeGlobFromSettings } from "../../shared/searchExcludeGlobs.js";
 import type { TerminalContextTracker } from "./TerminalContextTracker.js";
 import type { GitDiffAdapter } from "./GitDiffAdapter.js";
 
@@ -244,9 +245,19 @@ export class WorkspaceAdapter {
         `Search query must be between 1 and ${MAX_QUERY_LENGTH} characters`,
       );
     }
+    const filesExclude = this.api.workspace
+      .getConfiguration("files")
+      .get<Record<string, unknown>>("exclude");
+    const searchExclude = this.api.workspace
+      .getConfiguration("search")
+      .get<Record<string, unknown>>("exclude");
+    const exclude = searchExcludeGlobFromSettings({
+      ...(filesExclude ? { filesExclude } : {}),
+      ...(searchExclude ? { searchExclude } : {}),
+    });
     const candidates = await this.api.workspace.findFiles(
       `**/*${escapeGlob(query)}*`,
-      "**/{.git,node_modules}/**",
+      exclude,
       MAX_SEARCH_RESULTS,
     );
     return candidates

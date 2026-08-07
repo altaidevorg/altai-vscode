@@ -33,6 +33,9 @@ function createAdapter(isTrusted = true) {
           : undefined,
       ),
       findFiles: vi.fn(async () => [source]),
+      getConfiguration: vi.fn(() => ({
+        get: vi.fn(() => undefined),
+      })),
       fs: {
         stat: vi.fn(async () => ({ size: 12 })),
         readFile: vi.fn(async () => Buffer.from("const a = 1;")),
