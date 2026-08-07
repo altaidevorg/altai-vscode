@@ -87,4 +87,18 @@ describe("package.json command contributions", () => {
       viewTitle.some((entry) => entry.command === "altai.openOperations"),
     ).toBe(true);
   });
+
+  it("exposes agent host path setting", () => {
+    const manifest = JSON.parse(
+      readFileSync(path.join(process.cwd(), "package.json"), "utf8"),
+    ) as {
+      contributes?: {
+        configuration?: {
+          properties?: Record<string, unknown>;
+        };
+      };
+    };
+    const props = manifest.contributes?.configuration?.properties ?? {};
+    expect(props["altai.agentHostPath"]).toBeDefined();
+  });
 });
