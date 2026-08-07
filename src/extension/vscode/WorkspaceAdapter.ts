@@ -10,6 +10,14 @@ import type {
   WorkspaceInfo,
 } from "@altai/host-contract" with { "resolution-mode": "import" };
 import type * as vscode from "vscode";
+import {
+  coerceExtensionPreferences,
+  defaultExtensionPreferences,
+  isExtensionSettingKey,
+  isValidSettingValue,
+  type ExtensionPreferences,
+  type ExtensionSettingKey,
+} from "../../shared/extensionPreferences.js";
 import { isAltaiRecoveryCommand } from "../../shared/hostRecoveryCommands.js";
 import { searchExcludeGlobFromSettings } from "../../shared/searchExcludeGlobs.js";
 import { joinSelectionTexts } from "../../shared/selectionJoin.js";
@@ -20,6 +28,7 @@ const MAX_SEARCH_RESULTS = 100;
 const MAX_QUERY_LENGTH = 256;
 const MAX_FILE_BYTES = 1_000_000;
 const MAX_SELECTION_CHARACTERS = 64_000;
+const MAX_WRITE_BYTES = 512_000;
 
 export type WorkspaceRequestMethod =
   | "getWorkspace"
@@ -27,6 +36,7 @@ export type WorkspaceRequestMethod =
   | "getSelection"
   | "searchFiles"
   | "readFile"
+  | "writeTextFile"
   | "openFile"
   | "openDiff"
   | "openExternal"
@@ -35,7 +45,10 @@ export type WorkspaceRequestMethod =
   | "getGitDiff"
   | "getTerminalContext"
   | "setPreferredRootUri"
+  | "getExtensionSettings"
+  | "updateExtensionSetting"
   | "executeAltaiCommand";
+
 
 export type ReviewUriFactory = (label: string, text: string) => vscode.Uri;
 
@@ -117,10 +130,20 @@ export class WorkspaceAdapter {
     if ((method as WorkspaceRequestMethod) === "executeAltaiCommand") {
       return this.executeAltaiCommand(readAltaiCommandId(params));
     }
+    // Extension settings are non-secret preferences (host path is a local path).
+    // Available without trust so wait-shell / settings recovery can adjust path.
+    if ((method as WorkspaceRequestMethod) === "getExtensionSettings") {
+      return this.getExtensionSettings();
+    }
+    if ((method as WorkspaceRequestMethod) === "updateExtensionSetting") {
+      return this.updateExtensionSetting(params);
+    }
+    // Read-only folder list is safe without trust (used by Settings Host tab).
+    if ((method as WorkspaceRequestMethod) === "getWorkspace") {
+      return this.getWorkspace();
+    }
     this.assertTrusted();
     switch (method as WorkspaceRequestMethod) {
-      case "getWorkspace":
-        return this.getWorkspace();
       case "getActiveFile":
         return this.getActiveFile();
       case "getSelection":
@@ -129,6 +152,8 @@ export class WorkspaceAdapter {
         return this.searchFiles(readQuery(params));
       case "readFile":
         return this.readFile(readUri(params));
+      case "writeTextFile":
+        return this.writeTextFile(params);
       case "openFile":
         return this.openFile(readUri(params), readRange(params));
       case "openDiff":
@@ -148,6 +173,69 @@ export class WorkspaceAdapter {
       default:
         throw codedError("method_not_found", `Unknown workspace method: ${method}`);
     }
+  }
+
+  private getExtensionSettings(): ExtensionPreferences {
+    const cfg = this.api.workspace.getConfiguration("altai");
+    const raw: Record<string, unknown> = {};
+    for (const key of Object.keys(defaultExtensionPreferences()) as ExtensionSettingKey[]) {
+      raw[key] = cfg.get(key);
+    }
+    return coerceExtensionPreferences(raw);
+  }
+
+  private async updateExtensionSetting(
+    params: unknown,
+  ): Promise<ExtensionPreferences> {
+    if (!isRecord(params) || typeof params.key !== "string") {
+      throw codedError(
+        "invalid_params",
+        "updateExtensionSetting requires key and value",
+      );
+    }
+    const key = params.key.trim();
+    if (!isExtensionSettingKey(key)) {
+      throw codedError(
+        "command_not_allowed",
+        `Extension setting is not allowlisted: ${key}`,
+      );
+    }
+    const value = params.value;
+    if (!isValidSettingValue(key, value)) {
+      throw codedError("invalid_params", `Invalid value for ${key}`);
+    }
+    let normalized: string | boolean | number | null = value as
+      | string
+      | boolean
+      | number
+      | null;
+    if (key === "compactionThresholdPercent" && value === "") {
+      normalized = null;
+    }
+    await this.api.workspace
+      .getConfiguration("altai")
+      .update(key, normalized, true);
+    return this.getExtensionSettings();
+  }
+
+  private async writeTextFile(params: unknown): Promise<{ ok: true }> {
+    if (!isRecord(params) || typeof params.uri !== "string" || typeof params.text !== "string") {
+      throw codedError(
+        "invalid_params",
+        "writeTextFile requires uri and text",
+      );
+    }
+    if (params.text.length > MAX_WRITE_BYTES) {
+      throw codedError("invalid_params", "writeTextFile payload too large");
+    }
+    const uri = this.parseWorkspaceUri(params.uri);
+    if (!this.isWorkspaceUri(uri)) {
+      throw codedError("outside_workspace", "URI is outside the workspace");
+    }
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(params.text);
+    await this.api.workspace.fs.writeFile(uri, bytes);
+    return { ok: true };
   }
 
   /**

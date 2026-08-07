@@ -35,6 +35,7 @@ import {
   type WorkspaceRequestParams,
 } from "../../shared/messages.js";
 import { createNonce } from "../../shared/nonce.js";
+import { knownProviderLabel } from "../../shared/providerCatalog.js";
 import {
   normalizeProviderBaseUrl,
   providerRequiresBaseUrl,
@@ -734,14 +735,16 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
     providerId: string,
     baseUrl?: string,
   ): Promise<unknown> {
+    const label = knownProviderLabel(providerId);
     let resolvedBaseUrl = baseUrl?.trim() || undefined;
     if (providerRequiresBaseUrl(providerId) && !resolvedBaseUrl) {
-      const entered = await vscode.window.showInputBox({
-        prompt: "OpenAI Compatible base URL (http or https)",
+      const entered = await this.promptText({
+        title: `ALTAI · ${label}`,
+        prompt: "Base URL for OpenAI-compatible API (http or https)",
         placeHolder: "https://api.example.com/v1",
-        ignoreFocusOut: true,
+        password: false,
       });
-      if (!entered || entered.trim().length === 0) {
+      if (!entered) {
         throw Object.assign(new Error("provider_connection_cancelled"), {
           code: "cancelled",
         });
@@ -765,12 +768,13 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       resolvedBaseUrl = normalized;
     }
 
-    const credential = await vscode.window.showInputBox({
-      prompt: `Enter the API key for ${providerId}`,
+    const credential = await this.promptText({
+      title: `ALTAI · ${label} API key`,
+      prompt: `Paste your ${label} API key, then press Enter. The key is stored only on the agent host — not in this panel.`,
+      placeHolder: "sk-…  (hidden while typing)",
       password: true,
-      ignoreFocusOut: true,
     });
-    if (!credential || credential.trim().length === 0) {
+    if (!credential) {
       throw Object.assign(new Error("provider_connection_cancelled"), {
         code: "cancelled",
       });
@@ -781,6 +785,45 @@ export class AltaiViewProvider implements vscode.WebviewViewProvider {
       provider_id: providerId,
       credential: credential.trim(),
       ...(resolvedBaseUrl ? { base_url: resolvedBaseUrl } : {}),
+    });
+  }
+
+  /**
+   * Focused InputBox at the top of the editor window so the panel doesn’t
+   * “swallow” attention when users try to enter a key from Settings.
+   */
+  private promptText(input: {
+    title: string;
+    prompt: string;
+    placeHolder: string;
+    password: boolean;
+  }): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      const box = vscode.window.createInputBox();
+      box.title = input.title;
+      box.prompt = input.prompt;
+      box.placeholder = input.placeHolder;
+      box.password = input.password;
+      box.ignoreFocusOut = true;
+      box.busy = false;
+      let settled = false;
+      const finish = (value: string | undefined) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        box.hide();
+        box.dispose();
+        resolve(value);
+      };
+      box.onDidAccept(() => {
+        const value = box.value.trim();
+        finish(value.length > 0 ? value : undefined);
+      });
+      box.onDidHide(() => {
+        finish(undefined);
+      });
+      box.show();
     });
   }
 

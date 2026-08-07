@@ -33,10 +33,14 @@ export type PersistedWebviewState = {
    * Capped on parse/write so getState stays small.
    */
   composerDraft?: string;
+  /** Last opened Settings section id (general, models, …). */
+  settingsSection?: string;
   /**
    * Multi-root Explorer/display preference only — does not rebind agent host roots.
    */
   preferredRootUri?: string;
+  /** Last selected composer agent profile id (presentation only). */
+  activeAgentId?: string;
 };
 
 /** Max characters retained for the reloadable composer draft. */
@@ -145,9 +149,25 @@ export function parsePersistedWebviewState(
   if (draft !== undefined) {
     next.composerDraft = draft;
   }
+  if (
+    typeof record.settingsSection === "string" &&
+    record.settingsSection.length > 0 &&
+    record.settingsSection.length <= 64 &&
+    /^[a-z][a-z0-9-]*$/.test(record.settingsSection)
+  ) {
+    next.settingsSection = record.settingsSection;
+  }
   const preferred = normalizePreferredRootUri(record.preferredRootUri);
   if (preferred !== undefined) {
     next.preferredRootUri = preferred;
+  }
+  if (
+    typeof record.activeAgentId === "string" &&
+    record.activeAgentId.length > 0 &&
+    record.activeAgentId.length <= 128 &&
+    /^[a-z0-9:_-]+$/i.test(record.activeAgentId)
+  ) {
+    next.activeAgentId = record.activeAgentId;
   }
 
   return next;
@@ -182,6 +202,30 @@ export function mergePersistedWebviewState(
       delete next.preferredRootUri;
     } else {
       next.preferredRootUri = preferred;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "settingsSection")) {
+    const section =
+      typeof patch.settingsSection === "string"
+        ? patch.settingsSection.trim()
+        : "";
+    if (
+      !section ||
+      section.length > 64 ||
+      !/^[a-z][a-z0-9-]*$/.test(section)
+    ) {
+      delete next.settingsSection;
+    } else {
+      next.settingsSection = section;
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "activeAgentId")) {
+    const id =
+      typeof patch.activeAgentId === "string" ? patch.activeAgentId.trim() : "";
+    if (!id || id.length > 128 || !/^[a-z0-9:_-]+$/i.test(id)) {
+      delete next.activeAgentId;
+    } else {
+      next.activeAgentId = id;
     }
   }
   return next;

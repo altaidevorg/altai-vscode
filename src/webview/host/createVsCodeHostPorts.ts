@@ -463,16 +463,47 @@ export function createVsCodeHostPorts(
         },
         async updateSettings(patch) {
           requireReady(isHostReady);
-          if (Object.keys(patch).some((key) => key !== "defaultModelId" && key !== "permissionMode")) {
+          const allowed = new Set([
+            "defaultModelId",
+            "defaultProviderId",
+            "fallbackModelId",
+            "permissionMode",
+            "compactionEnabled",
+            "bypassEnabled",
+          ]);
+          if (Object.keys(patch).some((key) => !allowed.has(key))) {
             throw new Error("unsupported_settings_patch");
           }
-          if (patch.defaultModelId === undefined && patch.permissionMode === undefined) {
+          if (
+            patch.defaultModelId === undefined &&
+            patch.defaultProviderId === undefined &&
+            patch.fallbackModelId === undefined &&
+            patch.permissionMode === undefined &&
+            patch.compactionEnabled === undefined &&
+            patch.bypassEnabled === undefined
+          ) {
             return normalizeSettings(await transport.request("config/get", {}));
           }
           return normalizeSettings(
             await transport.request("config/update", {
-              ...(patch.defaultModelId !== undefined ? { model: patch.defaultModelId } : {}),
-              ...(patch.permissionMode !== undefined ? { permission: patch.permissionMode } : {}),
+              ...(patch.defaultModelId !== undefined
+                ? { model: patch.defaultModelId }
+                : {}),
+              ...(patch.defaultProviderId !== undefined
+                ? { provider: patch.defaultProviderId }
+                : {}),
+              ...(patch.fallbackModelId !== undefined
+                ? { fallback_model: patch.fallbackModelId }
+                : {}),
+              ...(patch.permissionMode !== undefined
+                ? { permission: patch.permissionMode }
+                : {}),
+              ...(patch.compactionEnabled !== undefined
+                ? { compaction_enabled: patch.compactionEnabled }
+                : {}),
+              ...(patch.bypassEnabled !== undefined
+                ? { bypass_enabled: patch.bypassEnabled }
+                : {}),
             }),
           );
         },
@@ -1391,13 +1422,46 @@ function normalizeSettings(value: unknown): AltaiSettings {
   if (!isRecord(value) || typeof value.model !== "string") {
     throw new Error("invalid_settings_response");
   }
+  const permissionRaw =
+    typeof value.permission === "string"
+      ? value.permission
+      : typeof value.permissionMode === "string"
+        ? value.permissionMode
+        : "plan";
+  const permissionMode =
+    permissionRaw === "ask" ||
+    permissionRaw === "auto-edit" ||
+    permissionRaw === "plan" ||
+    permissionRaw === "bypass"
+      ? permissionRaw
+      : "plan";
+  const compactionEnabled =
+    typeof value.compaction_enabled === "boolean"
+      ? value.compaction_enabled
+      : typeof value.compactionEnabled === "boolean"
+        ? value.compactionEnabled
+        : true;
+  const bypassEnabled =
+    typeof value.bypass_enabled === "boolean"
+      ? value.bypass_enabled
+      : typeof value.bypassEnabled === "boolean"
+        ? value.bypassEnabled
+        : permissionMode === "bypass";
   return {
-    permissionMode:
-      value.permission === "ask" || value.permission === "auto-edit" || value.permission === "plan"
-        ? value.permission
-        : "plan",
-    bypassEnabled: false,
+    permissionMode: permissionMode === "bypass" ? "plan" : permissionMode,
+    bypassEnabled,
+    compactionEnabled,
     ...(value.model !== "auto" ? { defaultModelId: value.model } : {}),
+    ...(typeof value.provider === "string" && value.provider.trim()
+      ? { defaultProviderId: value.provider.trim() }
+      : typeof value.providerId === "string" && value.providerId.trim()
+        ? { defaultProviderId: value.providerId.trim() }
+        : {}),
+    ...(typeof value.fallback_model === "string" && value.fallback_model.trim()
+      ? { fallbackModelId: value.fallback_model.trim() }
+      : typeof value.fallbackModelId === "string" && value.fallbackModelId.trim()
+        ? { fallbackModelId: value.fallbackModelId.trim() }
+        : {}),
   };
 }
 

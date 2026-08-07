@@ -16,7 +16,17 @@ import {
   type SkillView,
 } from "./skillsStatusChrome.js";
 
-export function ChatSkillsStatusChrome() {
+export type ChatSkillsStatusChromeProps = {
+  /** Settings hub starts expanded. */
+  defaultOpen?: boolean;
+  /** Hide collapsible chrome; always show list (Settings hub). */
+  layout?: "inline" | "settings";
+};
+
+export function ChatSkillsStatusChrome({
+  defaultOpen = false,
+  layout = "inline",
+}: ChatSkillsStatusChromeProps = {}) {
   const ports = useHostPorts();
   const canList = useCapability("skills.list");
   const canInstall = useCapability("skills.install");
@@ -24,7 +34,7 @@ export function ChatSkillsStatusChrome() {
   const [skills, setSkills] = useState<SkillView[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen || layout === "settings");
   const [source, setSource] = useState("");
   const [installing, setInstalling] = useState(false);
   const [installMessage, setInstallMessage] = useState<string | null>(null);
@@ -83,20 +93,33 @@ export function ChatSkillsStatusChrome() {
   }
 
   return (
-    <section className="altai-skills-status" aria-label="Skills">
+    <section
+      className={
+        layout === "settings"
+          ? "altai-skills-status altai-skills-status--settings"
+          : "altai-skills-status"
+      }
+      aria-label="Skills"
+    >
       <div className="altai-mcp-status-header">
-        <button
-          type="button"
-          className="altai-mcp-status-toggle"
-          aria-expanded={open}
-          onClick={() => {
-            setOpen((value) => !value);
-          }}
-        >
+        {layout === "settings" ? (
           <span className="altai-mcp-status-title">
             {ready ? skillsSummaryCopy(skills) : "Skills"}
           </span>
-        </button>
+        ) : (
+          <button
+            type="button"
+            className="altai-mcp-status-toggle"
+            aria-expanded={open}
+            onClick={() => {
+              setOpen((value) => !value);
+            }}
+          >
+            <span className="altai-mcp-status-title">
+              {ready ? skillsSummaryCopy(skills) : "Skills"}
+            </span>
+          </button>
+        )}
         <SurfaceSecondaryAction
           type="button"
           onClick={() => {
@@ -116,7 +139,7 @@ export function ChatSkillsStatusChrome() {
           {installMessage}
         </p>
       ) : null}
-      {open ? (
+      {open || layout === "settings" ? (
         <>
           {canInstall ? (
             <div className="altai-skills-install">

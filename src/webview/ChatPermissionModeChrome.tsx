@@ -16,10 +16,19 @@ import { canMountPermissionModeSwitcher } from "./permissionModeChrome.js";
 export type ChatPermissionModeChromeProps = {
   /** Notify parent so startRun can include the active mode. */
   onModeChange?: (mode: PermissionMode | null) => void;
+  /** Desktop composer uses toolbar-icon; settings hub uses full toolbar. */
+  variant?: "toolbar" | "toolbar-icon";
+  /**
+   * Settings hub always offers Bypass (with confirm); composer only when
+   * already enabled on the host.
+   */
+  showBypassAlways?: boolean;
 };
 
 export function ChatPermissionModeChrome({
   onModeChange,
+  variant = "toolbar",
+  showBypassAlways = false,
 }: ChatPermissionModeChromeProps) {
   const ports = useHostPorts();
   const canModes = useCapability("interactive.permissionModes");
@@ -72,7 +81,35 @@ export function ChatPermissionModeChrome({
       void (async () => {
         setError(null);
         try {
+          if (next === "bypass") {
+            const ok =
+              typeof globalThis.confirm === "function"
+                ? globalThis.confirm(
+                    "Enable Bypass? Tools may run without interactive approval. Only use this in trusted workspaces.",
+                  )
+                : false;
+            if (!ok) {
+              return;
+            }
+            const settings = await ports.settings.updateSettings({
+              bypassEnabled: true,
+            });
+            setMode(settings.permissionMode);
+            setBypassEnabled(Boolean(settings.bypassEnabled));
+            onModeChange?.(settings.permissionMode);
+            return;
+          }
           const applied = await ports.settings.setPermissionMode(next);
+          if (bypassEnabled) {
+            try {
+              const settings = await ports.settings.updateSettings({
+                bypassEnabled: false,
+              });
+              setBypassEnabled(Boolean(settings.bypassEnabled));
+            } catch {
+              setBypassEnabled(false);
+            }
+          }
           setMode(applied);
           onModeChange?.(applied);
         } catch (err) {
@@ -80,7 +117,7 @@ export function ChatPermissionModeChrome({
         }
       })();
     },
-    [ports, onModeChange],
+    [ports, onModeChange, bypassEnabled],
   );
 
   if (!canShow || !ready) {
@@ -92,13 +129,13 @@ export function ChatPermissionModeChrome({
   }
 
   return (
-    <div className="altai-permission-chrome">
+    <div className="altai-permission-chrome" data-variant={variant}>
       <PermissionModeSwitcher
         mode={mode}
         bypassEnabled={bypassEnabled}
-        showBypass={bypassEnabled}
+        showBypass={showBypassAlways || bypassEnabled}
         onSelectMode={onSelectMode}
-        variant="toolbar"
+        variant={variant}
       />
       {error ? (
         <p className="altai-chat-error" role="alert">

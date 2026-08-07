@@ -2,7 +2,11 @@
 
 Status: **active program** (Phase 3 / TASK-007 of ENGINEERING_PLAN)  
 Owners: `altai-app` (extract + Desktop), `altai-vscode` (thin host mount)  
-Last updated: 2026-08-07
+Last updated: 2026-08-07  
+
+> **Birebir side-chat (settings + all controls):** see
+> [`SIDECHAT_DESKTOP_PARITY.md`](./SIDECHAT_DESKTOP_PARITY.md) — full matrix,
+> extraction order, host protocol workstreams, cutover gate.
 
 ## Problem
 
@@ -94,11 +98,12 @@ Order (keep each PR reviewable):
 
 ## Immediate next code slice after P0
 
-1. **agent-ui:** add `AgentChatLayout` + density CSS variables.
-2. **altai-app:** replace only the outer history/main split markup with it.
-3. **altai-vscode:** replace `.altai-chat-layout` hierarchy with the same component.
-4. **altai-cli:** audit `config/update` + journal open errors; fix path/mkdir if
-   journal fails on fresh workspace (pairs with history UX).
+1. ~~VS Code shell density (history clock, settings gear, no text tabs)~~ — 0.1.2.
+2. **agent-ui:** begin `AiInputBar` HostPorts extraction (see
+   [`SIDECHAT_DESKTOP_PARITY.md`](./SIDECHAT_DESKTOP_PARITY.md)).
+3. **altai-app:** replace only the outer history/main split markup with
+   `AgentChatLayout` where resizable allows.
+4. **altai-cli:** settings/journal completeness for history UX.
 
 ## Risk register
 

@@ -45,7 +45,10 @@ describe("provider display helpers", () => {
     ).toBe("missing key");
     expect(
       providerStatusCopy({ providerId: "openai", connected: true }),
-    ).toBe("Connected");
+    ).toBe("API key saved");
+    expect(
+      providerStatusCopy({ providerId: "openai", connected: false }),
+    ).toBe("Not connected");
   });
 });
 

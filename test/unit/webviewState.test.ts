@@ -80,6 +80,15 @@ describe("parsePersistedWebviewState", () => {
     });
   });
 
+  it("accepts settingsSection when well-formed", () => {
+    expect(
+      parsePersistedWebviewState({ settingsSection: "accessibility" }),
+    ).toEqual({ settingsSection: "accessibility" });
+    expect(parsePersistedWebviewState({ settingsSection: "Bad!" })).toEqual(
+      {},
+    );
+  });
+
   it("accepts capped composerDraft and drops empties/control chars", () => {
     expect(
       parsePersistedWebviewState({ composerDraft: "  draft text  " }),

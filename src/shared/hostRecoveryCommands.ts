@@ -18,6 +18,9 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.pickProjectRoot",
   "workbench.action.manageWorkspaceTrust",
   "workbench.action.files.openFolder",
+  "workbench.action.openGlobalKeybindings",
+  "workbench.action.selectTheme",
+  "workbench.action.openSettings",
 ] as const;
 
 export type AltaiRecoveryCommand = (typeof ALTAI_RECOVERY_COMMANDS)[number];

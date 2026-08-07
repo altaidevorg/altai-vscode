@@ -91,6 +91,8 @@ export const OPEN_SETTINGS_EVENT = "settings.open" as const;
 export type OpenSettingsPayload = {
   /** Unique key so remounted/idempotent opens re-apply. */
   key: number;
+  /** Optional Studio settings section id (general, models, …). */
+  section?: string;
 };
 
 export type OperationsDeepLinkView =
