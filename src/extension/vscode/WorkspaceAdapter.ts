@@ -54,6 +54,9 @@ export class WorkspaceAdapter {
     private readonly onPreferredHostRootChange?: (
       fsPath: string | undefined,
     ) => void,
+    private readonly persistPreferredHostRootUri?: (
+      uri: string | undefined,
+    ) => void,
   ) {}
 
   /**
@@ -72,6 +75,28 @@ export class WorkspaceAdapter {
       return undefined;
     }
     return this.preferredHostRootFsPath;
+  }
+
+  /**
+   * Restore preferred root from workspaceState before the first host start.
+   * Does not fire `onPreferredHostRootChange` (avoids thrash during activate).
+   */
+  restorePreferredHostRootUri(uriValue: string | undefined): void {
+    if (!uriValue) {
+      return;
+    }
+    let uri: vscode.Uri;
+    try {
+      uri = this.api.Uri.parse(uriValue);
+    } catch {
+      return;
+    }
+    const folder = this.api.workspace.getWorkspaceFolder(uri);
+    if (!folder) {
+      return;
+    }
+    this.preferredHostRootFsPath = folder.uri.fsPath;
+    this.setPreferredGitUri(folder.uri);
   }
 
   /** Prefer a right-clicked terminal for the next getTerminalContext. */
@@ -132,7 +157,7 @@ export class WorkspaceAdapter {
   ): { ok: true } {
     if (!uriValue) {
       this.setPreferredGitUri(undefined);
-      this.updatePreferredHostRoot(undefined);
+      this.updatePreferredHostRoot(undefined, undefined);
       return { ok: true };
     }
     const uri = this.parseWorkspaceUri(uriValue);
@@ -144,11 +169,15 @@ export class WorkspaceAdapter {
       );
     }
     this.setPreferredGitUri(folder.uri);
-    this.updatePreferredHostRoot(folder.uri.fsPath);
+    this.updatePreferredHostRoot(folder.uri.fsPath, folder.uri.toString());
     return { ok: true };
   }
 
-  private updatePreferredHostRoot(fsPath: string | undefined): void {
+  private updatePreferredHostRoot(
+    fsPath: string | undefined,
+    preferredUri: string | undefined,
+  ): void {
+    this.persistPreferredHostRootUri?.(preferredUri);
     if (this.preferredHostRootFsPath === fsPath) {
       return;
     }
@@ -171,7 +200,9 @@ export class WorkspaceAdapter {
     const roots = (this.api.workspace.workspaceFolders ?? []).map((folder) =>
       folder.uri.toString(),
     );
-    const currentDir = this.api.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const currentDir =
+      this.getPreferredHostRootFsPath() ??
+      this.api.workspace.workspaceFolders?.[0]?.uri.fsPath;
     return {
       roots,
       trusted: this.api.workspace.isTrusted,

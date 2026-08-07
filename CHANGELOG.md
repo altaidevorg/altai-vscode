@@ -245,6 +245,8 @@ sibling `file:` packages until public npm publish.
 - `altai.agentHostPath` and workspace-folder changes also force-restart so root
   skip cannot leave a stale binary/process.
 - Diagnostics report includes the last host `--workspace` root.
+- Preferred multi-root host folder is restored from workspaceState before the
+  first host start; `getWorkspace().currentDir` follows that preference.
 
 ### Security
 

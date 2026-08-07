@@ -21,6 +21,7 @@ function createAdapter(isTrusted = true) {
   const executeCommand = vi.fn(async () => undefined);
   const createReviewUri = vi.fn((label: string) => uri(`/review/${label}`));
   const setPreferredTargetUri = vi.fn();
+  const persistPreferred = vi.fn();
   const api = {
     workspace: {
       isTrusted,
@@ -94,10 +95,13 @@ function createAdapter(isTrusted = true) {
       {
         setPreferredTargetUri,
       } as never,
+      undefined,
+      persistPreferred,
     ),
     api,
     createReviewUri,
     setPreferredTargetUri,
+    persistPreferred,
   };
 }
 
@@ -195,7 +199,7 @@ describe("WorkspaceAdapter", () => {
   });
 
   it("mirrors preferred project root to GitDiffAdapter", async () => {
-    const { adapter, setPreferredTargetUri } = createAdapter();
+    const { adapter, setPreferredTargetUri, persistPreferred } = createAdapter();
     await expect(
       adapter.request("setPreferredRootUri", { uri: "file:///workspace" }),
     ).resolves.toEqual({ ok: true });
@@ -203,11 +207,29 @@ describe("WorkspaceAdapter", () => {
       expect.objectContaining({ path: "/workspace" }),
     );
     expect(adapter.getPreferredHostRootFsPath()).toBe("/workspace");
+    expect(persistPreferred).toHaveBeenCalledWith("file:///workspace");
     await expect(adapter.request("setPreferredRootUri", { uri: "" })).resolves.toEqual({
       ok: true,
     });
     expect(setPreferredTargetUri).toHaveBeenLastCalledWith(undefined);
     expect(adapter.getPreferredHostRootFsPath()).toBeUndefined();
+    expect(persistPreferred).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("restores preferred host root without clobbering on stale URI", async () => {
+    const { adapter } = createAdapter();
+    adapter.restorePreferredHostRootUri("file:///workspace");
+    expect(adapter.getPreferredHostRootFsPath()).toBe("/workspace");
+    adapter.restorePreferredHostRootUri("file:///outside.txt");
+    expect(adapter.getPreferredHostRootFsPath()).toBe("/workspace");
+  });
+
+  it("reports preferred root as workspace currentDir", async () => {
+    const { adapter } = createAdapter();
+    adapter.restorePreferredHostRootUri("file:///workspace");
+    await expect(adapter.request("getWorkspace")).resolves.toMatchObject({
+      currentDir: "/workspace",
+    });
   });
 
   it("rejects preferred roots outside open folders", async () => {

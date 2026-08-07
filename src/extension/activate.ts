@@ -25,6 +25,10 @@ import {
   markFirstRunWalkthroughOffered,
   shouldOfferFirstRunWalkthrough,
 } from "../shared/firstRunWalkthrough.js";
+import {
+  PREFERRED_HOST_ROOT_STATE_KEY,
+  readPreferredHostRootFromState,
+} from "../shared/preferredHostRoot.js";
 import type { HostStatusPayload } from "../shared/messages.js";
 
 let hostManager: HostManager | undefined;
@@ -62,7 +66,27 @@ export function activate(context: vscode.ExtensionContext): void {
       );
       void managerRef?.restart();
     },
+    (uri) => {
+      void context.workspaceState.update(
+        PREFERRED_HOST_ROOT_STATE_KEY,
+        uri ?? "",
+      );
+    },
   );
+
+  const openRootUris = (vscode.workspace.workspaceFolders ?? []).map((folder) =>
+    folder.uri.toString(),
+  );
+  const restoredPreferred = readPreferredHostRootFromState(
+    context.workspaceState,
+    openRootUris,
+  );
+  if (restoredPreferred) {
+    workspaceAdapter.restorePreferredHostRootUri(restoredPreferred);
+    output.appendLine(
+      `[altai] restored preferred host root: ${restoredPreferred}`,
+    );
+  }
 
   hostManager = new HostManager({
     extensionPath: context.extensionUri.fsPath,
