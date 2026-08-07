@@ -14,6 +14,7 @@ import { formatHostUserError } from "../shared/hostUserError.js";
 import {
   canMountProviderStatus,
   firstConnectableProvider,
+  mergeProviderCatalog,
   shouldShowProviderConnectBanner,
 } from "./providerStatusChrome.js";
 
@@ -35,7 +36,7 @@ export function ChatProviderConnectBanner() {
     setError(null);
     try {
       const next = await ports.settings.getProviderStatus();
-      setProviders(next);
+      setProviders(mergeProviderCatalog(next));
       setReady(true);
     } catch (err) {
       setError(formatHostUserError(err));
@@ -69,8 +70,7 @@ export function ChatProviderConnectBanner() {
         </p>
       ) : null}
       <ProviderConnectBanner
-        actionLabel={busy ? "Connecting…" : "Connect provider"}
-        onAdd={() => {
+  onAdd={() => {
           void (async () => {
             if (busy) {
               return;
@@ -88,12 +88,16 @@ export function ChatProviderConnectBanner() {
               });
               await load();
             } catch (err) {
-              setError(formatHostUserError(err));
+              const message = formatHostUserError(err);
+              if (!/cancelled/i.test(message)) {
+                setError(message);
+              }
             } finally {
               setBusy(false);
             }
           })();
         }}
+        actionLabel={busy ? "Paste key in Cursor bar…" : "Paste API key"}
       />
     </div>
   );

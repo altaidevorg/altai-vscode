@@ -1,5 +1,7 @@
 /**
  * Capability-gated attach menu for active file, selection, git diff, terminal.
+ * Layout matches Desktop AiInputBar: chips in attachments slot, Code control in
+ * the primary toolbar tools cluster.
  */
 
 import {
@@ -16,7 +18,7 @@ import {
   TerminalIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildDiffContextItem,
   buildFileContextItem,
@@ -32,12 +34,20 @@ import {
 } from "./composerContext.js";
 import { type Snippet } from "./composerSnippets.js";
 
+export type ChatComposerContextSurface = "attachments" | "toolbar" | "all";
+
 export type ChatComposerContextProps = {
   items: ComposerContextItem[];
   onChange: (items: ComposerContextItem[]) => void;
   snippets?: readonly Snippet[];
   onRemoveSnippet?: (id: string) => void;
   disabled?: boolean;
+  /**
+   * - attachments: chips + open-file links (ComposerShell attachments slot)
+   * - toolbar: context menu control (ComposerPrimaryRow tools)
+   * - all: both (legacy single mount)
+   */
+  surface?: ChatComposerContextSurface;
 };
 
 export function ChatComposerContext({
@@ -46,6 +56,7 @@ export function ChatComposerContext({
   snippets = [],
   onRemoveSnippet,
   disabled = false,
+  surface = "all",
 }: ChatComposerContextProps) {
   const ports = useHostPorts();
   const canActiveFile = useCapability("workspace.activeFile");
@@ -57,14 +68,43 @@ export function ChatComposerContext({
   const [busy, setBusy] = useState(false);
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toolbarRef = useRef<HTMLDivElement | null>(null);
 
-  const show =
+  const showAttach =
     canActiveFile || canSelection || canGitDiff || canTerminal;
   const openable = canOpenFile ? listOpenableContextItems(items) : [];
+  const showAttachments = surface === "attachments" || surface === "all";
+  const showToolbar = surface === "toolbar" || surface === "all";
 
   const pushError = useCallback((err: unknown) => {
     setError(err instanceof Error ? err.message : String(err));
   }, []);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+    const onDoc = (event: PointerEvent) => {
+      if (
+        toolbarRef.current &&
+        event.target instanceof Node &&
+        !toolbarRef.current.contains(event.target)
+      ) {
+        setMenuOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   const attachActiveFile = async (): Promise<void> => {
     if (!canActiveFile) {
@@ -160,121 +200,137 @@ export function ChatComposerContext({
     description: s.description || s.name,
   }));
 
-  if (!show && attachSnippets.length === 0) {
+  const hasAttachmentSurface =
+    items.length > 0 || attachSnippets.length > 0 || openable.length > 0;
+
+  if (showAttachments && !showToolbar && !hasAttachmentSurface) {
+    return null;
+  }
+  if (showToolbar && !showAttachments && !showAttach) {
+    return null;
+  }
+  if (!showAttach && attachSnippets.length === 0 && !hasAttachmentSurface) {
     return null;
   }
 
   return (
-    <div className="altai-composer-context">
-      <ComposerAttachChips
-        files={toComposerAttachFiles(items)}
-        onRemoveFile={(id) => onChange(removeContextItem(items, id))}
-        snippets={attachSnippets}
-        onRemoveSnippet={(id) => {
-          onRemoveSnippet?.(id);
-        }}
-        commands={[]}
-        onRemoveCommand={() => {}}
-      />
-      {openable.length > 0 ? (
-        <div
-          className="altai-composer-open-attachments"
-          role="group"
-          aria-label="Open attached files"
-        >
-          {openable.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="altai-composer-open-attachment"
-              title={`Open ${item.label}`}
-              disabled={disabled || busy || openingId !== null}
-              onClick={() => {
-                setOpeningId(item.id);
-                setError(null);
-                void ports.workspace
-                  .openFile(item.uri)
-                  .catch((err: unknown) => {
-                    pushError(err);
-                  })
-                  .finally(() => {
-                    setOpeningId(null);
-                  });
-              }}
+    <>
+      {showAttachments && hasAttachmentSurface ? (
+        <div className="altai-composer-context">
+          <ComposerAttachChips
+            files={toComposerAttachFiles(items)}
+            onRemoveFile={(id) => onChange(removeContextItem(items, id))}
+            snippets={attachSnippets}
+            onRemoveSnippet={(id) => {
+              onRemoveSnippet?.(id);
+            }}
+            commands={[]}
+            onRemoveCommand={() => {}}
+          />
+          {openable.length > 0 ? (
+            <div
+              className="altai-composer-open-attachments"
+              role="group"
+              aria-label="Open attached files"
             >
-              {openingId === item.id ? "Opening…" : `Open ${item.label}`}
-            </button>
-          ))}
+              {openable.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="altai-composer-open-attachment"
+                  title={`Open ${item.label}`}
+                  disabled={disabled || busy || openingId !== null}
+                  onClick={() => {
+                    setOpeningId(item.id);
+                    setError(null);
+                    void ports.workspace
+                      .openFile(item.uri)
+                      .catch((err: unknown) => {
+                        pushError(err);
+                      })
+                      .finally(() => {
+                        setOpeningId(null);
+                      });
+                  }}
+                >
+                  {openingId === item.id ? "Opening…" : `Open ${item.label}`}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
-      {show ? (
-        <div className="altai-composer-context-row">
+      {showToolbar && showAttach ? (
+        <div className="altai-composer-context-toolbar" ref={toolbarRef}>
           <ComposerToolbarIcon
-            title="Attach context"
+            title="Add workspace context"
             disabled={disabled || busy}
             onClick={() => setMenuOpen((open) => !open)}
           >
-            <HugeiconsIcon icon={File01Icon} size={14} strokeWidth={1.75} />
+            <HugeiconsIcon icon={CodeIcon} size={14} strokeWidth={1.75} />
           </ComposerToolbarIcon>
           {error ? (
             <span className="altai-composer-context-error" role="status">
               {error}
             </span>
           ) : null}
+          {menuOpen ? (
+            <div
+              className="altai-composer-context-menu altai-composer-context-menu--popover"
+              role="menu"
+              aria-label="Attach context"
+              onPointerDown={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              {canActiveFile ? (
+                <ContextAction
+                  icon={File01Icon}
+                  label="Active file"
+                  detail="Attach the file open in the editor"
+                  disabled={disabled || busy}
+                  onClick={() => {
+                    void attachActiveFile();
+                  }}
+                />
+              ) : null}
+              {canSelection ? (
+                <ContextAction
+                  icon={CodeIcon}
+                  label="Editor selection"
+                  detail="Attach the current selection"
+                  disabled={disabled || busy}
+                  onClick={() => {
+                    void attachSelection();
+                  }}
+                />
+              ) : null}
+              {canGitDiff ? (
+                <ContextAction
+                  icon={GitBranchIcon}
+                  label="Working tree diff"
+                  detail="Attach git diff for the workspace"
+                  disabled={disabled || busy}
+                  onClick={() => {
+                    void attachGitDiff();
+                  }}
+                />
+              ) : null}
+              {canTerminal ? (
+                <ContextAction
+                  icon={TerminalIcon}
+                  label="Terminal context"
+                  detail="Attach selected terminal output or last command"
+                  disabled={disabled || busy}
+                  onClick={() => {
+                    void attachTerminal();
+                  }}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
-      {show && menuOpen ? (
-        <div
-          className="altai-composer-context-menu"
-          role="menu"
-          aria-label="Attach context"
-        >
-          {canActiveFile ? (
-            <ContextAction
-              icon={File01Icon}
-              label="Active file"
-              detail="Attach the file open in the editor"
-              disabled={disabled || busy}
-              onClick={() => {
-                void attachActiveFile();
-              }}
-            />
-          ) : null}
-          {canSelection ? (
-            <ContextAction
-              icon={CodeIcon}
-              label="Editor selection"
-              detail="Attach the current selection"
-              disabled={disabled || busy}
-              onClick={() => {
-                void attachSelection();
-              }}
-            />
-          ) : null}
-          {canGitDiff ? (
-            <ContextAction
-              icon={GitBranchIcon}
-              label="Working tree diff"
-              detail="Attach git diff for the workspace"
-              disabled={disabled || busy}
-              onClick={() => {
-                void attachGitDiff();
-              }}
-            />
-          ) : null}
-          {canTerminal ? (
-            <ContextAction
-              icon={TerminalIcon}
-              label="Terminal context"
-              detail="Attach selected terminal output or last command"
-              disabled={disabled || busy}
-              onClick={() => {
-                void attachTerminal();
-              }}
-            />
-          ) : null}
-        </div>
-      ) : null}
-    </div>
+    </>
   );
 }

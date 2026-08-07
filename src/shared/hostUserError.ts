@@ -19,8 +19,15 @@ const HOST_USER_MESSAGES: Record<string, string> = {
   host_not_ready: "ALTAI host is not ready yet.",
   workspace_not_trusted:
     "This workspace is not trusted. Trust it before ALTAI can attach files or start agents.",
+  workspace_untrusted:
+    "This workspace is not trusted. Trust it before ALTAI can attach files or start agents.",
   invalid_permission: "That permission mode is not valid for this host.",
   invalid_model: "That model id is not valid for this host.",
+  api_key_not_configured:
+    "No API key for the active provider. Open Settings → Models → API keys and Connect.",
+  provider_connection_cancelled: "Provider connection was cancelled.",
+  invalid_provider_connection:
+    "Could not connect that provider. Check the provider id and try again.",
 };
 
 /**

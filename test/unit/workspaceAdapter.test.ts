@@ -22,6 +22,30 @@ function createAdapter(isTrusted = true) {
   const createReviewUri = vi.fn((label: string) => uri(`/review/${label}`));
   const setPreferredTargetUri = vi.fn();
   const persistPreferred = vi.fn();
+  const altaiConfigStore: Record<string, string | boolean | number | null> = {
+    agentHostPath: "",
+    openPanelOnStartup: false,
+    autoFocusComposer: true,
+    showFollowupHints: true,
+    rememberPermissionMode: true,
+    agentPickerEnabled: true,
+    bypassPermissionsEnabled: false,
+    compactionThresholdPercent: null,
+    compactionThresholdTokens: 80000,
+    compactionTailTurns: 4,
+    compactionPrune: true,
+    compactionPruneRecencyTokens: 12000,
+    customInstructions: "",
+    snippetsJson: "[]",
+    reduceMotion: "system",
+    highContrast: false,
+    largerText: false,
+    underlineLinks: false,
+    focusRing: "default",
+    chatAnnounce: "polite",
+    approvalAnnounceAssertive: true,
+    showSkipLinks: true,
+  };
   const api = {
     workspace: {
       isTrusted,
@@ -33,9 +57,20 @@ function createAdapter(isTrusted = true) {
           : undefined,
       ),
       findFiles: vi.fn(async () => [source]),
-      getConfiguration: vi.fn(() => ({
-        get: vi.fn(() => undefined),
-      })),
+      getConfiguration: vi.fn((section?: string) => {
+        if (section === "altai") {
+          return {
+            get: vi.fn((key: string) => altaiConfigStore[key]),
+            update: vi.fn(async (key: string, value: string | boolean | number | null) => {
+              altaiConfigStore[key] = value;
+            }),
+          };
+        }
+        return {
+          get: vi.fn(() => undefined),
+          update: vi.fn(async () => undefined),
+        };
+      }),
       fs: {
         stat: vi.fn(async () => ({ size: 12 })),
         readFile: vi.fn(async () => Buffer.from("const a = 1;")),
@@ -140,7 +175,13 @@ describe("WorkspaceAdapter", () => {
 
   it("rejects untrusted and out-of-workspace requests", async () => {
     const untrusted = createAdapter(false);
-    await expect(untrusted.adapter.request("getWorkspace")).rejects.toMatchObject({
+    // getWorkspace is allowed without trust (Settings Host tab metadata).
+    await expect(untrusted.adapter.request("getWorkspace")).resolves.toMatchObject({
+      trusted: false,
+    });
+    await expect(
+      untrusted.adapter.request("readFile", { uri: "file:///workspace/src/main.ts" }),
+    ).rejects.toMatchObject({
       code: "workspace_untrusted",
     });
 
@@ -248,6 +289,45 @@ describe("WorkspaceAdapter", () => {
     await expect(
       adapter.request("setPreferredRootUri", { uri: "file:///outside.txt" }),
     ).rejects.toMatchObject({ code: "outside_workspace" });
+  });
+
+  it("reads and updates extension settings without workspace trust", async () => {
+    const { adapter } = createAdapter(false);
+    await expect(adapter.request("getExtensionSettings")).resolves.toMatchObject(
+      {
+        agentHostPath: "",
+        openPanelOnStartup: false,
+        autoFocusComposer: true,
+        showFollowupHints: true,
+        rememberPermissionMode: true,
+      },
+    );
+    await expect(
+      adapter.request("updateExtensionSetting", {
+        key: "openPanelOnStartup",
+        value: true,
+      }),
+    ).resolves.toMatchObject({ openPanelOnStartup: true });
+    await expect(
+      adapter.request("updateExtensionSetting", {
+        key: "agentHostPath",
+        value: "/tmp/altai-cli",
+      }),
+    ).resolves.toMatchObject({ agentHostPath: "/tmp/altai-cli" });
+    await expect(
+      adapter.request("updateExtensionSetting", {
+        key: "notAllowed",
+        value: true,
+      }),
+    ).rejects.toMatchObject({ code: "command_not_allowed" });
+  });
+
+  it("returns workspace info without trust", async () => {
+    const { adapter } = createAdapter(false);
+    await expect(adapter.request("getWorkspace")).resolves.toMatchObject({
+      trusted: false,
+      roots: ["file:///workspace"],
+    });
   });
 
   it("runs allowlisted recovery commands without workspace trust", async () => {

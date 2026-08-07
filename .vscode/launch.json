@@ -11,7 +11,7 @@
       "outFiles": [
         "${workspaceFolder}/dist/extension/**/*.js"
       ],
-      "preLaunchTask": "npm: build",
+      "preLaunchTask": "build",
       "env": {
         "ALTAI_AGENT_HOST_PATH": "${workspaceFolder}/../altai-app-main/src-tauri/target/debug/altai-cli"
       }

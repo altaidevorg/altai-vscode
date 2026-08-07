@@ -5,6 +5,70 @@ All notable changes to the ALTAI VS Code extension are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] — 2026-08-07
+
+- API key cards with a clear “Paste API key” field; opens Cursor’s top secure
+  password bar (keys still never enter the Webview).
+- Stronger key-entry guidance and focused InputBox title for each provider.
+
+## [0.1.9] — 2026-08-07
+
+- BYOK: full provider catalog (OpenAI, Anthropic, Google, xAI, Groq, …) with
+  Connect / Update key / Clear. Secrets only via Extension Host password prompt.
+- Studio model catalog in the picker; selecting a model also sets host provider.
+- Native host `providers/status` lists all known providers’ connected flags.
+
+## [0.1.8] — 2026-08-07
+
+- Settings polish: section search, quick-jump chips, host-offline banner,
+  model/provider stats strip, About prefs JSON export.
+- Persist last settings section; deep-link open can target a section.
+- Context tab: compact active chat now; Models respect General → bypass pref.
+- Composer #snippets load from Settings → Agents (plus workspace file).
+- Accessibility data attributes apply for all surfaces (not only Chat).
+
+## [0.1.7] — 2026-08-07
+
+- Studio SettingsContent parity: general, shortcuts, models, context, agents,
+  skills, github, languages, mcp, hooks, accessibility, host, about.
+- Expanded `altai.*` configuration (AI, compaction budgets, snippets,
+  accessibility). Workspace `writeTextFile` for `.isanagentignore`.
+- Host config: failover model (`fallback_model`). Webview a11y data attributes.
+
+## [0.1.6] — 2026-08-07
+
+- Settings filled with Desktop-style SectionHeader + SettingRow layout.
+- All sections always listed (icons tab strip); capability empty-states when host lacks support.
+- Models as expanded selectable list; providers/MCP/skills/context use the same card rows.
+
+## [0.1.5] — 2026-08-07
+
+- Settings hub: section nav (General, Host, Providers, Models, Permissions,
+  Context, MCP, Skills, About) with extension-specific preferences.
+- VS Code configuration: `openPanelOnStartup`, `autoFocusComposer`,
+  `showFollowupHints`, `rememberPermissionMode` (+ existing `agentHostPath`).
+- Host tab: project root, trust, restart/recovery controls.
+- Permission settings can enable Bypass with confirmation.
+
+## [0.1.4] — 2026-08-07
+
+- Mount shared `@altai/agent-ui` **AiComposer** (same slot order as Desktop).
+- Settings: auto-compact toggle via host `settings.update` / `config/update`.
+- Host ports accept compaction + bypass settings patches; CLI stores them.
+
+## [0.1.3] — 2026-08-07
+
+- Composer layout closer to Desktop AiInputBar: attachments slot, workspace
+  context toolbar control, model config row, icon permission mode, Send ↑ / Stop
+  (not dual text buttons).
+- Provider/MCP/skills status moved out of the chat footer (still in Settings).
+
+## [0.1.2] — 2026-08-07
+
+- Side-chat chrome closer to Desktop: two-row AI topbar (Work/Inbox/inspector +
+  Settings gear), clock/history + new-chat icons, chat tabs on the same row.
+- Removed temporary lime install banner and Chat | Operations | Settings text tabs.
+
 ## [0.1.1] — 2026-08-07
 
 - Chat chrome: History menu (not a side rail); no project-folder chip; no version/chat-id footer.

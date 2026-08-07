@@ -20,14 +20,24 @@ import {
   modelTriggerLabel,
   resolveSelectedModelId,
 } from "./modelPickerChrome.js";
+import {
+  mergeModelCatalog,
+  providerIdForModel,
+} from "./modelCatalogChrome.js";
 
 export type ChatModelPickerChromeProps = {
   /** Notify parent of selected model id (or null when unavailable). */
   onModelChange?: (modelId: string | null) => void;
+  /**
+   * `trigger` — compact composer popover (default).
+   * `settings` — full expanded list for Settings Models section.
+   */
+  layout?: "trigger" | "settings";
 };
 
 export function ChatModelPickerChrome({
   onModelChange,
+  layout = "trigger",
 }: ChatModelPickerChromeProps) {
   const ports = useHostPorts();
   const canList = useCapability("models.list");
@@ -64,7 +74,7 @@ export function ChatModelPickerChrome({
           return;
         }
         const nextSelected = resolveSelectedModelId(settings.defaultModelId);
-        setModels(listed);
+        setModels(mergeModelCatalog(listed));
         setSelectedId(nextSelected);
         setReady(true);
         onModelChange?.(nextSelected);
@@ -86,7 +96,7 @@ export function ChatModelPickerChrome({
     if (!open) {
       return;
     }
-    const onDoc = (event: MouseEvent) => {
+    const onDoc = (event: PointerEvent) => {
       if (
         rootRef.current &&
         event.target instanceof Node &&
@@ -95,8 +105,19 @@ export function ChatModelPickerChrome({
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    // pointerdown so we win the race vs other popovers that open on click.
+    document.addEventListener("pointerdown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   const visible = useMemo(
@@ -108,8 +129,12 @@ export function ChatModelPickerChrome({
     async (id: string) => {
       setError(null);
       try {
+        const providerId = providerIdForModel(id, models);
         const settings = await ports.settings.updateSettings({
           defaultModelId: id,
+          ...(providerId && providerId !== "auto" && providerId !== "unknown"
+            ? { defaultProviderId: providerId }
+            : {}),
         });
         const next = resolveSelectedModelId(settings.defaultModelId);
         setSelectedId(next);
@@ -120,7 +145,7 @@ export function ChatModelPickerChrome({
         setError(formatHostUserError(err));
       }
     },
-    [ports, onModelChange],
+    [ports, onModelChange, models],
   );
 
   if (!canShow || !ready) {
@@ -133,8 +158,84 @@ export function ChatModelPickerChrome({
 
   const triggerLabel = modelTriggerLabel(selectedId, models);
 
+  if (layout === "settings") {
+    return (
+      <div className="altai-model-settings" aria-label="Default model">
+        <div className="altai-settings-stack">
+          <label className="altai-settings-row altai-settings-row--stacked">
+            <div className="altai-settings-row-copy">
+              <span className="altai-settings-row-title">Search models</span>
+              <span className="altai-settings-row-desc">
+                Filter by name or provider. Select a row to set the default for
+                new runs.
+              </span>
+            </div>
+            <div className="altai-settings-row-control">
+              <input
+                className="altai-settings-input"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search models…"
+                aria-label="Search models"
+              />
+            </div>
+          </label>
+          <div className="altai-model-settings-list" role="listbox" aria-label="Models">
+            <button
+              type="button"
+              role="option"
+              aria-selected={selectedId === AUTO_MODEL_ID}
+              className={
+                selectedId === AUTO_MODEL_ID
+                  ? "altai-model-settings-option is-selected"
+                  : "altai-model-settings-option"
+              }
+              onClick={() => {
+                void pick(AUTO_MODEL_ID);
+              }}
+            >
+              <span className="altai-settings-row-title">Auto</span>
+              <span className="altai-settings-row-desc">Host chooses a model</span>
+            </button>
+            {visible.length === 0 ? (
+              <p className="altai-shell-meta">No matching models.</p>
+            ) : (
+              visible.map((model) => (
+                <button
+                  key={model.id}
+                  type="button"
+                  role="option"
+                  aria-selected={selectedId === model.id}
+                  className={
+                    selectedId === model.id
+                      ? "altai-model-settings-option is-selected"
+                      : "altai-model-settings-option"
+                  }
+                  onClick={() => {
+                    void pick(model.id);
+                  }}
+                >
+                  <span className="altai-settings-row-title">{model.label}</span>
+                  <span className="altai-settings-row-desc">{model.providerId}</span>
+                </button>
+              ))
+            )}
+          </div>
+          <p className="altai-settings-row-desc">
+            Selected: <strong>{triggerLabel}</strong>
+          </p>
+        </div>
+        {error ? (
+          <p className="altai-chat-error" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
-    <div className="altai-model-chrome" ref={rootRef}>
+    <div className="altai-model-chrome" ref={rootRef} data-open={open ? "1" : "0"}>
       <ComposerConfigTrigger
         icon={
           <HugeiconsIcon
@@ -147,10 +248,21 @@ export function ChatModelPickerChrome({
         label={triggerLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
-        onClick={() => setOpen((value) => !value)}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
       />
       {open ? (
-        <div className="altai-model-popover" role="listbox" aria-label="Models">
+        <div
+          className="altai-model-popover"
+          role="listbox"
+          aria-label="Models"
+          onPointerDown={(event) => {
+            // Keep focus/search interactions inside the popover from closing.
+            event.stopPropagation();
+          }}
+        >
           <input
             className="altai-model-search"
             value={search}

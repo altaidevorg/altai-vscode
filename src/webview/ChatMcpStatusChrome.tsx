@@ -16,7 +16,17 @@ import {
   type McpServerView,
 } from "./mcpStatusChrome.js";
 
-export function ChatMcpStatusChrome() {
+export type ChatMcpStatusChromeProps = {
+  /** Settings hub starts expanded. */
+  defaultOpen?: boolean;
+  /** Hide collapsible chrome; always show list (Settings hub). */
+  layout?: "inline" | "settings";
+};
+
+export function ChatMcpStatusChrome({
+  defaultOpen = false,
+  layout = "inline",
+}: ChatMcpStatusChromeProps = {}) {
   const ports = useHostPorts();
   const canList = useCapability("mcp.list");
   const canRestart = useCapability("mcp.configure");
@@ -25,7 +35,7 @@ export function ChatMcpStatusChrome() {
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen || layout === "settings");
 
   const load = useCallback(async () => {
     if (!canShow) {
@@ -63,20 +73,33 @@ export function ChatMcpStatusChrome() {
   }
 
   return (
-    <section className="altai-mcp-status" aria-label="MCP servers">
+    <section
+      className={
+        layout === "settings"
+          ? "altai-mcp-status altai-mcp-status--settings"
+          : "altai-mcp-status"
+      }
+      aria-label="MCP servers"
+    >
       <div className="altai-mcp-status-header">
-        <button
-          type="button"
-          className="altai-mcp-status-toggle"
-          aria-expanded={open}
-          onClick={() => {
-            setOpen((value) => !value);
-          }}
-        >
+        {layout === "settings" ? (
           <span className="altai-mcp-status-title">
             {ready ? mcpSummaryCopy(servers) : "MCP servers"}
           </span>
-        </button>
+        ) : (
+          <button
+            type="button"
+            className="altai-mcp-status-toggle"
+            aria-expanded={open}
+            onClick={() => {
+              setOpen((value) => !value);
+            }}
+          >
+            <span className="altai-mcp-status-title">
+              {ready ? mcpSummaryCopy(servers) : "MCP servers"}
+            </span>
+          </button>
+        )}
         <SurfaceSecondaryAction
           type="button"
           disabled={busyId !== null}
@@ -92,7 +115,7 @@ export function ChatMcpStatusChrome() {
           {error}
         </p>
       ) : null}
-      {open ? (
+      {open || layout === "settings" ? (
         <ul className="altai-mcp-status-list">
           {!ready && !error ? (
             <li className="altai-shell-meta">Loading MCP…</li>

@@ -26,6 +26,7 @@
   --color-destructive: var(--destructive);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-ring: var(--ring);
   --color-input: var(--input, var(--border));
   --radius-lg: 0.5rem;
@@ -38,25 +39,21 @@
   color-scheme: light dark;
   /*
    * Surfaces lean on VS Code so the panel sits in the IDE.
-   * Brand accent is ALTAI lime (Desktop globals.css) so shared agent-ui
-   * buttons, links, and empty-state pills match the product — not plain
-   * vscode button blue.
+   * Brand accent is ALTAI lime — used for primary actions/focus, not as a
+   * washed-out panel tint. Popovers stay fully opaque so menus don't "ghost"
+   * over the transcript.
    */
   --foreground: var(--vscode-foreground, #e8e8e8);
   --muted-foreground: var(--vscode-descriptionForeground, #9d9d9d);
   --background: var(--vscode-sideBar-background, #1a1a1c);
-  --card: color-mix(
-    in srgb,
-    var(--vscode-editorWidget-background, #252526) 92%,
-    oklch(0.87 0.21 125) 4%
-  );
+  /* Solid surfaces only — never color-mix(… transparent) for menus/input. */
+  --card: var(--vscode-sideBar-background, #252526);
   --card-foreground: var(--vscode-foreground, #e8e8e8);
-  --popover: var(--vscode-editorWidget-background, var(--card));
   --popover-foreground: var(--vscode-foreground, #e8e8e8);
   --border: var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
   --border-subtle: var(--vscode-sideBar-border, var(--border));
-  --muted: var(--vscode-toolbar-hoverBackground, rgba(128, 128, 128, 0.15));
-  --accent: var(--vscode-list-hoverBackground, rgba(128, 128, 128, 0.12));
+  --muted: var(--vscode-input-background, #2a2a2c);
+  --accent: var(--vscode-list-hoverBackground, #2a2d2e);
   --accent-foreground: var(--vscode-list-hoverForeground, var(--foreground));
   /* Desktop dark primary: oklch(0.87 0.21 125) */
   --primary: oklch(0.87 0.21 125);
@@ -64,8 +61,38 @@
   --destructive: var(--vscode-errorForeground, #f48771);
   --success: var(--vscode-testing-iconPassed, #73c991);
   --warning: var(--vscode-editorWarning-foreground, #cca700);
+  /* Permission "auto-edit" uses text-info in shared switcher. */
+  --info: var(--vscode-charts-blue, #4fc1ff);
   --ring: color-mix(in srgb, oklch(0.87 0.21 125) 55%, var(--vscode-focusBorder, #007fd4));
   --input: var(--vscode-input-border, var(--border));
+
+  /* Composer-specific solid shell (green only as border/accent). */
+  --altai-composer-bg: var(
+    --vscode-input-background,
+    var(--vscode-sideBar-background, #1e1e1e)
+  );
+  --altai-composer-border: color-mix(in srgb, var(--primary) 28%, var(--border));
+  --altai-composer-border-focus: color-mix(in srgb, var(--primary) 72%, var(--border));
+  --altai-composer-ring: color-mix(in srgb, var(--primary) 22%, transparent);
+  /*
+   * Menus: prefer VS Code menu/dropdown tokens (opaque by design). SideBar as
+   * second fallback avoids translucent editorWidget themes ghosting chat text.
+   */
+  --altai-menu-bg: var(
+    --vscode-menu-background,
+    var(
+      --vscode-dropdown-background,
+      var(--vscode-sideBar-background, #252526)
+    )
+  );
+  --altai-menu-border: var(
+    --vscode-menu-border,
+    var(--vscode-widget-border, var(--border))
+  );
+  --altai-menu-shadow: 0 14px 36px rgba(0, 0, 0, 0.52),
+    0 0 0 1px var(--altai-menu-border);
+  /* Keep Tailwind/shared `bg-popover` solid for agent-ui menus. */
+  --popover: var(--altai-menu-bg);
 
   --altai-fg: var(--foreground);
   --altai-muted: var(--muted-foreground);
@@ -74,16 +101,24 @@
   --altai-font-size: var(--vscode-font-size, 13px);
 }
 
-/* Light IDE themes: Desktop light lime (slightly deeper for contrast on white). */
+/* Light IDE themes: deeper lime accent; still fully solid surfaces. */
 body.vscode-light {
-  --primary: oklch(0.72 0.17 128);
+  --primary: oklch(0.62 0.16 128);
   --primary-foreground: oklch(0.99 0.01 130);
-  --card: color-mix(
-    in srgb,
-    var(--vscode-editorWidget-background, #ffffff) 96%,
-    oklch(0.80 0.19 128) 4%
+  --card: var(--vscode-sideBar-background, #ffffff);
+  --muted: var(--vscode-input-background, #f3f3f3);
+  --ring: color-mix(in srgb, oklch(0.62 0.16 128) 50%, var(--vscode-focusBorder, #005fb8));
+  --altai-composer-bg: var(--vscode-input-background, #ffffff);
+  --altai-composer-border: color-mix(in srgb, var(--primary) 32%, var(--border));
+  --altai-composer-border-focus: color-mix(in srgb, var(--primary) 70%, var(--border));
+  --altai-composer-ring: color-mix(in srgb, var(--primary) 18%, transparent);
+  --altai-menu-bg: var(
+    --vscode-menu-background,
+    var(--vscode-dropdown-background, #ffffff)
   );
-  --ring: color-mix(in srgb, oklch(0.72 0.17 128) 50%, var(--vscode-focusBorder, #005fb8));
+  --altai-menu-shadow: 0 12px 28px rgba(0, 0, 0, 0.16),
+    0 0 0 1px var(--altai-menu-border);
+  --popover: var(--altai-menu-bg);
 }
 
 * {
@@ -116,14 +151,88 @@ body {
 }
 
 .altai-dev-banner {
+  display: none;
+}
+
+.altai-ai-topbar {
+  display: flex;
+  flex-direction: column;
   flex-shrink: 0;
-  padding: 0.35rem 0.65rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--card, var(--background));
+}
+
+.altai-ai-topbar-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.55rem;
+}
+
+.altai-ai-topbar-row--primary {
+  min-height: 2.4rem;
+}
+
+.altai-ai-topbar-row--actions {
+  min-height: 2.15rem;
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
+}
+
+.altai-ai-topbar-brand {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  user-select: none;
+}
+
+.altai-ai-topbar-spacer {
+  flex: 1;
+  min-width: 0.25rem;
+}
+
+.altai-ai-icon-btn {
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 0;
+}
+
+.altai-ai-icon-btn:hover {
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  color: var(--foreground);
+}
+
+.altai-ai-icon-btn[aria-pressed="true"],
+.altai-ai-icon-btn[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--foreground) 9%, transparent);
+  color: var(--foreground);
+}
+
+.altai-ai-text-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
   font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  color: oklch(0.17 0.03 130);
-  background: oklch(0.87 0.21 125);
-  border-bottom: 1px solid color-mix(in srgb, oklch(0.87 0.21 125) 50%, #000);
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  border-radius: 0.35rem;
+}
+
+.altai-ai-text-btn:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
 }
 
 .altai-shell-body {
@@ -137,6 +246,12 @@ body {
 
 .altai-shell-body--chat {
   min-height: 0;
+  overflow: visible;
+}
+
+.altai-agent-chat-layout,
+.altai-agent-chat-main {
+  overflow: visible;
 }
 
 .altai-shell-meta {
@@ -472,14 +587,22 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  margin-bottom: 0.35rem;
+}
+
+.altai-composer-context-toolbar {
+  position: relative;
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: visible;
 }
 
 .altai-composer-open-attachments {
   display: flex;
   flex-wrap: wrap;
   gap: 0.3rem;
-  margin-bottom: 0.25rem;
+  margin-top: 0.2rem;
 }
 
 .altai-composer-open-attachment {
@@ -502,26 +625,39 @@ body {
   cursor: not-allowed;
 }
 
-.altai-composer-context-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 .altai-composer-context-error {
   font-size: 0.65rem;
   color: var(--destructive);
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .altai-composer-context-menu {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  border: 1px solid var(--border);
-  border-radius: 0.45rem;
-  background: var(--popover, var(--card));
+  border: 1px solid var(--altai-menu-border);
+  border-radius: 0.5rem;
+  background: var(--altai-menu-bg);
+  color: var(--popover-foreground, var(--foreground));
   padding: 0.35rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--altai-menu-shadow);
+  /* Force paint opacity over transcript (Tailwind bg-popover can look thin). */
+  isolation: isolate;
+  backdrop-filter: none;
+  opacity: 1;
+}
+
+.altai-composer-context-menu--popover {
+  position: absolute;
+  z-index: 50;
+  bottom: calc(100% + 0.35rem);
+  left: 0;
+  width: min(14rem, calc(100vw - 2rem));
+  max-height: min(50vh, 16rem);
+  overflow: auto;
 }
 
 .altai-composer-attach-chips button {
@@ -529,54 +665,332 @@ body {
 }
 
 .altai-chat-composer-dock {
+  position: relative;
+  z-index: 40;
   flex-shrink: 0;
-  padding: 0.45rem 0.75rem 0.65rem;
+  padding: 0.55rem 0.7rem 0.75rem;
   border-top: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--background) 85%, var(--card));
+  background: var(--background);
+  overflow: visible;
 }
 
 .altai-chat-composer-form {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0;
   width: 100%;
   max-width: 48rem;
   margin: 0 auto;
+  overflow: visible;
+}
+
+.altai-ai-composer-wrap {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+ * Shared ComposerShell overflows + transparencies break menus.
+ * Solid IDE input surface: lime only on ring/border, never a green wash fill.
+ */
+.altai-chat-composer-dock .altai-ai-composer {
+  overflow: visible;
+  border-radius: 0.75rem;
+  background: var(--altai-composer-bg) !important;
+  border: 1px solid var(--altai-composer-border) !important;
+  box-shadow: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.altai-chat-composer-dock .altai-ai-composer:hover {
+  border-color: color-mix(in srgb, var(--primary) 48%, var(--border)) !important;
+}
+
+.altai-chat-composer-dock .altai-ai-composer:focus-within {
+  border-color: var(--altai-composer-border-focus) !important;
+  box-shadow: 0 0 0 2px var(--altai-composer-ring);
+}
+
+.altai-ai-composer-input {
+  position: relative;
+  z-index: 2;
+}
+
+.altai-ai-composer-input > .altai-slash-commands,
+.altai-ai-composer-input > .altai-snippet-suggestions,
+.altai-ai-composer-input > .altai-at-mention {
+  position: relative;
+  z-index: 35;
+  max-width: min(20rem, 100%);
+  margin-bottom: 0.4rem;
+}
+
+/* Suggestion lists should match solid menus */
+.altai-slash-commands > *,
+.altai-snippet-suggestions > *,
+.altai-at-mention > * {
+  background: var(--altai-menu-bg) !important;
+  border-color: var(--altai-menu-border) !important;
+  box-shadow: var(--altai-menu-shadow) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
+
+.altai-composer-input,
+.altai-ai-composer-textarea {
+  color: var(--foreground);
+  font: inherit;
+  caret-color: var(--primary);
+  background: transparent !important;
+}
+
+.altai-composer-input:disabled,
+.altai-ai-composer-textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.altai-composer-input::placeholder,
+.altai-ai-composer-textarea::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.75;
+}
+
+.altai-ai-composer-textarea:focus-visible {
+  outline: none;
+}
+
+/* Config + primary rows: divide with solid hairline, no translucent strip. */
+.altai-composer-config-row,
+.altai-ai-composer-primary {
+  border-color: color-mix(in srgb, var(--border) 80%, transparent) !important;
+  background: transparent;
+}
+
+/* —— Config row: Agent | Model —— */
+.altai-composer-config-row {
+  position: relative;
+  z-index: 25;
+  overflow: visible;
+}
+
+.altai-ai-composer-config-item {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  min-width: 0;
+  width: 100%;
+  overflow: visible;
+}
+
+.altai-ai-composer-config-trigger {
+  width: 100%;
+  min-width: 0;
+  max-width: none !important;
+  justify-content: flex-start;
+  border-radius: 0.4rem !important;
+  background: var(--muted) !important;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent) !important;
+  color: var(--foreground) !important;
+  opacity: 1 !important;
+}
+
+.altai-ai-composer-config-trigger:hover {
+  background: color-mix(in srgb, var(--muted) 70%, var(--foreground) 6%) !important;
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border)) !important;
+}
+
+.altai-ai-composer-config-trigger[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border)) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.altai-ai-composer-config-trigger-label {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+/* —— Primary row —— */
+.altai-ai-composer-primary {
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+}
+
+.altai-ai-composer-tools {
+  position: relative;
+  z-index: 1;
+  overflow: visible;
+  max-width: min(100%, 14rem);
+  background: var(--muted) !important;
+  border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.altai-ai-composer-actions {
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+.altai-ai-composer-permission-bottom,
+.altai-ai-composer-submit {
+  position: relative;
+  overflow: visible;
+}
+
+/* —— Shared solid menu surface —— */
+.altai-agent-popover,
+.altai-model-popover,
+.altai-checkpoint-popover,
+.altai-history-menu-panel,
+.altai-composer-context-menu {
+  background: var(--altai-menu-bg) !important;
+  color: var(--popover-foreground, var(--foreground)) !important;
+  border: 1px solid var(--altai-menu-border) !important;
+  box-shadow: var(--altai-menu-shadow) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate;
+}
+
+/* Agent switcher */
+.altai-agent-picker {
+  position: relative;
+  z-index: 30;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.altai-agent-popover {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: min(18rem, calc(100vw - 1.25rem));
+  max-height: min(18rem, 50vh);
+  overflow: auto;
+  border-radius: 0.55rem;
+  padding: 0.35rem;
+}
+
+.altai-agent-popover-heading {
+  padding: 0.35rem 0.5rem 0.25rem;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.altai-agent-option {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.35rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  padding: 0.4rem 0.45rem;
+  cursor: pointer;
+}
+
+.altai-agent-option:hover,
+.altai-agent-option:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+
+.altai-agent-option.is-selected {
+  background: color-mix(in srgb, var(--primary) 14%, var(--muted));
+}
+
+@container altai-shell (max-width: 22rem) {
+  .altai-composer-config-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .altai-ai-composer-primary {
+    flex-wrap: wrap;
+  }
+
+  .altai-ai-composer-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .altai-ai-composer-tools {
+    max-width: 100%;
+  }
 }
 
 .altai-composer-submit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.65rem;
+  min-height: 1.75rem;
+  min-width: 1.75rem;
   padding: 0.2rem 0.7rem;
   border: 1px solid transparent;
-  border-radius: 0.4rem;
+  border-radius: 0.45rem;
   background: var(--primary);
   color: var(--primary-foreground);
   font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
+  opacity: 1;
+}
+
+.altai-composer-submit--icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
 }
 
 .altai-composer-submit:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
+}
+
+.altai-composer-submit:not(:disabled):hover {
+  filter: brightness(1.06);
 }
 
 .altai-composer-stop {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.65rem;
+  gap: 0.35rem;
+  min-height: 1.75rem;
   padding: 0.2rem 0.55rem;
   border: 1px solid var(--border);
   border-radius: 0.4rem;
-  background: transparent;
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
   color: var(--foreground);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.altai-composer-stop-square {
+  display: block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 0.1rem;
+  background: var(--foreground);
 }
 
 .altai-composer-stop:disabled {
@@ -584,29 +998,62 @@ body {
   cursor: not-allowed;
 }
 
+.altai-ai-composer-submit-label {
+  display: none;
+}
+
+@media (min-width: 22rem) {
+  .altai-ai-composer-submit-label {
+    display: inline;
+  }
+}
+
+.altai-compaction-settings-row {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.altai-compaction-settings-row input {
+  margin-top: 0.15rem;
+}
+
+.altai-compaction-settings-hint {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted-foreground);
+  font-weight: 400;
+}
+
 .altai-checkpoint-chrome {
   position: relative;
+  z-index: 25;
   display: inline-flex;
+  overflow: visible;
 }
 
 .altai-checkpoint-popover {
   position: absolute;
-  bottom: calc(100% + 0.35rem);
+  bottom: calc(100% + 0.4rem);
   left: 0;
-  z-index: 30;
+  z-index: 70;
   width: min(20rem, calc(100vw - 1.5rem));
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  background: var(--popover, var(--card));
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  max-height: min(50vh, 18rem);
+  overflow: auto;
+  border-radius: 0.55rem;
+  padding: 0;
 }
 
 .altai-checkpoint-popover-footer {
   display: flex;
   justify-content: flex-end;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--altai-menu-border);
   padding: 0.35rem 0.5rem;
+  background: var(--altai-menu-bg);
 }
 
 .altai-checkpoint-close {
@@ -619,23 +1066,6 @@ body {
 
 .altai-checkpoint-close:hover {
   color: var(--foreground);
-}
-
-.altai-chat-empty-starters {
-  flex-shrink: 0;
-  max-width: 32rem;
-  width: 100%;
-  margin: 0 auto;
-  padding: 0 1rem 1.25rem;
-}
-
-.altai-chat-empty-starters-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
 }
 
 .altai-plan-todo-chrome {
@@ -680,61 +1110,45 @@ body {
 }
 
 .altai-chat-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0 0.75rem 0.5rem;
+  display: none;
 }
 
-/* History as top toolbar menu (no side rail in the VS Code host) */
+/* History clock + chat tabs (Desktop side-chat row density) */
 .altai-chat-toolbar {
+  position: relative;
+  z-index: 35;
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.55rem;
+  gap: 0.35rem;
+  min-height: 2.4rem;
+  padding: 0.2rem 0.45rem;
   border-bottom: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--background) 90%, var(--card));
+  background: var(--card, var(--background));
+  overflow: visible;
+}
+
+.altai-chat-toolbar-tabs {
+  flex: 1;
+  min-width: 0;
 }
 
 .altai-history-menu {
   position: relative;
+  z-index: 45;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  min-width: 0;
+  gap: 0.15rem;
+  flex-shrink: 0;
 }
 
-.altai-history-menu-trigger,
-.altai-history-menu-new {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 1.65rem;
-  padding: 0.2rem 0.55rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.35rem;
-  background: color-mix(in srgb, var(--muted) 55%, transparent);
-  color: var(--foreground);
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.altai-history-menu-new {
-  background: color-mix(in srgb, var(--primary) 22%, transparent);
-  border-color: color-mix(in srgb, var(--primary) 40%, transparent);
-}
-
-.altai-history-menu-trigger:hover,
-.altai-history-menu-new:hover {
-  background: var(--accent);
+.altai-history-menu-new-icon {
+  color: color-mix(in srgb, var(--primary) 80%, var(--foreground));
 }
 
 .altai-history-menu-panel {
   position: absolute;
-  z-index: 40;
+  z-index: 70;
   top: calc(100% + 0.25rem);
   left: 0;
   width: min(18.5rem, calc(100vw - 1.5rem));
@@ -742,10 +1156,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.5rem;
-  background: var(--popover, var(--card));
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  border-radius: 0.55rem;
 }
 
 .altai-history-menu-panel > * {
@@ -854,47 +1265,103 @@ body {
 }
 
 .altai-permission-chrome {
+  position: relative;
+  z-index: 30;
   display: flex;
   flex: 0 1 auto;
   min-width: 0;
   flex-wrap: wrap;
   gap: 0.25rem;
   align-items: center;
+  overflow: visible;
+}
+
+.altai-permission-chrome[data-variant="toolbar-icon"] {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
+
+/* Permission menu (shared agent-ui) opens bottom-full left:0; pin right edge. */
+.altai-permission-chrome[data-variant="toolbar-icon"] > .relative,
+.altai-permission-chrome > .relative {
+  position: relative;
+}
+
+.altai-permission-chrome[data-variant="toolbar-icon"] [role="menu"],
+.altai-permission-chrome [role="menu"] {
+  left: auto !important;
+  right: 0;
+  z-index: 70;
+  max-height: min(22rem, 55vh);
+  overflow-y: auto;
+  background: var(--altai-menu-bg) !important;
+  color: var(--popover-foreground, var(--foreground)) !important;
+  border: 1px solid var(--altai-menu-border) !important;
+  box-shadow: var(--altai-menu-shadow) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate;
+}
+
+/* Shared agent-ui / Tailwind menus rooted on bg-popover */
+.altai-chat-composer-dock .bg-popover,
+.altai-shell .bg-popover,
+.altai-permission-chrome [role="menu"],
+.altai-agent-popover,
+.altai-model-popover,
+.altai-checkpoint-popover,
+.altai-history-menu-panel,
+.altai-composer-context-menu,
+.altai-slash-commands > div,
+.altai-snippet-suggestions > div,
+.altai-at-mention > div {
+  background-color: var(--altai-menu-bg) !important;
+  background-image: none !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .altai-model-chrome {
   position: relative;
-  flex: 0 1 auto;
+  z-index: 30;
+  display: block;
+  width: 100%;
   min-width: 0;
+  overflow: visible;
 }
 
 .altai-model-popover {
   position: absolute;
-  bottom: calc(100% + 0.35rem);
+  bottom: calc(100% + 0.4rem);
   left: 0;
-  z-index: 20;
+  right: auto;
+  z-index: 70;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  width: min(16rem, 70vw);
-  max-height: 14rem;
+  width: min(16rem, calc(100vw - 1.25rem));
+  max-height: min(16rem, 45vh);
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 0.45rem;
-  background: var(--popover, var(--card));
-  color: var(--popover-foreground, var(--foreground));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border-radius: 0.55rem;
   padding: 0.4rem;
+}
+
+.altai-ai-composer-model .altai-model-popover {
+  left: auto;
+  right: 0;
 }
 
 .altai-model-search {
   width: 100%;
-  border: 1px solid var(--border);
+  border: 1px solid var(--altai-menu-border);
   border-radius: 0.35rem;
   background: var(--muted);
   color: var(--foreground);
   font-size: 0.7rem;
   padding: 0.3rem 0.4rem;
+  opacity: 1;
 }
 
 .altai-model-search:focus {
@@ -977,6 +1444,156 @@ body {
   display: flex;
   flex-shrink: 0;
   gap: 0.25rem;
+}
+
+.altai-provider-key-lead {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+.altai-provider-key-lead strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.altai-provider-key-hint {
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.4rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--muted) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.altai-provider-key-grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+@media (min-width: 28rem) {
+  .altai-provider-key-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.altai-provider-key-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 55%, transparent);
+}
+
+.altai-provider-key-card.is-connected {
+  border-color: color-mix(in srgb, var(--foreground) 18%, var(--border));
+}
+
+.altai-provider-key-card-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.altai-provider-key-card-name {
+  font-size: 0.78rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.altai-provider-key-link {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.62rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0;
+}
+
+.altai-provider-key-link:hover:not(:disabled) {
+  color: var(--foreground);
+}
+
+.altai-provider-key-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.altai-provider-key-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: 0.4rem;
+  background: var(--background);
+  color: var(--foreground);
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.altai-provider-key-field:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--foreground) 28%, var(--border));
+}
+
+.altai-provider-key-field:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.altai-provider-key-field-value {
+  min-width: 0;
+  flex: 1;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--muted-foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.altai-provider-key-card.is-connected .altai-provider-key-field-value {
+  color: var(--foreground);
+  letter-spacing: 0.04em;
+}
+
+.altai-provider-key-field-action {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.altai-provider-key-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.altai-provider-local-note {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.4rem;
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .altai-mcp-status {
@@ -1308,4 +1925,665 @@ button.altai-ops-metric-tile:focus-visible {
   .altai-view-tab[aria-selected="true"] {
     border: 1px solid CanvasText;
   }
+}
+
+/* Settings hub — Desktop SettingsContent layout (IDE surface) */
+.altai-settings-hub {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+.altai-settings-hub-search {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.7rem 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.altai-settings-hub-search-icon {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+  opacity: 0.85;
+}
+
+.altai-settings-hub-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.2rem 0;
+}
+
+.altai-settings-hub-search-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+.altai-settings-hub-search-clear {
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  border-radius: 0.3rem;
+}
+
+.altai-settings-hub-search-clear:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.altai-settings-hub-banner {
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+}
+
+.altai-settings-hub-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.4rem 0.65rem 0.15rem;
+}
+
+.altai-settings-hub-chip {
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 50%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.altai-settings-hub-chip:hover {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.altai-settings-hub-chip.is-active {
+  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--foreground) 28%, var(--border));
+  background: color-mix(in srgb, var(--muted) 80%, transparent);
+}
+
+.altai-settings-hub-tabbar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.2rem;
+  align-items: center;
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 40%, transparent);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.altai-settings-hub-tabbar::-webkit-scrollbar {
+  display: none;
+}
+
+.altai-settings-hub-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.28rem 0.55rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.altai-settings-hub-nav-item:hover {
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.altai-settings-hub-nav-item.is-active {
+  background: color-mix(in srgb, var(--muted) 85%, transparent);
+  color: var(--foreground);
+  border-color: color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.altai-settings-hub-main {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.85rem 0.85rem 1.25rem;
+  scrollbar-width: thin;
+}
+
+.altai-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 40rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.altai-settings-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.altai-settings-section-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  line-height: 1.25;
+}
+
+.altai-settings-section-desc {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+.altai-settings-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.altai-settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.altai-settings-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.25rem;
+}
+
+.altai-settings-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 3.75rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 55%, transparent);
+}
+
+.altai-settings-stat-value {
+  font-size: 0.85rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--foreground);
+  line-height: 1.2;
+}
+
+.altai-settings-stat-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.altai-settings-subsection {
+  margin: 0.55rem 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.altai-settings-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 55%, transparent);
+}
+
+.altai-settings-row--stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.altai-settings-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.altai-settings-row-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--foreground);
+  line-height: 1.3;
+}
+
+.altai-settings-row-desc,
+.altai-settings-lead,
+.altai-settings-field-hint {
+  margin: 0;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}
+
+.altai-settings-row-control {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.altai-settings-row--stacked .altai-settings-row-control {
+  width: 100%;
+}
+
+.altai-settings-row-value {
+  font-size: 0.7rem;
+  font-weight: 550;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.altai-settings-path {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.68rem;
+  word-break: break-all;
+  color: var(--foreground);
+}
+
+.altai-settings-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--muted) 35%, transparent);
+}
+
+.altai-settings-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.altai-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.altai-settings-field-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.altai-settings-field-row,
+.altai-settings-field-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.altai-settings-field-actions--wrap {
+  margin-top: 0.15rem;
+}
+
+.altai-settings-input {
+  flex: 1;
+  min-width: 8rem;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.altai-settings-switch {
+  position: relative;
+  display: inline-flex;
+  width: 2.1rem;
+  height: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.altai-settings-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.altai-settings-switch-ui {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 35%, var(--muted));
+  border: 1px solid var(--border);
+  transition: background 0.12s ease;
+}
+
+.altai-settings-switch-ui::after {
+  content: "";
+  position: absolute;
+  top: 0.12rem;
+  left: 0.12rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  background: var(--background);
+  border: 1px solid var(--border);
+  transition: transform 0.12s ease;
+}
+
+.altai-settings-switch.is-danger input:checked + .altai-settings-switch-ui {
+  background: color-mix(in srgb, #c0392b 70%, var(--muted));
+}
+
+.altai-settings-warning {
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, #c0392b 40%, var(--border));
+  background: color-mix(in srgb, #c0392b 8%, transparent);
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, #c0392b 85%, var(--foreground));
+}
+
+.altai-settings-textarea {
+  width: 100%;
+  min-height: 7rem;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  padding: 0.45rem 0.55rem;
+}
+
+.altai-settings-input--narrow {
+  width: 6.5rem;
+  flex: 0 0 auto;
+  min-width: 5rem;
+}
+
+.altai-settings-pre {
+  margin: 0;
+  max-height: 18rem;
+  overflow: auto;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 35%, var(--background));
+  font-size: 0.65rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.altai-settings-snippet-list,
+.altai-settings-shortcut-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.altai-settings-snippet-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 0.4rem;
+}
+
+.altai-settings-kbd {
+  font-size: 0.62rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+#root[data-altai-larger-text="1"] {
+  font-size: 110%;
+}
+
+#root[data-altai-high-contrast="1"] {
+  --muted-foreground: color-mix(in srgb, var(--foreground) 78%, var(--muted-foreground));
+  --border: color-mix(in srgb, var(--foreground) 35%, var(--border));
+}
+
+#root[data-altai-underline-links="1"] a {
+  text-decoration: underline;
+}
+
+#root[data-altai-focus-ring="strong"] :focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+#root[data-altai-reduce-motion="always"] *,
+#root[data-altai-reduce-motion="always"] *::before,
+#root[data-altai-reduce-motion="always"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root[data-altai-reduce-motion="system"] *,
+  #root[data-altai-reduce-motion="system"] *::before,
+  #root[data-altai-reduce-motion="system"] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.altai-settings-switch input:checked + .altai-settings-switch-ui::after {
+  transform: translateX(0.85rem);
+}
+
+.altai-settings-switch input:disabled + .altai-settings-switch-ui {
+  opacity: 0.5;
+}
+
+.altai-settings-toggle {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.altai-settings-toggle input {
+  margin-top: 0.15rem;
+}
+
+.altai-settings-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem 0.75rem;
+  margin: 0;
+}
+
+.altai-settings-meta-grid dt {
+  font-size: 0.62rem;
+  font-weight: 650;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.altai-settings-meta-grid dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.72rem;
+  color: var(--foreground);
+  word-break: break-word;
+}
+
+.altai-settings-meta-span {
+  grid-column: 1 / -1;
+}
+
+.altai-settings-root-list {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.7rem;
+  color: var(--foreground);
+}
+
+.altai-settings-about-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 70%, transparent);
+}
+
+.altai-settings-about-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--foreground);
+  flex-shrink: 0;
+}
+
+.altai-settings-about-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.altai-settings-about-name {
+  font-size: 0.9rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.altai-settings-about-version {
+  margin-top: 0.15rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+}
+
+.altai-settings-about-meta {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 0.45rem 0.75rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+}
+
+.altai-settings-about-meta dt {
+  color: var(--muted-foreground);
+}
+
+.altai-settings-about-meta dd {
+  margin: 0;
+  color: var(--foreground);
+  word-break: break-word;
+}
+
+.altai-model-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.altai-model-settings-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  text-align: left;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 50%, transparent);
+  color: inherit;
+  cursor: pointer;
+}
+
+.altai-model-settings-option:hover {
+  background: var(--muted);
+}
+
+.altai-model-settings-option.is-selected {
+  border-color: color-mix(in srgb, var(--foreground) 40%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.altai-provider-status--settings .altai-provider-status-list,
+.altai-mcp-status--settings .altai-mcp-status-list,
+.altai-skills-status--settings .altai-mcp-status-list {
+  margin-top: 0.35rem;
+}
+
+.altai-provider-status--settings .altai-provider-status-row,
+.altai-mcp-status--settings .altai-mcp-status-row {
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  padding: 0.45rem 0.55rem;
+  background: color-mix(in srgb, var(--card, var(--background)) 45%, transparent);
 }

@@ -227,16 +227,14 @@ export function registerCommands(
   );
 }
 
-const PROVIDERS = [
-  { id: "openai", label: "OpenAI" },
-  { id: "anthropic", label: "Anthropic" },
-  { id: "google", label: "Google" },
-  { id: "xai", label: "xAI" },
-  { id: "groq", label: "Groq" },
-  { id: "mistral", label: "Mistral" },
-  { id: "openrouter", label: "OpenRouter" },
-  { id: "openai-compatible", label: "OpenAI Compatible" },
-] as const;
+import { KNOWN_PROVIDERS } from "../shared/providerCatalog.js";
+
+const PROVIDERS = KNOWN_PROVIDERS.filter((provider) => !provider.keyless).map(
+  (provider) => ({
+    id: provider.id,
+    label: provider.label,
+  }),
+);
 
 async function buildDiagnosticsReportLines(
   context: vscode.ExtensionContext,

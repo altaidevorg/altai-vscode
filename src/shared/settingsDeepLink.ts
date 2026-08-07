@@ -14,11 +14,28 @@ export function parseOpenSettingsPayload(
   if (typeof record.key !== "number" || !Number.isFinite(record.key)) {
     return null;
   }
-  return { key: record.key };
+  const section =
+    typeof record.section === "string" &&
+    /^[a-z][a-z0-9-]*$/.test(record.section.trim())
+      ? record.section.trim()
+      : undefined;
+  return {
+    key: record.key,
+    ...(section ? { section } : {}),
+  };
 }
 
 export function buildOpenSettingsPayload(input?: {
   key?: number;
+  section?: string;
 }): OpenSettingsPayload {
-  return { key: input?.key ?? Date.now() };
+  const section =
+    typeof input?.section === "string" &&
+    /^[a-z][a-z0-9-]*$/.test(input.section.trim())
+      ? input.section.trim()
+      : undefined;
+  return {
+    key: input?.key ?? Date.now(),
+    ...(section ? { section } : {}),
+  };
 }
