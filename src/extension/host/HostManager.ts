@@ -313,12 +313,14 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
     }
   }
 
-  async restart(): Promise<void> {
+  async restart(options?: { force?: boolean }): Promise<void> {
     if (this.disposed) {
       return;
     }
+    const force = options?.force === true;
     const nextRoot = this.options.getWorkspaceRoot();
     if (
+      !force &&
       this.state === "Ready" &&
       nextRoot !== undefined &&
       nextRoot === this.lastSpawnedWorkspaceRoot

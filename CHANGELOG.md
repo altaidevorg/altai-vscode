@@ -240,6 +240,8 @@ sibling `file:` packages until public npm publish.
   dynamic workspace root recovery.
 - Project chip preferred folder also drives native-host `--workspace` (restart
   only when the root actually changes).
+- Palette **Restart Agent Host** always force-restarts (skip applies only to
+  automatic same-root restarts).
 
 ### Security
 
