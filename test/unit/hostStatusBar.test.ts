@@ -32,7 +32,7 @@ describe("hostStatusBarPresentation", () => {
     });
   });
 
-  it("routes errors to diagnostics", () => {
+  it("routes errors by diagnostic code", () => {
     expect(
       hostStatusBarPresentation({
         status: "error",
@@ -42,8 +42,40 @@ describe("hostStatusBarPresentation", () => {
     ).toMatchObject({
       show: true,
       warning: true,
+      command: "altai.openExtensionSettings",
+      tooltip: expect.stringContaining("Host Path Settings"),
+    });
+    expect(
+      hostStatusBarPresentation({
+        status: "error",
+        message: "blocked",
+        diagnosticCode: "host.untrusted",
+      }),
+    ).toMatchObject({
+      command: "workbench.action.manageWorkspaceTrust",
+      tooltip: expect.stringContaining("Manage Trust"),
+    });
+    expect(
+      hostStatusBarPresentation({
+        status: "error",
+        message: "spawn failed",
+      }),
+    ).toMatchObject({
       command: "altai.runDiagnostics",
-      tooltip: expect.stringContaining("host.missing"),
+    });
+  });
+
+  it("routes disconnected + diagnostic to recovery commands", () => {
+    expect(
+      hostStatusBarPresentation({
+        status: "disconnected",
+        message: "not started",
+        diagnosticCode: "host.untrusted",
+      }),
+    ).toMatchObject({
+      show: true,
+      warning: true,
+      command: "workbench.action.manageWorkspaceTrust",
     });
   });
 });

@@ -13,6 +13,29 @@ export type HostStatusBarPresentation = {
   warning: boolean;
 };
 
+function actionForDiagnostic(code: string | undefined): {
+  command: string;
+  actionLabel: string;
+} {
+  const normalized = code?.trim() ?? "";
+  if (normalized === "host.untrusted") {
+    return {
+      command: "workbench.action.manageWorkspaceTrust",
+      actionLabel: "Manage Trust",
+    };
+  }
+  if (normalized === "host.missing") {
+    return {
+      command: "altai.openExtensionSettings",
+      actionLabel: "Host Path Settings",
+    };
+  }
+  return {
+    command: "altai.runDiagnostics",
+    actionLabel: "Run Diagnostics",
+  };
+}
+
 export function hostStatusBarPresentation(
   status: Pick<HostStatusPayload, "status" | "message" | "diagnosticCode">,
 ): HostStatusBarPresentation {
@@ -39,15 +62,27 @@ export function hostStatusBarPresentation(
     const detail = status.diagnosticCode
       ? `${message} (${status.diagnosticCode})`
       : message;
+    const action = actionForDiagnostic(status.diagnosticCode);
     return {
       show: true,
       text: "$(error) ALTAI host",
-      tooltip: `${detail} — Run Diagnostics`,
-      command: "altai.runDiagnostics",
+      tooltip: `${detail} — ${action.actionLabel}`,
+      command: action.command,
       warning: true,
     };
   }
-  // disconnected (or other non-ready)
+  // disconnected (or other non-ready): surface recovery when a diagnostic is set
+  if (status.diagnosticCode) {
+    const detail = `${message} (${status.diagnosticCode})`;
+    const action = actionForDiagnostic(status.diagnosticCode);
+    return {
+      show: true,
+      text: "$(debug-disconnect) ALTAI host",
+      tooltip: `${detail} — ${action.actionLabel}`,
+      command: action.command,
+      warning: status.diagnosticCode === "host.untrusted",
+    };
+  }
   return {
     show: true,
     text: "$(debug-disconnect) ALTAI host",

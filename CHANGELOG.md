@@ -227,6 +227,10 @@ sibling `file:` packages until public npm publish.
 - README shortcut table for common keybindings.
 - Multi-root project chip preference also drives preferred git working-tree
   target (until Explorer/SCM overrides).
+- Host status-bar click routes by diagnostic code (Trust / Host path /
+  Diagnostics); disconnected-with-diagnostic uses the same recovery command.
+- Composer slash `/extension-settings` (`/host-path`) opens ALTAI extension
+  settings.
 
 ### Security
 
