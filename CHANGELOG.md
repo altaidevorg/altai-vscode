@@ -256,6 +256,7 @@ sibling `file:` packages until public npm publish.
   `host.virtual_workspace` and Open Folder recovery.
 - Multi-cursor editor selections join into one selection context attach.
 - Explorer multi-select Ask About Active File attaches up to four file chips.
+- Window progress “ALTAI agent host is starting…” while host status is connecting.
 
 ### Security
 

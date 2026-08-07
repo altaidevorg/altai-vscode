@@ -29,6 +29,7 @@ import {
   PREFERRED_HOST_ROOT_STATE_KEY,
   readPreferredHostRootFromState,
 } from "../shared/preferredHostRoot.js";
+import { hostConnectingProgressPresentation } from "../shared/hostConnectingProgress.js";
 import type { HostStatusPayload } from "../shared/messages.js";
 
 let hostManager: HostManager | undefined;
@@ -45,6 +46,28 @@ export function activate(context: vscode.ExtensionContext): void {
 
   let provider: AltaiViewProvider | undefined;
   let lastHostStatus: HostStatusPayload["status"] | undefined;
+  let connectingProgressResolve: (() => void) | undefined;
+
+  const closeConnectingProgress = (): void => {
+    connectingProgressResolve?.();
+    connectingProgressResolve = undefined;
+  };
+
+  const ensureConnectingProgress = (message: string): void => {
+    if (connectingProgressResolve) {
+      return;
+    }
+    void vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: message,
+      },
+      () =>
+        new Promise<void>((resolve) => {
+          connectingProgressResolve = resolve;
+        }),
+    );
+  };
 
   const diffContentProvider = new DiffContentProvider(vscode);
   diffContentProvider.register(context);
@@ -111,6 +134,15 @@ export function activate(context: vscode.ExtensionContext): void {
     onStatus: (status) => {
       hostStatusBar.setStatus(status);
       provider?.publishHostStatus(status);
+      const progress = hostConnectingProgressPresentation({
+        status: status.status,
+        message: status.message,
+      });
+      if (progress.show) {
+        ensureConnectingProgress(progress.title);
+      } else {
+        closeConnectingProgress();
+      }
       if (shouldPromptHostErrorActions(lastHostStatus, status.status)) {
         const commands = hostErrorActionCommands({
           ...(status.diagnosticCode
