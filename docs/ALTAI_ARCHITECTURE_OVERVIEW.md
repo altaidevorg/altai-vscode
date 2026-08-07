@@ -233,7 +233,9 @@ The extension is an **internal-channel (0.1.0)** thin VS Code host:
 - Extension Host status bar: host lifecycle (non-ready) and Operations
   attention (Inbox when count > 0);
 - Command palette / Explorer / terminal context menus for Ask About * and
-  recovery deep-links; slash attach helpers for composer context chips.
+  recovery deep-links; slash attach helpers for composer context chips;
+- Getting Started walkthrough (command, slash `/walkthrough`, recovery Get
+  started) for trust → open → connect → diagnostics.
 
 Remaining external gates for alpha+: signed native hosts per target, published
 shared npm packages, Remote e2e automation, deeper Desktop settings parity
