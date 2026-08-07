@@ -15,6 +15,7 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.openWalkthrough",
   "altai.openExtensionSettings",
   "altai.askAboutProblems",
+  "altai.pickProjectRoot",
   "workbench.action.manageWorkspaceTrust",
   "workbench.action.files.openFolder",
 ] as const;

@@ -1449,6 +1449,11 @@ function AgentUiShell({
           command: "altai.askAboutProblems",
         });
         break;
+      case "pick-root":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.pickProjectRoot",
+        });
+        break;
       case "attach-diff": {
         if (!canGitDiff) {
           setMessages((prev) =>

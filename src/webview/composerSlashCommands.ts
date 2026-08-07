@@ -58,7 +58,8 @@ export type SlashHostAction =
   | "walkthrough"
   | "extension-settings"
   | "copy-diag"
-  | "attach-problems";
+  | "attach-problems"
+  | "pick-root";
 
 export type SlashOutcome =
   | { kind: "none" }
@@ -121,6 +122,7 @@ const COMMANDS: readonly SlashCommandMeta[] = [
   { name: "extension-settings", invocation: "/extension-settings", label: "Extension settings", description: "Open VS Code settings filtered to ALTAI (host path, etc.).", aliases: ["ext-settings", "host-path"], category: "settings", behavior: "action" },
   { name: "copy-diag", invocation: "/copy-diag", label: "Copy diagnostics", description: "Copy the ALTAI diagnostics report to the clipboard.", aliases: ["copy-diagnostics"], category: "settings", behavior: "action" },
   { name: "attach-problems", invocation: "/attach-problems", label: "Attach problems", description: "Attach Problems for the active file as composer context.", aliases: ["problems", "errors"], category: "workspace", behavior: "action" },
+  { name: "pick-root", invocation: "/pick-root", label: "Pick project root", description: "Choose the multi-root folder for the ALTAI agent host.", aliases: ["root", "project-root"], category: "workspace", behavior: "action" },
   { name: "attach-diff", invocation: "/attach-diff", label: "Attach working tree", description: "Attach the git working-tree summary to the composer.", aliases: ["diff-attach", "wt"], category: "workspace", behavior: "action" },
   { name: "attach-terminal", invocation: "/attach-terminal", label: "Attach terminal", description: "Attach active terminal context to the composer.", aliases: ["terminal", "tty"], category: "workspace", behavior: "action" },
   { name: "attach-file", invocation: "/attach-file", label: "Attach active file", description: "Attach the active editor file URI to the composer.", aliases: ["file", "active-file"], category: "workspace", behavior: "action" },
@@ -298,6 +300,8 @@ function toastFor(name: string, tail: string): string | undefined {
       return "Copying diagnostics report";
     case "attach-problems":
       return "Attaching file problems";
+    case "pick-root":
+      return "Picking project root";
     case "attach-diff":
       return undefined;
     case "attach-terminal":

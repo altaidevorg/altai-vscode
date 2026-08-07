@@ -175,6 +175,13 @@ describe("tryRunSlashCommand", () => {
     });
   });
 
+  it("picks project root via slash", () => {
+    expect(tryRunSlashCommand("/pick-root")).toMatchObject({
+      kind: "handled",
+      action: "pick-root",
+    });
+  });
+
   it("attaches working tree and terminal context", () => {
     expect(tryRunSlashCommand("/attach-diff")).toMatchObject({
       kind: "handled",
