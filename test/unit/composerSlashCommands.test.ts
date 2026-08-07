@@ -164,6 +164,17 @@ describe("tryRunSlashCommand", () => {
     });
   });
 
+  it("attaches problems via slash", () => {
+    expect(tryRunSlashCommand("/attach-problems")).toMatchObject({
+      kind: "handled",
+      action: "attach-problems",
+    });
+    expect(tryRunSlashCommand("/errors")).toMatchObject({
+      kind: "handled",
+      action: "attach-problems",
+    });
+  });
+
   it("attaches working tree and terminal context", () => {
     expect(tryRunSlashCommand("/attach-diff")).toMatchObject({
       kind: "handled",
