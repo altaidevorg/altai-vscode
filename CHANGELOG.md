@@ -251,6 +251,7 @@ sibling `file:` packages until public npm publish.
   the report via Extension Host clipboard.
 - Composer `@file` / workspace search honors VS Code `files.exclude` and
   `search.exclude` (plus `.git` / `node_modules`).
+- Editor title and SCM title actions for Ask About Active File / Working Tree.
 
 ### Security
 

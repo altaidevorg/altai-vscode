@@ -77,6 +77,17 @@ describe("package.json command contributions", () => {
     expect(
       explorer.some((entry) => entry.command === "altai.askAboutWorkingTree"),
     ).toBe(true);
+    const editorTitle = manifest.contributes?.menus?.["editor/title"] ?? [];
+    expect(
+      editorTitle.some((entry) => entry.command === "altai.askAboutActiveFile"),
+    ).toBe(true);
+    expect(
+      editorTitle.some((entry) => entry.command === "altai.askAboutWorkingTree"),
+    ).toBe(true);
+    const scmTitle = manifest.contributes?.menus?.["scm/title"] ?? [];
+    expect(
+      scmTitle.some((entry) => entry.command === "altai.askAboutWorkingTree"),
+    ).toBe(true);
     const scm = manifest.contributes?.menus?.["scm/resourceState/context"] ?? [];
     expect(
       scm.some((entry) => entry.command === "altai.askAboutActiveFile"),
