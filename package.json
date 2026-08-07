@@ -205,34 +205,34 @@
         {
           "command": "altai.askAboutSelection",
           "group": "altai@1",
-          "when": "editorHasSelection && workspaceFolderCount > 0"
+          "when": "editorHasSelection && workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutActiveFile",
           "group": "altai@2",
-          "when": "editorTextFocus && workspaceFolderCount > 0"
+          "when": "editorTextFocus && workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutWorkingTree",
           "group": "altai@3",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutProblems",
           "group": "altai@4",
-          "when": "editorTextFocus && workspaceFolderCount > 0"
+          "when": "editorTextFocus && workspaceFolderCount > 0 && isWorkspaceTrusted"
         }
       ],
       "explorer/context": [
         {
           "command": "altai.askAboutActiveFile",
           "group": "altai@1",
-          "when": "resourceScheme != untitled && !explorerResourceIsFolder && workspaceFolderCount > 0"
+          "when": "resourceScheme != untitled && !explorerResourceIsFolder && workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutWorkingTree",
           "group": "altai@2",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.pickProjectRoot",
@@ -244,44 +244,45 @@
         {
           "command": "altai.askAboutActiveFile",
           "group": "altai@1",
-          "when": "resourceScheme != untitled && workspaceFolderCount > 0"
+          "when": "resourceScheme != untitled && workspaceFolderCount > 0 && isWorkspaceTrusted"
         }
       ],
       "editor/title": [
         {
           "command": "altai.askAboutActiveFile",
           "group": "navigation@90",
-          "when": "resourceScheme != untitled && resourceScheme != output && workspaceFolderCount > 0"
+          "when": "resourceScheme != untitled && resourceScheme != output && workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutWorkingTree",
           "group": "navigation@91",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutProblems",
           "group": "navigation@92",
-          "when": "resourceScheme != untitled && resourceScheme != output && workspaceFolderCount > 0"
+          "when": "resourceScheme != untitled && resourceScheme != output && workspaceFolderCount > 0 && isWorkspaceTrusted"
         }
       ],
       "scm/title": [
         {
           "command": "altai.askAboutWorkingTree",
           "group": "navigation@90",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         }
       ],
       "problems/context": [
         {
           "command": "altai.askAboutProblems",
           "group": "altai@1",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         }
       ],
       "terminal/context": [
         {
           "command": "altai.askAboutTerminal",
-          "group": "altai@1"
+          "group": "altai@1",
+          "when": "isWorkspaceTrusted"
         }
       ],
       "view/title": [
@@ -330,7 +331,7 @@
         {
           "command": "altai.askAboutActiveFile",
           "group": "altai@1",
-          "when": "scmResourceState & workspaceFolderCount > 0"
+          "when": "scmResourceState & workspaceFolderCount > 0 && isWorkspaceTrusted"
         }
       ],
       "commandPalette": [
@@ -343,23 +344,23 @@
         },
         {
           "command": "altai.askAboutSelection",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutActiveFile",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutWorkingTree",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutProblems",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.askAboutTerminal",
-          "when": "workspaceFolderCount > 0"
+          "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
         },
         {
           "command": "altai.openOperations",
@@ -406,31 +407,31 @@
         "command": "altai.askAboutSelection",
         "key": "ctrl+alt+a",
         "mac": "cmd+alt+a",
-        "when": "editorHasSelection && workspaceFolderCount > 0"
+        "when": "editorHasSelection && workspaceFolderCount > 0 && isWorkspaceTrusted"
       },
       {
         "command": "altai.askAboutActiveFile",
         "key": "ctrl+alt+f",
         "mac": "cmd+alt+f",
-        "when": "editorTextFocus && workspaceFolderCount > 0"
+        "when": "editorTextFocus && workspaceFolderCount > 0 && isWorkspaceTrusted"
       },
       {
         "command": "altai.askAboutWorkingTree",
         "key": "ctrl+alt+g",
         "mac": "cmd+alt+g",
-        "when": "workspaceFolderCount > 0"
+        "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
       },
       {
         "command": "altai.askAboutProblems",
         "key": "ctrl+alt+p",
         "mac": "cmd+alt+p",
-        "when": "workspaceFolderCount > 0"
+        "when": "workspaceFolderCount > 0 && isWorkspaceTrusted"
       },
       {
         "command": "altai.askAboutTerminal",
         "key": "ctrl+alt+t",
         "mac": "cmd+alt+t",
-        "when": "terminalFocus"
+        "when": "terminalFocus && isWorkspaceTrusted"
       },
       {
         "command": "altai.openLogs",
