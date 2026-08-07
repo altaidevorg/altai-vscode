@@ -10,6 +10,7 @@ export const ALTAI_RECOVERY_COMMANDS = [
   "altai.showVersionCompatibility",
   "altai.connectProvider",
   "altai.clearProviderCredential",
+  "altai.openWalkthrough",
   "workbench.action.manageWorkspaceTrust",
 ] as const;
 

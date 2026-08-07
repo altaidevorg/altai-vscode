@@ -1429,6 +1429,11 @@ function AgentUiShell({
           command: "altai.clearProviderCredential",
         });
         break;
+      case "walkthrough":
+        await requestWorkspace("executeAltaiCommand", {
+          command: "altai.openWalkthrough",
+        });
+        break;
       case "attach-diff": {
         if (!canGitDiff) {
           setMessages((prev) =>

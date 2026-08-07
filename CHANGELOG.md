@@ -206,6 +206,7 @@ sibling `file:` packages until public npm publish.
 - Host error status shows a toast with Run Diagnostics / Restart Host actions
   (once per error entry).
 - Getting Started walkthrough plus **ALTAI: Get Started Walkthrough** command.
+- Composer slash `/walkthrough` (`/intro`) opens the Getting Started walkthrough.
 
 ### Security
 

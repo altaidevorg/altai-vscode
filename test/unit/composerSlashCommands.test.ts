@@ -135,6 +135,17 @@ describe("tryRunSlashCommand", () => {
     });
   });
 
+  it("opens the getting started walkthrough", () => {
+    expect(tryRunSlashCommand("/walkthrough")).toMatchObject({
+      kind: "handled",
+      action: "walkthrough",
+    });
+    expect(tryRunSlashCommand("/intro")).toMatchObject({
+      kind: "handled",
+      action: "walkthrough",
+    });
+  });
+
   it("attaches working tree and terminal context", () => {
     expect(tryRunSlashCommand("/attach-diff")).toMatchObject({
       kind: "handled",

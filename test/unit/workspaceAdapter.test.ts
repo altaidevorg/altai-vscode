@@ -219,6 +219,11 @@ describe("WorkspaceAdapter", () => {
         command: "altai.clearProviderCredential",
       }),
     ).resolves.toEqual({ ok: true });
+    await expect(
+      adapter.request("executeAltaiCommand", {
+        command: "altai.openWalkthrough",
+      }),
+    ).resolves.toEqual({ ok: true });
   });
 
   it("returns terminal cwd when available, otherwise a named fallback", async () => {
