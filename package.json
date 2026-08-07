@@ -163,6 +163,11 @@
         "command": "altai.clearProviderCredential",
         "title": "ALTAI: Remove AI Provider Credential",
         "category": "ALTAI"
+      },
+      {
+        "command": "altai.openWalkthrough",
+        "title": "ALTAI: Get Started Walkthrough",
+        "category": "ALTAI"
       }
     ],
     "menus": {
@@ -292,7 +297,48 @@
           "markdownDescription": "Absolute path to the ALTAI agent host / `altai-cli` executable override for local development. Takes precedence over `ALTAI_AGENT_HOST_PATH`. Leave empty to use the packaged native host when present."
         }
       }
-    }
+    },
+    "walkthroughs": [
+      {
+        "id": "altai.gettingStarted",
+        "title": "Get started with ALTAI",
+        "description": "Trust the workspace, start the host, connect a provider, and open Chat.",
+        "steps": [
+          {
+            "id": "altai.trust",
+            "title": "Trust the workspace",
+            "description": "ALTAI does not start the native agent host until Workspace Trust is granted.\n\n[Manage Workspace Trust](command:workbench.action.manageWorkspaceTrust)",
+            "media": {
+              "markdown": "media/walkthrough/trust.md"
+            }
+          },
+          {
+            "id": "altai.open",
+            "title": "Open the ALTAI side panel",
+            "description": "Use the Activity Bar ALTAI icon or the Open Side Panel command.\n\n[Open ALTAI](command:altai.openSidePanel)",
+            "media": {
+              "markdown": "media/walkthrough/open.md"
+            }
+          },
+          {
+            "id": "altai.connect",
+            "title": "Connect an AI provider",
+            "description": "Credentials stay in the Extension Host (never the Webview).\n\n[Connect provider](command:altai.connectProvider)",
+            "media": {
+              "markdown": "media/walkthrough/connect.md"
+            }
+          },
+          {
+            "id": "altai.diags",
+            "title": "Run diagnostics when the host fails",
+            "description": "If the host stays red, write recovery hints to the ALTAI output channel.\n\n[Run Diagnostics](command:altai.runDiagnostics)",
+            "media": {
+              "markdown": "media/walkthrough/diagnostics.md"
+            }
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "clean": "rm -rf dist out .vscode-test",
