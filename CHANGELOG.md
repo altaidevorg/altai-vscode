@@ -207,6 +207,7 @@ sibling `file:` packages until public npm publish.
   (once per error entry).
 - Getting Started walkthrough plus **ALTAI: Get Started Walkthrough** command.
 - Composer slash `/walkthrough` (`/intro`) opens the Getting Started walkthrough.
+- Empty-home starter and wait-shell / Settings recovery include **Get started**.
 
 ### Security
 

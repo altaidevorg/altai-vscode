@@ -47,6 +47,7 @@ export function listRecoveryActions(input?: {
     { command: "altai.runDiagnostics", label: "Run diagnostics" },
     { command: "altai.restartAgentHost", label: "Restart host" },
     { command: "altai.showVersionCompatibility", label: "Version" },
+    { command: "altai.openWalkthrough", label: "Get started" },
   );
   return actions;
 }

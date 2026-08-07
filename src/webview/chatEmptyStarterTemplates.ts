@@ -58,6 +58,10 @@ export const DEFAULT_CHAT_STARTERS: readonly PromptTemplate[] = [
     value: "/new",
   },
   {
+    label: "Getting started (/walkthrough)",
+    value: "/walkthrough",
+  },
+  {
     label: "Attach working tree (/wt)",
     value: "/attach-diff",
   },
