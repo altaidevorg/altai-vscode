@@ -268,6 +268,7 @@ sibling `file:` packages until public npm publish.
 - Composer `@file` search scopes to the preferred host project root when set.
 - Composer slash `/attach-problems` (`/errors`) runs Ask About Problems.
 - Composer slash `/pick-root` runs Pick Project Root.
+- README shortcuts mention Problems, Pick Project Root, and Copy Diagnostics.
 
 ### Security
 

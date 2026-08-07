@@ -90,6 +90,9 @@ See the [engineering plan](docs/ENGINEERING_PLAN.md) and
 | Ask About Active File | Cmd/Ctrl+Alt+F |
 | Ask About Working Tree | Cmd/Ctrl+Alt+G |
 | Ask About Terminal | Cmd/Ctrl+Alt+T (terminal focused) |
+| Ask About Problems | Command palette |
+| Pick Project Root | Command palette (multi-root) |
+| Copy Diagnostics Report | Command palette / panel menu |
 | Open Operations | Cmd/Ctrl+Shift+Alt+O |
 | Open Inbox | Cmd/Ctrl+Shift+Alt+I |
 | Open Logs | Cmd/Ctrl+Shift+Alt+L |
