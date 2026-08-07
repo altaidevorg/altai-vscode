@@ -35,17 +35,17 @@ export function activate(context: vscode.ExtensionContext): void {
     `[altai] activating extension v${context.extension.packageJSON.version as string}`,
   );
 
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  let provider: AltaiViewProvider | undefined;
-  let lastHostStatus: HostStatusPayload["status"] | undefined;
-
   const attentionBar = new AttentionStatusBar();
   const hostStatusBar = new HostStatusBar();
   context.subscriptions.push(attentionBar, hostStatusBar);
 
+  let provider: AltaiViewProvider | undefined;
+  let lastHostStatus: HostStatusPayload["status"] | undefined;
+
   hostManager = new HostManager({
     extensionPath: context.extensionUri.fsPath,
-    workspaceRoot,
+    getWorkspaceRoot: () =>
+      vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
     isTrusted: () => isWorkspaceTrusted(),
     onDidGrantTrust: (listener) => onDidGrantWorkspaceTrust(listener),
     extensionVersion: COMPATIBILITY.extension,
@@ -110,6 +110,8 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   });
 
+  const manager = hostManager;
+
   const diffContentProvider = new DiffContentProvider(vscode);
   diffContentProvider.register(context);
   const gitDiffAdapter = new GitDiffAdapter(vscode);
@@ -125,7 +127,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   provider = new AltaiViewProvider(
     context,
-    hostManager,
+    manager,
     workspaceAdapter,
     (count) => attentionBar.setAttentionCount(count),
   );
@@ -142,7 +144,7 @@ export function activate(context: vscode.ExtensionContext): void {
     },
   );
 
-  registerCommands(context, provider, hostManager);
+  registerCommands(context, provider, manager);
   output.appendLine("[altai] side panel provider registered");
 
   context.subscriptions.push(
@@ -151,11 +153,17 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       output.appendLine("[altai] altai.agentHostPath changed; restarting host");
-      void hostManager?.restart();
+      void manager.restart();
+    }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      output.appendLine(
+        "[altai] workspace folders changed; restarting agent host for new root",
+      );
+      void manager.restart();
     }),
   );
 
-  void hostManager.start();
+  void manager.start();
   void maybeOfferFirstRunWalkthrough(context);
 }
 

@@ -95,7 +95,7 @@ describe("HostManager", () => {
     const statuses: string[] = [];
     const manager = new HostManager({
       extensionPath: "/tmp/ext",
-      workspaceRoot: "/tmp/ws",
+      getWorkspaceRoot: () => "/tmp/ws",
       isTrusted: () => false,
       extensionVersion: "0.1.0",
       processFactory: mockProcessFactory(),
@@ -113,7 +113,7 @@ describe("HostManager", () => {
   it("reports no workspace folder", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext",
-      workspaceRoot: undefined,
+      getWorkspaceRoot: () => undefined,
       isTrusted: () => true,
       extensionVersion: "0.1.0",
       processFactory: mockProcessFactory(),
@@ -128,10 +128,32 @@ describe("HostManager", () => {
     );
   });
 
+  it("re-reads workspace root on restart after a folder is opened", async () => {
+    let root: string | undefined;
+    const manager = new HostManager({
+      extensionPath: "/tmp/ext",
+      getWorkspaceRoot: () => root,
+      isTrusted: () => true,
+      extensionVersion: "0.1.0",
+      processFactory: mockProcessFactory(),
+      env: { [AGENT_HOST_PATH_ENV]: createFakeBinary() },
+      initializeTimeoutMs: 2_000,
+    });
+    managers.push(manager);
+
+    await manager.start();
+    expect(manager.getLastDiagnostic()?.code).toBe(
+      HostDiagnosticCode.NoWorkspace,
+    );
+    root = "/tmp/ws";
+    await manager.restart();
+    expect(manager.getLifecycleState()).toBe("Ready");
+  });
+
   it("reports missing binary", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext-missing",
-      workspaceRoot: "/tmp/ws",
+      getWorkspaceRoot: () => "/tmp/ws",
       isTrusted: () => true,
       extensionVersion: "0.1.0",
       processFactory: mockProcessFactory(),
@@ -146,7 +168,7 @@ describe("HostManager", () => {
   it("reaches Ready and then records crash", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext",
-      workspaceRoot: "/tmp/ws",
+      getWorkspaceRoot: () => "/tmp/ws",
       isTrusted: () => true,
       extensionVersion: "0.1.0",
       processFactory: mockProcessFactory({ crashAfterMs: 30 }),
@@ -167,7 +189,7 @@ describe("HostManager", () => {
   it("restart sequence returns to Ready", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext",
-      workspaceRoot: "/tmp/ws",
+      getWorkspaceRoot: () => "/tmp/ws",
       isTrusted: () => true,
       extensionVersion: "0.1.0",
       processFactory: mockProcessFactory(),
@@ -185,7 +207,7 @@ describe("HostManager", () => {
   it("marks incompatible protocol", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext",
-      workspaceRoot: "/tmp/ws",
+      getWorkspaceRoot: () => "/tmp/ws",
       isTrusted: () => true,
       extensionVersion: "0.1.0",
       processFactory: mockProcessFactory({ protocolMax: 0 }),

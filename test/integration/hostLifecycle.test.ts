@@ -32,7 +32,7 @@ function createManager(options: {
   // Ensure node can run the .mjs fixture when path points at the script.
   const manager = new HostManager({
     extensionPath: path.resolve("."),
-    workspaceRoot: path.resolve("."),
+    getWorkspaceRoot: () => path.resolve("."),
     isTrusted: () => options.trusted,
     extensionVersion: "0.1.0",
     env,
