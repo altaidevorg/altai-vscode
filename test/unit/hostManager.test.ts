@@ -192,6 +192,24 @@ describe("HostManager", () => {
     expect(logs.some((line) => line.includes("restart skipped"))).toBe(false);
   });
 
+  it("reports virtual-only workspaces", async () => {
+    const manager = new HostManager({
+      extensionPath: "/tmp/ext",
+      getWorkspaceRoot: () => "/virtual",
+      getOpenFolders: () => [{ scheme: "vscode-vfs", fsPath: "github/me/r" }],
+      isTrusted: () => true,
+      extensionVersion: "0.1.0",
+      processFactory: mockProcessFactory(),
+      env: { [AGENT_HOST_PATH_ENV]: createFakeBinary() },
+    });
+    managers.push(manager);
+
+    await manager.start();
+    expect(manager.getLastDiagnostic()?.code).toBe(
+      HostDiagnosticCode.VirtualWorkspace,
+    );
+  });
+
   it("reports missing binary", async () => {
     const manager = new HostManager({
       extensionPath: "/tmp/ext-missing",

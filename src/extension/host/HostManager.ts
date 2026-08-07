@@ -15,6 +15,7 @@ import {
   spawnHostProcess,
 } from "./HostProcess.js";
 import { resolveHostBinary } from "./HostResolver.js";
+import { isVirtualOnlyWorkspace } from "../../shared/virtualWorkspace.js";
 
 export type HostLifecycleState =
   | "Idle"
@@ -28,6 +29,11 @@ export type HostManagerOptions = {
   extensionPath: string;
   /** Current workspace root for the host `--workspace` arg (re-read on each start). */
   getWorkspaceRoot: () => string | undefined;
+  /**
+   * Open folder descriptors used to detect virtual-only workspaces (vscode.dev /
+   * vscode-vfs) before spawn.
+   */
+  getOpenFolders?: () => readonly { scheme: string; fsPath?: string }[];
   isTrusted: () => boolean;
   onDidGrantTrust?: (listener: () => void) => { dispose: () => void };
   log?: (line: string) => void;
@@ -136,6 +142,15 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
       this.fail({
         code: HostDiagnosticCode.Untrusted,
         message: "Workspace is not trusted; native host will not start",
+      });
+      return;
+    }
+    const openFolders = this.options.getOpenFolders?.() ?? [];
+    if (openFolders.length > 0 && isVirtualOnlyWorkspace(openFolders)) {
+      this.fail({
+        code: HostDiagnosticCode.VirtualWorkspace,
+        message:
+          "Workspace is virtual-only; native agent host requires a local or remote machine folder",
       });
       return;
     }

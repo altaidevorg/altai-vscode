@@ -93,6 +93,11 @@ export function activate(context: vscode.ExtensionContext): void {
     getWorkspaceRoot: () =>
       workspaceAdapter.getPreferredHostRootFsPath() ??
       vscode.workspace.workspaceFolders?.[0]?.uri.fsPath,
+    getOpenFolders: () =>
+      (vscode.workspace.workspaceFolders ?? []).map((folder) => ({
+        scheme: folder.uri.scheme,
+        fsPath: folder.uri.fsPath,
+      })),
     isTrusted: () => isWorkspaceTrusted(),
     onDidGrantTrust: (listener) => onDidGrantWorkspaceTrust(listener),
     extensionVersion: COMPATIBILITY.extension,

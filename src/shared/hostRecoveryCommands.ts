@@ -57,6 +57,12 @@ export function listRecoveryActions(input?: {
       label: "Open folder",
     });
   }
+  if (input?.diagnosticCode === "host.virtual_workspace") {
+    actions.push({
+      command: "workbench.action.files.openFolder",
+      label: "Open folder",
+    });
+  }
   actions.push(
     { command: "altai.openLogs", label: "Open logs" },
     { command: "altai.runDiagnostics", label: "Run diagnostics" },
