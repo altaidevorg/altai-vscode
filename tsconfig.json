@@ -80,6 +80,7 @@
     "test/unit/chatDisplayChrome.test.ts",
     "test/unit/AiUserTurnBody.test.ts",
     "test/unit/aiSdkAssistantGroups.test.ts",
+    "test/unit/aiChatViewFrame.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
