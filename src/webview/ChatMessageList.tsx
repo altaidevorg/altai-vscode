@@ -1,30 +1,28 @@
 /**
  * Role-styled chat transcript cards for the VS Code webview.
  * User bubbles support inline edit + resend when the host allows truncate.
- * Consecutive tool rows collapse into TranscriptToolGroup chrome.
+ * List chrome + tool collapse live in shared AiDisplayTranscriptList (A6.38).
  */
 
 import {
+  AiDisplayTranscriptList,
+  chatDisplayBubbleClassName,
+  chatDisplayRoleLabel,
   CommandSnippet,
   ContextChips,
   HoverActionButton,
   TodoChecklist,
-  TranscriptToolGroup,
   UnifiedDiffPreview,
   useCapability,
   useHostPorts,
 } from "@altai/agent-ui";
 import { File01Icon, TerminalIcon, Globe02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 import { ChatMessageContent } from "./ChatMessageContent.js";
-import {
-  buildDisplayTranscriptBlocks,
-  type ToolGroupKind,
-} from "./transcriptGroupChrome.js";
+import { type ToolGroupKind } from "./transcriptGroupChrome.js";
 import { canCopyDisplayMessage } from "./messageCopyChrome.js";
-import { resolveChatAriaLive } from "./chatTranscriptChrome.js";
 
 export type ChatMessageListProps = {
   messages: readonly ChatDisplayMessage[];
@@ -40,23 +38,6 @@ export type ChatMessageListProps = {
   /** Host announce preference (`off` | `polite` | `assertive`). */
   announce?: string;
 };
-
-function roleLabel(role: ChatDisplayMessage["role"]): string {
-  switch (role) {
-    case "user":
-      return "You";
-    case "assistant":
-      return "ALTAI";
-    case "tool":
-      return "Tool";
-    case "system":
-      return "System";
-    case "meta":
-      return "";
-    default:
-      return "";
-  }
-}
 
 function groupIcon(kind: ToolGroupKind) {
   const icon =
@@ -86,19 +67,13 @@ export function ChatMessageList({
   const [draft, setDraft] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const ariaLive = resolveChatAriaLive(announce);
 
   const lastAssistantId = [...messages]
     .reverse()
     .find((message) => message.role === "assistant")?.id;
 
-  const blocks = useMemo(
-    () => buildDisplayTranscriptBlocks(messages),
-    [messages],
-  );
-
   const renderMessage = (message: ChatDisplayMessage) => {
-    const label = roleLabel(message.role);
+    const label = chatDisplayRoleLabel(message.role);
     const isEditing = editingId === message.id;
     const showEdit =
       message.role === "user" &&
@@ -128,15 +103,7 @@ export function ChatMessageList({
       <article
         key={message.id}
         id={`altai-msg-${message.id}`}
-        className={
-          message.role === "user"
-            ? "altai-chat-bubble altai-chat-bubble--user"
-            : message.role === "assistant"
-              ? "altai-chat-bubble altai-chat-bubble--assistant"
-              : message.role === "tool"
-                ? "altai-chat-bubble altai-chat-bubble--tool"
-                : "altai-chat-bubble altai-chat-bubble--meta"
-        }
+        className={chatDisplayBubbleClassName(message.role)}
         data-role={message.role}
         data-streaming={message.streaming ? "true" : undefined}
       >
@@ -346,38 +313,11 @@ export function ChatMessageList({
   };
 
   return (
-    <div
-      className="altai-chat-log"
-      role="log"
-      aria-live={ariaLive}
-      aria-relevant="additions"
-      id="altai-active-chat"
-    >
-      {blocks.map((block) => {
-        if (block.kind === "message") {
-          return renderMessage(block.message as ChatDisplayMessage);
-        }
-        const kind = block.groupKind;
-        return (
-          <div
-            key={block.key}
-            className="altai-chat-tool-group"
-            data-kind={kind}
-          >
-            <TranscriptToolGroup
-              label={block.label}
-              countLabel={block.countLabel}
-              preview={block.preview}
-              icon={groupIcon(kind)}
-              previewMono={kind === "reads" || kind === "cmd"}
-            >
-              {block.messages.map((message) =>
-                renderMessage(message as ChatDisplayMessage),
-              )}
-            </TranscriptToolGroup>
-          </div>
-        );
-      })}
-    </div>
+    <AiDisplayTranscriptList
+      messages={messages}
+      announce={announce}
+      renderMessage={renderMessage}
+      renderGroupIcon={groupIcon}
+    />
   );
 }
