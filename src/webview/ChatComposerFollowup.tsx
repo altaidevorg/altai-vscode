@@ -1,9 +1,12 @@
 /**
- * Capability-gated ComposerFollowupBar (steer / queue) for an active run.
+ * Capability-gated composer follow-up bar (steer / queue) for an active run.
+ * Shared policy + chrome in AiComposerFollowupControl (A6.62).
  */
 
-import { ComposerFollowupBar, useCapability } from "@altai/agent-ui";
-import { composerFollowupVisibility } from "./composerFollowupChrome.js";
+import {
+  AiComposerFollowupControl,
+  useCapability,
+} from "@altai/agent-ui";
 
 export type ChatComposerFollowupProps = {
   hasActiveRun: boolean;
@@ -20,29 +23,15 @@ export function ChatComposerFollowup({
 }: ChatComposerFollowupProps) {
   const canSteer = useCapability("runtime.steerRun");
   const canQueue = useCapability("runtime.queueRun");
-  const visibility = composerFollowupVisibility({
-    hasActiveRun,
-    canStartRun: true,
-    canSteer,
-    canQueue,
-    hasPrompt,
-  });
-
-  if (!visibility.showBar) {
-    return null;
-  }
 
   return (
-    <ComposerFollowupBar
-      hint={visibility.hint}
-      showSteer={visibility.showSteer}
-      showQueue={visibility.showQueue}
-      canSteer={visibility.canSteerAction}
-      canQueue={visibility.canQueueAction}
+    <AiComposerFollowupControl
+      hasActiveRun={hasActiveRun}
+      hasPrompt={hasPrompt}
+      canSteer={canSteer}
+      canQueue={canQueue}
       onSteer={onSteer}
       onQueue={onQueue}
-      steerTitle="Apply at the active run's next safe boundary"
-      queueTitle="Start after the active run terminates"
     />
   );
 }
