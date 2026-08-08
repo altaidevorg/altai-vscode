@@ -78,6 +78,7 @@
     "test/unit/useComposerController.test.ts",
     "test/unit/vscodeComposerSubmit.test.ts",
     "test/unit/chatDisplayChrome.test.ts",
+    "test/unit/AiUserTurnBody.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
