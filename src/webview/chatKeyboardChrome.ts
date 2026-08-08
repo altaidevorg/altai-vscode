@@ -1,15 +1,6 @@
 /**
  * Pure key helpers for dismissible Chat chrome.
+ * Shared implementation lives in `@altai/agent-ui` (A6.75).
  */
 
-export function isEscapeDismissKey(input: {
-  key: string;
-  metaKey?: boolean;
-  ctrlKey?: boolean;
-  altKey?: boolean;
-}): boolean {
-  if (input.metaKey || input.ctrlKey || input.altKey) {
-    return false;
-  }
-  return input.key === "Escape";
-}
+export { isEscapeDismissKey } from "@altai/agent-ui";
