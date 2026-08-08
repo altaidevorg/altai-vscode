@@ -92,6 +92,7 @@
     "test/unit/aiDisplayMessageBubble.test.ts",
     "test/unit/aiDisplayMessageEditForm.test.ts",
     "test/unit/chatDisplayActionCopy.test.ts",
+    "test/unit/aiDisplayMessageBodyExtras.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
