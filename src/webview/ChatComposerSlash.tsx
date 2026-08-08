@@ -4,19 +4,10 @@
 
 import {
   ComposerSuggestionList,
-  detectSlashOrSnippetTrigger,
-  resolveComposerSuggestionKeyAction,
-  resolveComposerSuggestionOpen,
+  useComposerSuggestionList,
   type ComposerSuggestionItem,
 } from "@altai/agent-ui";
-import {
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-  type Ref,
-} from "react";
+import { useCallback, useImperativeHandle, useMemo, type Ref } from "react";
 import {
   findSlashCommands,
   type SlashCommandMeta,
@@ -43,88 +34,52 @@ export function ChatComposerSlash({
   onPickCommand,
   handleRef,
 }: ChatComposerSlashProps) {
-  const [forceClosed, setForceClosed] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const trigger = useMemo(() => {
-    if (disabled) {
-      return null;
-    }
-    return detectSlashOrSnippetTrigger(prompt, cursor);
-  }, [prompt, cursor, disabled]);
-
-  const { open: slashOpen, query } = resolveComposerSuggestionOpen({
-    trigger,
-    forceClosed,
-    prefix: "/",
-  });
-
-  const matches = useMemo(
-    () => (slashOpen ? findSlashCommands(query).slice(0, 24) : []),
-    [slashOpen, query],
+  const getMatches = useCallback(
+    (query: string) => findSlashCommands(query).slice(0, 24),
+    [],
   );
 
-  useEffect(() => {
-    if (!slashOpen) {
-      setForceClosed(false);
-      setActiveIndex(0);
-    }
-  }, [slashOpen]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
-  const items: ComposerSuggestionItem[] = matches.map((command) => ({
-    kind: "command" as const,
-    name: command.name,
-    label: command.label,
-    description: command.description,
-    category: command.category,
-    aliases: command.aliases,
-    icon: null,
-  }));
-
-  const stateRef = useRef({ matches, activeIndex });
-  stateRef.current = { matches, activeIndex };
+  const {
+    open,
+    activeIndex,
+    setActiveIndex,
+    forceClose,
+    isOpen,
+    handleKeyDown,
+    matches,
+  } = useComposerSuggestionList<SlashCommandMeta>({
+    prompt,
+    cursor,
+    prefix: "/",
+    disabled,
+    getMatches,
+    onPick: onPickCommand,
+  });
 
   useImperativeHandle(
     handleRef,
     () => ({
-      isOpen: () => slashOpen && Boolean(trigger),
-      handleKeyDown: (key: string) => {
-        if (!slashOpen) {
-          return false;
-        }
-        const snap = stateRef.current;
-        const action = resolveComposerSuggestionKeyAction(key, {
-          matchCount: snap.matches.length,
-          activeIndex: snap.activeIndex,
-        });
-        if (action.type === "close") {
-          setForceClosed(true);
-          return true;
-        }
-        if (action.type === "ignore") {
-          return false;
-        }
-        if (action.type === "move") {
-          setActiveIndex(action.index);
-          return true;
-        }
-        const command = snap.matches[action.index];
-        if (command) {
-          onPickCommand(command);
-          setForceClosed(true);
-          return true;
-        }
-        return false;
-      },
+      isOpen,
+      handleKeyDown,
     }),
-    [slashOpen, trigger, onPickCommand],
+    [isOpen, handleKeyDown],
   );
 
-  if (!slashOpen) {
+  const items: ComposerSuggestionItem[] = useMemo(
+    () =>
+      matches.map((command) => ({
+        kind: "command" as const,
+        name: command.name,
+        label: command.label,
+        description: command.description,
+        category: command.category,
+        aliases: command.aliases,
+        icon: null,
+      })),
+    [matches],
+  );
+
+  if (!open) {
     return null;
   }
 
@@ -140,7 +95,7 @@ export function ChatComposerSlash({
           const command = matches.find((c) => c.name === item.name);
           if (command) {
             onPickCommand(command);
-            setForceClosed(true);
+            forceClose();
           }
         }}
         onHover={setActiveIndex}
