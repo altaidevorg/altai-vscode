@@ -1,6 +1,9 @@
 /**
  * Debounce timing for presentation-only composer draft persistence.
- * Pure constants / helpers for tests (no timers here).
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.125). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 /** Delay between draft keystrokes and getState/setState write. */

@@ -1,5 +1,9 @@
 /**
  * Pure policy for Extension Host host-status toast notifications.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.112). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export type HostLifecycleStatus =

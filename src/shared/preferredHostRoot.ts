@@ -1,5 +1,9 @@
 /**
  * Pure helpers for Extension Host preferred multi-root workspace URI memento.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.115). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export const PREFERRED_HOST_ROOT_STATE_KEY = "altai.preferredHostRootUri";

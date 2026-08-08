@@ -1,6 +1,9 @@
 /**
  * Cross-runtime secure bytes (Extension Host Node + Webview).
- * Uses Web Crypto; never Math.random for security-sensitive values.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.127). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export function getSecureRandomBytes(length: number): Uint8Array {

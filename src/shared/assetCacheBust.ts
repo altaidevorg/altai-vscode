@@ -1,6 +1,9 @@
 /**
  * Append a cache-bust query so Extension Host reloads fresh webview assets
- * after rebuild (VS Code may otherwise keep a stale main.js).
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.126). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 export function withAssetCacheBust(
   uriString: string,

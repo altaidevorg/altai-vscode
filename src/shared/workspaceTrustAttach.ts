@@ -1,5 +1,9 @@
 /**
  * Trust helpers for context attach (Ask About *). Pure + VS Code-agnostic checks.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.122). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export function isWorkspaceNotTrustedError(error: unknown): boolean {
