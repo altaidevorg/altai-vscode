@@ -1,5 +1,9 @@
 /**
  * Build selection context text for single- or multi-cursor editor selections.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.108). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export type SelectionRangeInput = {
