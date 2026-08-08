@@ -1,5 +1,9 @@
 /**
  * Friendly labels for HostManager lifecycle status shown in the shell.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.109). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export function hostStatusPillLabel(status: string): string {
