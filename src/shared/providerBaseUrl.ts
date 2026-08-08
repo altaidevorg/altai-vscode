@@ -1,6 +1,10 @@
 /**
  * Pure validation for OpenAI-compatible provider base URLs.
  * Secrets/API keys are never handled here.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.116). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export const MAX_PROVIDER_BASE_URL_CHARS = 2_048;

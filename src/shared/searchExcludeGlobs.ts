@@ -1,6 +1,10 @@
 /**
  * Build a findFiles exclude GlobPattern from VS Code files/search exclude
  * maps, always including baseline ignore folders.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.114). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 const DEFAULT_EXCLUDE_PATTERNS = ["**/.git", "**/node_modules"] as const;

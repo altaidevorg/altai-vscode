@@ -1,5 +1,9 @@
 /**
  * Pure formatter for VS Code language diagnostics → composer selection text.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.117). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export type DiagnosticLike = {
