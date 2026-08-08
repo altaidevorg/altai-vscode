@@ -5,6 +5,7 @@
  */
 
 import {
+  CommandSnippet,
   ContextChips,
   HoverActionButton,
   TodoChecklist,
@@ -192,15 +193,20 @@ export function ChatMessageList({
           </div>
         ) : (
           <>
+            {message.commandName ? (
+              <CommandSnippet name={message.commandName} />
+            ) : null}
             {message.chips && message.chips.length > 0 ? (
               <ContextChips chips={message.chips} />
             ) : null}
-            <ChatMessageContent
-              content={message.content}
-              streaming={Boolean(message.streaming)}
-              onError={onOpenFileError}
-              requestWorkspace={requestWorkspace}
-            />
+            {message.content ? (
+              <ChatMessageContent
+                content={message.content}
+                streaming={Boolean(message.streaming)}
+                onError={onOpenFileError}
+                requestWorkspace={requestWorkspace}
+              />
+            ) : null}
             {message.diffOriginalText !== undefined &&
             message.diffModifiedText !== undefined ? (
               <div className="altai-chat-inline-diff">

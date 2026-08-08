@@ -9,6 +9,7 @@ import type { ContextChip, TodoItem } from "@altai/agent-ui";
 import {
   looksLikePath,
   pathToFileUri,
+  prepareUserTurnDisplay,
   renumberUserTurnIds,
   toolBubbleContent,
 } from "@altai/agent-ui";
@@ -26,6 +27,15 @@ export { looksLikePath, pathToFileUri, toolBubbleContent } from "@altai/agent-ui
 /** Shared user-turn renumbering (Wave 4 / A6.19). */
 export { renumberUserTurnIds } from "@altai/agent-ui";
 
+/** Shared user-turn display prep (Wave 4 / A6.28). */
+export {
+  prepareUserTurnDisplay,
+  parseCommandMarkerPrefix,
+  wrapWithCommandMarker,
+  ALTAI_COMMAND_MARKER_RE,
+  ALTAI_CMD_RE,
+} from "@altai/agent-ui";
+
 export type ChatDisplayRole =
   | "user"
   | "assistant"
@@ -41,6 +51,8 @@ export type ChatDisplayMessage = {
   streaming?: boolean;
   /** Optional context chips from attached editor / terminal / diff. */
   chips?: ContextChip[];
+  /** Slash command name from leading altai-command marker (session restore). */
+  commandName?: string;
   /** Tool name when role is tool. */
   toolName?: string;
   /** Workspace URI to open (file tools). */
@@ -69,6 +81,7 @@ export function newDisplayMessageId(prefix: string): string {
 
 /**
  * Map durable session messages into display bubbles (user/assistant only).
+ * User turns strip altai-command markers + context XML into chips (A6.28).
  */
 export function displayMessagesFromSession(
   messages: readonly SessionMessageLike[],
@@ -81,6 +94,21 @@ export function displayMessagesFromSession(
     )
     .slice(-max)
     .map((message) => {
+      if (message.role === "user") {
+        const prepared = prepareUserTurnDisplay(message.content);
+        const body = prepared.text.replace(/\s+/g, " ").trim();
+        const hasChrome =
+          Boolean(prepared.commandName) || prepared.chips.length > 0;
+        return {
+          id: message.id?.trim() || newDisplayMessageId(message.role),
+          role: "user" as const,
+          content: body || (hasChrome ? "" : "(empty)"),
+          ...(prepared.commandName
+            ? { commandName: prepared.commandName }
+            : {}),
+          ...(prepared.chips.length > 0 ? { chips: prepared.chips } : {}),
+        };
+      }
       const content = message.content.replace(/\s+/g, " ").trim() || "(empty)";
       return {
         id: message.id?.trim() || newDisplayMessageId(message.role),
