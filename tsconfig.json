@@ -72,6 +72,7 @@
     "test/unit/composerDraft.test.ts",
     "test/unit/chatTranscriptChrome.test.ts",
     "test/unit/composerSubmitPlan.test.ts",
+    "test/unit/composerDraftClear.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
