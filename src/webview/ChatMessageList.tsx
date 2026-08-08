@@ -21,11 +21,11 @@ import {
   lastAssistantMessageId,
   resolveDisplayMessageActions,
   useCapability,
+  useDisplayMessageInteractionState,
   useHostPorts,
 } from "@altai/agent-ui";
 import { File01Icon, TerminalIcon, Globe02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 import { ChatMessageContent } from "./ChatMessageContent.js";
 import { type ToolGroupKind } from "./transcriptGroupChrome.js";
@@ -69,10 +69,19 @@ export function ChatMessageList({
   const ports = useHostPorts();
   const canOpenFile = useCapability("workspace.openFile");
   const canOpenDiff = useCapability("workspace.openDiff");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
-  const [openingId, setOpeningId] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const {
+    editingId,
+    draft,
+    setDraft,
+    beginEdit,
+    cancelEdit,
+    finishEdit,
+    openingId,
+    beginOpen,
+    endOpen,
+    copiedId,
+    markCopied,
+  } = useDisplayMessageInteractionState();
 
   const lastAssistantId = lastAssistantMessageId(messages);
 
@@ -115,12 +124,12 @@ export function ChatMessageList({
             value={draft}
             disabled={editingBusy}
             onChange={setDraft}
-            onCancel={() => setEditingId(null)}
+            onCancel={cancelEdit}
             onSave={() => {
               const next = draft.trim();
               if (next && onEditUserMessage) {
                 onEditUserMessage(message.id, next);
-                setEditingId(null);
+                finishEdit();
               }
             }}
           />
@@ -157,12 +166,7 @@ export function ChatMessageList({
                     void (async () => {
                       try {
                         await navigator.clipboard.writeText(message.content);
-                        setCopiedId(message.id);
-                        window.setTimeout(() => {
-                          setCopiedId((id) =>
-                            id === message.id ? null : id,
-                          );
-                        }, 1500);
+                        markCopied(message.id);
                       } catch (err: unknown) {
                         onOpenFileError?.(
                           err instanceof Error ? err.message : String(err),
@@ -179,8 +183,7 @@ export function ChatMessageList({
                   title="Edit message"
                   disabled={editingBusy}
                   onClick={() => {
-                    setEditingId(message.id);
-                    setDraft(message.content);
+                    beginEdit(message.id, message.content);
                   }}
                 >
                   Edit
@@ -200,7 +203,7 @@ export function ChatMessageList({
                   title={displayOpenDiffActionTitle(message.filePath)}
                   disabled={openingId === message.id}
                   onClick={() => {
-                    setOpeningId(message.id);
+                    beginOpen(message.id);
                     void ports.workspace
                       .openDiff({
                         title: displayDiffReviewTitle(message.filePath),
@@ -216,7 +219,7 @@ export function ChatMessageList({
                         );
                       })
                       .finally(() => {
-                        setOpeningId(null);
+                        endOpen();
                       });
                   }}
                 >
@@ -235,7 +238,7 @@ export function ChatMessageList({
                     if (!uri) {
                       return;
                     }
-                    setOpeningId(message.id);
+                    beginOpen(message.id);
                     void ports.workspace
                       .openFile(uri)
                       .catch((err: unknown) => {
@@ -244,7 +247,7 @@ export function ChatMessageList({
                         );
                       })
                       .finally(() => {
-                        setOpeningId(null);
+                        endOpen();
                       });
                   }}
                 >
