@@ -2,6 +2,10 @@
  * Pure presentation of VS Code Git change lists (path/status only).
  * Shared by Extension Host GitDiffAdapter and Webview attach helpers.
  * Does not include file content and never spawns `git`.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.94). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export type GitDiffFileLine = {

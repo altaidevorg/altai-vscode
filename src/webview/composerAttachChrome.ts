@@ -1,6 +1,7 @@
 /**
  * Pure helpers: turn VS Code Git state into attachable presentation text.
- * Does not include file content or spawn `git`; status paths only.
+ * Format helpers live in `@altai/agent-ui` (A6.94). Build-* helpers stay host-
+ * local until pure context chips move to the package.
  */
 
 import {
@@ -11,13 +12,12 @@ import {
 } from "./composerContext.js";
 import {
   formatGitDiffSummary,
+  formatTerminalAttachText,
   type GitDiffFileLine,
-} from "../shared/gitDiffSummary.js";
-import { formatTerminalAttachText } from "../shared/terminalAttach.js";
+} from "@altai/agent-ui";
 
 export type { GitDiffFileLine };
-export { formatGitDiffSummary };
-export { formatTerminalAttachText };
+export { formatGitDiffSummary, formatTerminalAttachText };
 
 /**
  * Build an active-file context chip (URI only; contents stay on host).
@@ -128,8 +128,8 @@ export function buildTerminalContextItem(
   }
   return {
     id: newContextItemId("terminal"),
-    kind: "terminal",
     name: terminal?.cwd ? basenamePath(terminal.cwd) : "Terminal",
+    kind: "terminal",
     text,
     lines: countLines(text),
   };
