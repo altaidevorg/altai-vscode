@@ -1,15 +1,6 @@
 /**
  * Pure helpers for run/replay chrome gating.
+ * Shared implementation lives in `@altai/agent-ui` (A6.76).
  */
 
-export function canMountReplayControl(input: {
-  replay: boolean;
-  chatId: string | null | undefined;
-  runId: string | null | undefined;
-}): boolean {
-  return (
-    input.replay &&
-    Boolean(input.chatId?.trim()) &&
-    Boolean(input.runId?.trim())
-  );
-}
+export { canMountReplayControl } from "@altai/agent-ui";
