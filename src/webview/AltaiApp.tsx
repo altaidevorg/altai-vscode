@@ -2152,7 +2152,7 @@ function AgentUiShell({
               <div className="altai-chat-scroll">
                 <AiChatTranscriptFrame
                   isEmpty={showEmptyHome}
-                  empty={<EmptyState agentName="ALTAI" />}
+                  empty={<EmptyState agentName="ALTAI" affordanceHint />}
                   contentClassName="altai-chat-transcript-content max-w-none px-0 py-0 gap-0"
                 >
                   <div
