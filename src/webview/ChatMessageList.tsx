@@ -24,10 +24,11 @@ import {
   type ToolGroupKind,
 } from "./transcriptGroupChrome.js";
 import { canCopyDisplayMessage } from "./messageCopyChrome.js";
+import { resolveChatAriaLive } from "./chatTranscriptChrome.js";
 
 export type ChatMessageListProps = {
   messages: readonly ChatDisplayMessage[];
-  /** Edit user turns (truncate + resend) when host capabilities allow. */
+  /** Edit user turns (truncate + resend) when the host allows truncate. */
   canEditUserMessages?: boolean;
   onEditUserMessage?: (messageId: string, nextContent: string) => void;
   /** Retry last failed/last assistant turn when available. */
@@ -36,6 +37,8 @@ export type ChatMessageListProps = {
   editingBusy?: boolean;
   onOpenFileError?: (message: string) => void;
   requestWorkspace?: (method: string, params?: unknown) => Promise<unknown>;
+  /** Host announce preference (`off` | `polite` | `assertive`). */
+  announce?: string;
 };
 
 function roleLabel(role: ChatDisplayMessage["role"]): string {
@@ -74,6 +77,7 @@ export function ChatMessageList({
   editingBusy = false,
   onOpenFileError,
   requestWorkspace,
+  announce = "polite",
 }: ChatMessageListProps) {
   const ports = useHostPorts();
   const canOpenFile = useCapability("workspace.openFile");
@@ -82,6 +86,7 @@ export function ChatMessageList({
   const [draft, setDraft] = useState("");
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const ariaLive = resolveChatAriaLive(announce);
 
   const lastAssistantId = [...messages]
     .reverse()
@@ -344,7 +349,7 @@ export function ChatMessageList({
     <div
       className="altai-chat-log"
       role="log"
-      aria-live="polite"
+      aria-live={ariaLive}
       aria-relevant="additions"
       id="altai-active-chat"
     >

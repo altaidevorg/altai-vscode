@@ -2,6 +2,7 @@ import {
   AgentChatLayout,
   AiChatMainColumn,
   AiSidePanelFrame,
+  AiChatTranscriptFrame,
   ChatTabStrip,
   detectSlashOrSnippetTrigger,
   EmptyState,
@@ -2094,63 +2095,63 @@ function AgentUiShell({
             }
             transcript={
               <div className="altai-chat-scroll">
-            {showEmptyHome ? (
-              <EmptyState agentName="ALTAI" />
-            ) : (
-              <>
-                <div
-                  className="altai-chat-export"
-                  style={{
-                    display: "flex",
-                    justifyContent: "flex-end",
-                    padding: "0.25rem 0.75rem 0",
-                  }}
+                <AiChatTranscriptFrame
+                  isEmpty={showEmptyHome}
+                  empty={<EmptyState agentName="ALTAI" />}
+                  contentClassName="altai-chat-transcript-content max-w-none px-0 py-0 gap-0"
                 >
-                  <button
-                    type="button"
-                    className="altai-composer-stop"
-                    title="Copy the full transcript as plain text"
-                    onClick={() => {
-                      const text = formatTranscriptForCopy(messages);
-                      if (!text) {
-                        return;
-                      }
-                      void (async () => {
-                        try {
-                          await navigator.clipboard.writeText(text);
-                          setCopiedTranscript(true);
-                          window.setTimeout(() => {
-                            setCopiedTranscript(false);
-                          }, 1500);
-                        } catch (err: unknown) {
-                          setError(
-                            err instanceof Error ? err.message : String(err),
-                          );
-                        }
-                      })();
+                  <div
+                    className="altai-chat-export"
+                    style={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      padding: "0.25rem 0.75rem 0",
                     }}
                   >
-                    {copiedTranscript ? "Copied chat" : "Copy chat"}
-                  </button>
-                </div>
-                <ChatMessageList
-                  messages={messages}
-                  canEditUserMessages={allowUserEdit}
-                  onEditUserMessage={(messageId, next) => {
-                    void onEditUserMessage(messageId, next);
-                  }}
-                  canRetry={canRetry && Boolean(activeChatId)}
-                  onRetry={() => {
-                    void onRetry();
-                  }}
-                  editingBusy={editingBusy || busy}
-                  onOpenFileError={(message) => {
-                    setError(message);
-                  }}
-                  requestWorkspace={requestWorkspace}
-                />
-              </>
-            )}
+                    <button
+                      type="button"
+                      className="altai-composer-stop"
+                      title="Copy the full transcript as plain text"
+                      onClick={() => {
+                        const text = formatTranscriptForCopy(messages);
+                        if (!text) {
+                          return;
+                        }
+                        void (async () => {
+                          try {
+                            await navigator.clipboard.writeText(text);
+                            setCopiedTranscript(true);
+                            window.setTimeout(() => {
+                              setCopiedTranscript(false);
+                            }, 1500);
+                          } catch (err: unknown) {
+                            setError(
+                              err instanceof Error ? err.message : String(err),
+                            );
+                          }
+                        })();
+                      }}
+                    >
+                      {copiedTranscript ? "Copied chat" : "Copy chat"}
+                    </button>
+                  </div>
+                  <ChatMessageList
+                    messages={messages}
+                    canEditUserMessages={allowUserEdit}
+                    onEditUserMessage={(messageId, next) => {
+                      void onEditUserMessage(messageId, next);
+                    }}
+                    canRetry={canRetry && Boolean(activeChatId)}
+                    onRetry={() => {
+                      void onRetry();
+                    }}
+                    editingBusy={editingBusy || busy}
+                    onOpenFileError={(message) => {
+                      setError(message);
+                    }}
+                    requestWorkspace={requestWorkspace}
+                  />
+                </AiChatTranscriptFrame>
               </div>
             }
             runChrome={
