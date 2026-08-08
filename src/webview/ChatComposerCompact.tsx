@@ -1,13 +1,14 @@
 /**
  * Capability-gated CompactNowControl for Chat (calls runtime.compactContext).
+ * Shared mount policy + chrome in AiComposerCompactControl (A6.61).
  */
 
-import { CompactNowControl, useCapability, useHostPorts } from "@altai/agent-ui";
-import { useState } from "react";
 import {
-  canInvokeCompact,
-  canMountCompactControl,
-} from "./composerCompactChrome.js";
+  AiComposerCompactControl,
+  useCapability,
+  useHostPorts,
+} from "@altai/agent-ui";
+import { useState } from "react";
 
 export type ChatComposerCompactProps = {
   chatId: string | null;
@@ -26,21 +27,14 @@ export function ChatComposerCompact({
   const canCompact = useCapability("runtime.compactContext");
   const [localBusy, setLocalBusy] = useState(false);
   const busy = composerBusy || localBusy;
-  const flags = {
-    canCompact,
-    hasActiveChat: Boolean(chatId),
-    busy,
-  };
-
-  if (!canMountCompactControl(flags)) {
-    return null;
-  }
 
   return (
-    <CompactNowControl
-      disabled={!canInvokeCompact(flags)}
-      onClick={() => {
-        if (!chatId || !canInvokeCompact(flags)) {
+    <AiComposerCompactControl
+      canCompact={canCompact}
+      hasActiveChat={Boolean(chatId)}
+      busy={busy}
+      onCompact={() => {
+        if (!chatId || busy) {
           return;
         }
         setLocalBusy(true);
