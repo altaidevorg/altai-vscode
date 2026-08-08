@@ -67,6 +67,7 @@
     "test/unit/hostRecoveryActions.test.ts",
     "test/unit/waitShellChrome.test.ts",
     "test/unit/replayChrome.test.ts",
+    "test/unit/sessionMutateChrome.test.ts",
     "test/unit/chatKeyboardChrome.test.ts",
     "test/unit/composerAttachChrome.test.ts",
     "test/unit/composerSnippets.test.ts",
