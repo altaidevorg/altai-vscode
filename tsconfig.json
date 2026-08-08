@@ -113,6 +113,8 @@
     "test/unit/runDetailsChrome.test.ts",
     "test/unit/agentStatusPillChrome.test.ts",
     "test/unit/usageMeterChrome.test.ts",
+    "test/unit/settingsHubChrome.test.ts",
+    "test/unit/settingsSearchChrome.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
