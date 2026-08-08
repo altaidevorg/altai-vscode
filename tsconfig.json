@@ -101,6 +101,7 @@
     "test/unit/aiComposerCompactControl.test.ts",
     "test/unit/aiComposerFollowupControl.test.ts",
     "test/unit/emptyStateAffordance.test.ts",
+    "test/unit/composerAttachPolicy.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",

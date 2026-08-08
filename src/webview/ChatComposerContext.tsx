@@ -5,6 +5,9 @@
  */
 
 import {
+  canMountComposerAttachMenu,
+  composerAttachSurfaceShowsAttachments,
+  composerAttachSurfaceShowsToolbar,
   ComposerAttachChips,
   ComposerToolbarIcon,
   ContextAction,
@@ -70,11 +73,15 @@ export function ChatComposerContext({
   const [error, setError] = useState<string | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
 
-  const showAttach =
-    canActiveFile || canSelection || canGitDiff || canTerminal;
+  const showAttach = canMountComposerAttachMenu({
+    canActiveFile,
+    canSelection,
+    canGitDiff,
+    canTerminal,
+  });
   const openable = canOpenFile ? listOpenableContextItems(items) : [];
-  const showAttachments = surface === "attachments" || surface === "all";
-  const showToolbar = surface === "toolbar" || surface === "all";
+  const showAttachments = composerAttachSurfaceShowsAttachments(surface);
+  const showToolbar = composerAttachSurfaceShowsToolbar(surface);
 
   const pushError = useCallback((err: unknown) => {
     setError(err instanceof Error ? err.message : String(err));
