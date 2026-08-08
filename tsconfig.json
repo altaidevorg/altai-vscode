@@ -104,6 +104,8 @@
     "test/unit/composerAttachPolicy.test.ts",
     "test/unit/composerSuggestionKeyboard.test.ts",
     "test/unit/useComposerSuggestionList.test.ts",
+    "test/unit/changeReviewPanelChrome.test.ts",
+    "test/unit/runDetailsChrome.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
