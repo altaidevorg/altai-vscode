@@ -6,6 +6,7 @@
  */
 
 import {
+  AiDisplayMessageBodyExtras,
   AiDisplayMessageBubble,
   AiDisplayMessageEditForm,
   AiDisplayTranscriptList,
@@ -19,8 +20,6 @@ import {
   HoverActionButton,
   lastAssistantMessageId,
   resolveDisplayMessageActions,
-  TodoChecklist,
-  UnifiedDiffPreview,
   useCapability,
   useHostPorts,
 } from "@altai/agent-ui";
@@ -127,7 +126,11 @@ export function ChatMessageList({
           />
         }
         body={
-          <>
+          <AiDisplayMessageBodyExtras
+            originalText={message.diffOriginalText}
+            proposedText={message.diffModifiedText}
+            todos={message.todos}
+          >
             <AiUserTurnBody
               commandName={message.commandName}
               chips={message.chips}
@@ -142,21 +145,7 @@ export function ChatMessageList({
                 ) : null
               }
             />
-            {message.diffOriginalText !== undefined &&
-            message.diffModifiedText !== undefined ? (
-              <div className="altai-chat-inline-diff">
-                <UnifiedDiffPreview
-                  original={message.diffOriginalText}
-                  proposed={message.diffModifiedText}
-                />
-              </div>
-            ) : null}
-            {message.todos && message.todos.length > 0 ? (
-              <div className="altai-chat-todos">
-                <TodoChecklist items={message.todos} dense />
-              </div>
-            ) : null}
-          </>
+          </AiDisplayMessageBodyExtras>
         }
         actions={
           showActions ? (
