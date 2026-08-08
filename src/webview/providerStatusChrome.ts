@@ -1,164 +1,85 @@
 /**
  * Pure helpers for capability-gating provider status chrome.
+ * Shared rules live in `@altai/agent-ui` (A6.90); known catalog stays host-owned.
  */
 
 import type { ProviderStatus } from "@altai/host-contract";
 import {
-  KNOWN_PROVIDERS,
-  knownProviderById,
-} from "../shared/providerCatalog.js";
+  canMountProviderStatus as packageCanMountProviderStatus,
+  displayProviderLabel as packageDisplayProviderLabel,
+  firstConnectableProvider as packageFirstConnectableProvider,
+  hasConnectedProvider as packageHasConnectedProvider,
+  isKeylessProvider as packageIsKeylessProvider,
+  mergeProviderCatalog as packageMergeProviderCatalog,
+  providerConsoleUrl as packageProviderConsoleUrl,
+  providerRequiresBaseUrl as packageProviderRequiresBaseUrl,
+  providerStatusCopy as packageProviderStatusCopy,
+  shouldShowProviderConnectBanner as packageShouldShowProviderConnectBanner,
+  sortProvidersForDisplay as packageSortProvidersForDisplay,
+  type ProviderStatusFlags,
+} from "@altai/agent-ui";
+import { KNOWN_PROVIDERS } from "../shared/providerCatalog.js";
 
-export type ProviderStatusFlags = {
-  providerStatus: boolean;
-};
+export type { ProviderStatusFlags, KnownProviderEntry } from "@altai/agent-ui";
 
-/**
- * Show provider status chrome only when the full status/connect/clear capability
- * is advertised (no dead Connect buttons).
- */
 export function canMountProviderStatus(flags: ProviderStatusFlags): boolean {
-  return flags.providerStatus;
+  return packageCanMountProviderStatus(flags);
 }
 
-/**
- * Merge host provider status with the known catalog so every BYOK target is
- * visible even when the host returns a partial list.
- */
 export function mergeProviderCatalog(
   host: readonly ProviderStatus[],
 ): ProviderStatus[] {
-  const byId = new Map<string, ProviderStatus>();
-  for (const entry of KNOWN_PROVIDERS) {
-    byId.set(entry.id, {
-      providerId: entry.id,
-      label: entry.label,
-      connected: Boolean(entry.keyless),
-    });
-  }
-  for (const status of host) {
-    const id = status.providerId.trim();
-    if (!id) {
-      continue;
-    }
-    const known = knownProviderById(id);
-    const prev = byId.get(id);
-    byId.set(id, {
-      providerId: id,
-      connected: status.connected,
-      label: status.label?.trim() || known?.label || prev?.label || id,
-      ...(status.error ? { error: status.error } : {}),
-    });
-  }
-  return sortProvidersForDisplay([...byId.values()]);
+  return packageMergeProviderCatalog(host, KNOWN_PROVIDERS);
 }
 
-/**
- * Sort providers: disconnected and errored first so attention is visible.
- */
 export function sortProvidersForDisplay(
   providers: readonly ProviderStatus[],
 ): ProviderStatus[] {
-  return [...providers].sort((a, b) => {
-    const score = (item: ProviderStatus): number => {
-      if (item.error) {
-        return 0;
-      }
-      if (!item.connected) {
-        return 1;
-      }
-      return 2;
-    };
-    const delta = score(a) - score(b);
-    if (delta !== 0) {
-      return delta;
-    }
-    return displayProviderLabel(a).localeCompare(displayProviderLabel(b));
-  });
+  return packageSortProvidersForDisplay(providers, KNOWN_PROVIDERS);
 }
 
 export function displayProviderLabel(provider: ProviderStatus): string {
-  const label = provider.label?.trim();
-  if (label && label.length > 0) {
-    return label;
-  }
-  return knownProviderById(provider.providerId)?.label ?? provider.providerId;
+  return packageDisplayProviderLabel(provider, KNOWN_PROVIDERS);
 }
 
-/** Short status copy for list rows. */
 export function providerStatusCopy(provider: ProviderStatus): string {
-  if (provider.error) {
-    return provider.error;
-  }
-  if (knownProviderById(provider.providerId)?.keyless) {
-    return provider.connected ? "Local (no key)" : "Not ready";
-  }
-  return provider.connected ? "API key saved" : "Not connected";
+  return packageProviderStatusCopy(provider, KNOWN_PROVIDERS);
 }
 
 export function providerConsoleUrl(providerId: string): string | undefined {
-  return knownProviderById(providerId)?.consoleUrl;
+  return packageProviderConsoleUrl(providerId, KNOWN_PROVIDERS);
 }
 
 export function providerRequiresBaseUrl(providerId: string): boolean {
-  return Boolean(knownProviderById(providerId)?.requiresBaseUrl);
+  return packageProviderRequiresBaseUrl(providerId, KNOWN_PROVIDERS);
 }
 
 export function isKeylessProvider(provider: {
   providerId?: string;
   keyless?: boolean;
 }): boolean {
-  if (provider.keyless) {
-    return true;
-  }
-  if (provider.providerId) {
-    return Boolean(knownProviderById(provider.providerId)?.keyless);
-  }
-  return false;
+  return packageIsKeylessProvider(provider, KNOWN_PROVIDERS);
 }
 
-/** True when at least one non-keyless provider reports connected credentials. */
 export function hasConnectedProvider(
   providers: readonly ProviderStatus[],
 ): boolean {
-  return providers.some(
-    (provider) =>
-      provider.connected && !knownProviderById(provider.providerId)?.keyless,
-  );
+  return packageHasConnectedProvider(providers, KNOWN_PROVIDERS);
 }
 
-/**
- * Compact connect banner belongs above the composer when status is ready and
- * no usable provider connection is available yet.
- */
 export function shouldShowProviderConnectBanner(input: {
   providerStatus: boolean;
   ready: boolean;
   providers: readonly ProviderStatus[];
 }): boolean {
-  return (
-    input.providerStatus &&
-    input.ready &&
-    !hasConnectedProvider(input.providers)
-  );
+  return packageShouldShowProviderConnectBanner({
+    ...input,
+    knownProviders: KNOWN_PROVIDERS,
+  });
 }
 
-/**
- * Prefer a disconnected cloud provider for Connect.
- */
 export function firstConnectableProvider(
   providers: readonly ProviderStatus[],
 ): ProviderStatus | null {
-  if (providers.length === 0) {
-    return null;
-  }
-  const sorted = sortProvidersForDisplay(providers);
-  return (
-    sorted.find(
-      (provider) =>
-        !provider.connected && !knownProviderById(provider.providerId)?.keyless,
-    ) ??
-    sorted.find((provider) => !provider.connected) ??
-    sorted[0] ??
-    null
-  );
+  return packageFirstConnectableProvider(providers, KNOWN_PROVIDERS);
 }
