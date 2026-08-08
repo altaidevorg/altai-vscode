@@ -7,6 +7,7 @@
 
 import {
   AiDisplayMessageBubble,
+  AiDisplayMessageEditForm,
   AiDisplayTranscriptList,
   AiUserTurnBody,
   hasDisplayMessageActions,
@@ -106,58 +107,19 @@ export function ChatMessageList({
         streaming={Boolean(message.streaming)}
         isEditing={isEditing}
         editSlot={
-          <div className="altai-chat-edit">
-            <textarea
-              className="altai-chat-edit-input"
-              value={draft}
-              rows={3}
-              aria-label="Edit message"
-              disabled={editingBusy}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Enter" &&
-                  (event.metaKey || event.ctrlKey) &&
-                  !event.nativeEvent.isComposing
-                ) {
-                  event.preventDefault();
-                  const next = draft.trim();
-                  if (next && onEditUserMessage) {
-                    onEditUserMessage(message.id, next);
-                    setEditingId(null);
-                  }
-                }
-                if (event.key === "Escape") {
-                  event.preventDefault();
-                  setEditingId(null);
-                }
-              }}
-            />
-            <div className="altai-chat-edit-actions">
-              <button
-                type="button"
-                className="altai-composer-stop"
-                disabled={editingBusy}
-                onClick={() => setEditingId(null)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="altai-composer-submit"
-                disabled={editingBusy || !draft.trim()}
-                onClick={() => {
-                  const next = draft.trim();
-                  if (next && onEditUserMessage) {
-                    onEditUserMessage(message.id, next);
-                    setEditingId(null);
-                  }
-                }}
-              >
-                {editingBusy ? "Saving…" : "Save & resend"}
-              </button>
-            </div>
-          </div>
+          <AiDisplayMessageEditForm
+            value={draft}
+            disabled={editingBusy}
+            onChange={setDraft}
+            onCancel={() => setEditingId(null)}
+            onSave={() => {
+              const next = draft.trim();
+              if (next && onEditUserMessage) {
+                onEditUserMessage(message.id, next);
+                setEditingId(null);
+              }
+            }}
+          />
         }
         body={
           <>
