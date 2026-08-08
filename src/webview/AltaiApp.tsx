@@ -146,6 +146,7 @@ import {
   composeRunPrompt,
   newContextItemId,
   toContextChips,
+  toRunAttachments,
   type ComposerContextItem,
 } from "./composerContext.js";
 import {
@@ -164,6 +165,13 @@ import {
   canEnableComposerStop,
   composerSubmitChromeMode,
 } from "./composerSubmitChrome.js";
+import { executeComposerSubmit } from "./composerSubmitExecute.js";
+import {
+  composerAvailabilityForFollowupMode,
+  draftValueForComposerSubmit,
+  followupModeToComposerAction,
+} from "./vscodeComposerSubmit.js";
+import { hasComposerDraft } from "@altai/agent-ui";
 import { ArrowUpIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -1308,21 +1316,31 @@ function AgentUiShell({
 
   const onSubmit = async (preferSteer = false): Promise<void> => {
     const text = prompt.trim();
-    if (
-      (!text && contextItems.length === 0 && pickedSnippets.length === 0) ||
-      busy
-    ) {
+    const hasBody =
+      Boolean(text) ||
+      contextItems.length > 0 ||
+      pickedSnippets.length > 0;
+    if (!hasBody || busy) {
       return;
     }
 
-    // Whole-line slash commands (no attachment payload required).
-    if (text.startsWith("/") && contextItems.length === 0 && pickedSnippets.length === 0) {
+    // Whole-line slash host actions stay host-local (async side effects).
+    let baseText = text;
+    if (
+      text.startsWith("/") &&
+      contextItems.length === 0 &&
+      pickedSnippets.length === 0
+    ) {
       const outcome = tryRunSlashCommand(text);
       if (outcome.kind === "handled") {
         setBusy(true);
         setError(null);
         try {
-          await dispatchSlashAction(outcome.action, outcome.tail, outcome.toast);
+          await dispatchSlashAction(
+            outcome.action,
+            outcome.tail,
+            outcome.toast,
+          );
           setPrompt("");
         } catch (err) {
           setError(formatHostUserError(err));
@@ -1333,17 +1351,37 @@ function AgentUiShell({
       }
       if (outcome.kind === "send-prompt") {
         const mapped = applyComposerSlashOutcome(outcome, text);
-        const marked = [mapped.commandMarker, mapped.effectiveText]
+        baseText = [mapped.commandMarker, mapped.effectiveText]
           .filter(Boolean)
           .join("\n\n");
-        await submitExpandedPrompt(marked, preferSteer, text);
-        return;
       }
     }
 
-    // Expand #snippet tokens (and picked chips) before context blocks.
+    const mode = resolveComposerSubmitMode({
+      hasActiveRun: Boolean(activeRunId && activeChatId),
+      canStartRun,
+      canSteer,
+      canQueue,
+      hasPrompt: hasBody,
+      preferSteer,
+    });
+
+    if (mode === "start" && !canStartRun) {
+      return;
+    }
+    if (mode === "steer" && (!canSteer || !activeChatId || !activeRunId)) {
+      return;
+    }
+    if (mode === "queue" && !canQueue) {
+      return;
+    }
+    // Steer has no attachment protocol in this slice — require a text prompt.
+    if (mode === "steer" && !baseText.trim() && !text) {
+      return;
+    }
+
     const withSnippets = composePromptWithSnippets(
-      text,
+      baseText,
       snippetCatalog,
       pickedSnippets,
     );
@@ -1352,11 +1390,131 @@ function AgentUiShell({
       (pickedSnippets.length > 0
         ? pickedSnippets.map((s) => `#${s.handle}`).join(" ")
         : undefined);
-    await submitExpandedPrompt(
-      withSnippets.prompt,
-      preferSteer,
-      displayText,
-    );
+
+    const agent = resolveComposerAgent(selectedAgentId);
+    let draftValue: string;
+    let runAttachments = toRunAttachments(contextItems);
+    if (mode === "steer") {
+      // Steer sends wire text only (no context/agent prefix; mirrors prior host).
+      draftValue = withSnippets.prompt.trim() || baseText.trim();
+      if (!draftValue) {
+        return;
+      }
+      runAttachments = [];
+    } else {
+      const bodyForRun =
+        withSnippets.prompt.trim() ||
+        draftValueForComposerSubmit({
+          text: baseText,
+          contextItems,
+          snippetCount: pickedSnippets.length,
+        });
+      const hostBody = applyAgentPromptPrefix(bodyForRun, agent);
+      const composed = composeRunPrompt(
+        hostBody || "Please review the attached context.",
+        contextItems,
+      );
+      draftValue = composed.prompt;
+      runAttachments = composed.attachments;
+    }
+
+    const action = followupModeToComposerAction(mode);
+    const draft = {
+      value: draftValue,
+      files: [] as const,
+      snippets: [] as const,
+      commands: [] as const,
+    };
+    if (!hasComposerDraft(draft)) {
+      return;
+    }
+    const availability = composerAvailabilityForFollowupMode(mode, {
+      hasDraft: true,
+      runId: activeRunId,
+      submitting: false,
+    });
+
+    setBusy(true);
+    setError(null);
+    setRunBlockedMessage(null);
+    setRunWarningMessage(null);
+    try {
+      const result = await executeComposerSubmit({
+        action,
+        availability,
+        draft,
+        catalog: [],
+        sessionId: activeChatId,
+        runId: activeRunId,
+        host: {
+          onError: ({ error }) => {
+            setError(formatHostUserError(error));
+          },
+          steer: async ({ composed }) => {
+            if (!activeChatId || !activeRunId) {
+              return false;
+            }
+            await ports.runtime.steerRun({
+              chatId: activeChatId,
+              runId: activeRunId,
+              prompt: composed,
+            });
+            const shown = (displayText ?? composed).trim() || composed;
+            setMessages((prev) => appendUserMessage(prev, shown));
+            setMessages((prev) => appendMetaMessage(prev, "Steer sent"));
+            setPrompt("");
+            setPickedSnippets([]);
+            return true;
+          },
+          send: async ({ composed, queue }) => {
+            const runModelId = modelIdForStartRun(selectedModelId);
+            const shown =
+              (displayText ?? text).trim() ||
+              "Please review the attached context.";
+            const chips = toContextChips(contextItems);
+            const ref = await ports.runtime.startRun({
+              prompt: composed,
+              ...(activeChatId ? { chatId: activeChatId } : {}),
+              ...(permissionMode ? { permissionMode } : {}),
+              ...(runModelId ? { modelId: runModelId } : {}),
+              ...(queue ? { queue: true } : {}),
+              ...(runAttachments.length > 0
+                ? { attachments: runAttachments }
+                : {}),
+            });
+            setActiveChatId(ref.chatId);
+            if (!queue) {
+              setActiveRunId(ref.runId);
+              setRunUsage(ZERO_RUN_USAGE);
+            }
+            rememberTab(ref.chatId);
+            setMessages((prev) =>
+              appendUserMessage(prev, shown, {
+                chips,
+              }),
+            );
+            if (queue) {
+              setMessages((prev) =>
+                appendMetaMessage(prev, "Queued next run"),
+              );
+            }
+            setPrompt("");
+            setContextItems([]);
+            setPickedSnippets([]);
+            setSessionListKey((key) => key + 1);
+            if (ref.chatId !== activeChatId) {
+              onFocusChat({ chatId: ref.chatId });
+            }
+            return true;
+          },
+        },
+      });
+      if (result.kind === "error") {
+        // onError already set message when host threw
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const dispatchSlashAction = async (
@@ -1687,109 +1845,6 @@ function AgentUiShell({
     }
     if (toast) {
       setMessages((prev) => appendMetaMessage(prev, toast));
-    }
-  };
-
-  const submitExpandedPrompt = async (
-    text: string,
-    preferSteer: boolean,
-    displayText?: string,
-  ): Promise<void> => {
-    if ((!text && contextItems.length === 0) || busy) {
-      return;
-    }
-    const shown = (displayText ?? text).trim() || text.trim();
-    const mode = resolveComposerSubmitMode({
-      hasActiveRun: Boolean(activeRunId && activeChatId),
-      canStartRun,
-      canSteer,
-      canQueue,
-      hasPrompt: Boolean(text || contextItems.length > 0),
-      preferSteer,
-    });
-
-    if (mode === "start" && !canStartRun) {
-      return;
-    }
-    if (mode === "steer" && (!canSteer || !activeChatId || !activeRunId)) {
-      return;
-    }
-    if (mode === "queue" && !canQueue) {
-      return;
-    }
-
-    // Steer has no attachment protocol in this slice — require a text prompt.
-    if (mode === "steer" && !text) {
-      return;
-    }
-
-    const agent = resolveComposerAgent(selectedAgentId);
-    const hostPrompt =
-      mode === "steer" ? text : applyAgentPromptPrefix(text, agent);
-
-    setBusy(true);
-    setError(null);
-    setRunBlockedMessage(null);
-    setRunWarningMessage(null);
-    try {
-      if (mode === "steer" && activeChatId && activeRunId) {
-        await ports.runtime.steerRun({
-          chatId: activeChatId,
-          runId: activeRunId,
-          prompt: hostPrompt,
-        });
-        setMessages((prev) => appendUserMessage(prev, shown));
-        setMessages((prev) => appendMetaMessage(prev, "Steer sent"));
-        setPrompt("");
-        setPickedSnippets([]);
-        return;
-      }
-
-      const composed = composeRunPrompt(
-        hostPrompt || "Please review the attached context.",
-        contextItems,
-      );
-      const chips = toContextChips(contextItems);
-      const runModelId = modelIdForStartRun(selectedModelId);
-      const ref = await ports.runtime.startRun({
-        prompt: composed.prompt,
-        ...(activeChatId ? { chatId: activeChatId } : {}),
-        ...(permissionMode ? { permissionMode } : {}),
-        ...(runModelId ? { modelId: runModelId } : {}),
-        ...(mode === "queue" ? { queue: true } : {}),
-        ...(composed.attachments.length > 0
-          ? { attachments: composed.attachments }
-          : {}),
-      });
-      setActiveChatId(ref.chatId);
-      if (mode !== "queue") {
-        setActiveRunId(ref.runId);
-        setRunUsage(ZERO_RUN_USAGE);
-      }
-      rememberTab(ref.chatId);
-      setMessages((prev) =>
-        appendUserMessage(
-          prev,
-          shown || "Please review the attached context.",
-          {
-            chips,
-          },
-        ),
-      );
-      if (mode === "queue") {
-        setMessages((prev) => appendMetaMessage(prev, "Queued next run"));
-      }
-      setPrompt("");
-      setContextItems([]);
-      setPickedSnippets([]);
-      setSessionListKey((key) => key + 1);
-      if (ref.chatId !== activeChatId) {
-        onFocusChat({ chatId: ref.chatId });
-      }
-    } catch (err) {
-      setError(formatHostUserError(err));
-    } finally {
-      setBusy(false);
     }
   };
 
