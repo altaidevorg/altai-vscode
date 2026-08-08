@@ -87,6 +87,7 @@
     "test/unit/aiSdkUiPartSwitch.test.ts",
     "test/unit/aiSdkToolPartSwitch.test.ts",
     "test/unit/chatSdkAssistantChrome.test.ts",
+    "test/unit/assistantSdkGroupsState.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
