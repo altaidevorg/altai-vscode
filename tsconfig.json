@@ -70,6 +70,7 @@
     "test/unit/sessionMutateChrome.test.ts",
     "test/unit/chatKeyboardChrome.test.ts",
     "test/unit/composerAttachChrome.test.ts",
+    "test/unit/composerCaretChrome.test.ts",
     "test/unit/composerSnippets.test.ts",
     "test/unit/composerAttachments.test.ts",
     "test/unit/composerSubmitCompose.test.ts",

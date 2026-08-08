@@ -1,36 +1,9 @@
 /**
  * Pure caret helpers for the VS Code chat composer.
+ * Shared implementation lives in `@altai/agent-ui` (A6.82).
  */
 
-/** Prefer a finite selection index; otherwise treat caret as end of draft. */
-export function resolveComposerCaret(
-  selectionStart: number | null | undefined,
-  valueLength: number,
-): number {
-  if (
-    typeof selectionStart === "number" &&
-    Number.isFinite(selectionStart) &&
-    selectionStart >= 0
-  ) {
-    return Math.min(selectionStart, Math.max(0, valueLength));
-  }
-  return Math.max(0, valueLength);
-}
-
-/**
- * After an uncontrolled-looking controlled update, if caret state is still 0
- * but text grew, jump caret to end so `/` `#` `@` triggers fire immediately.
- */
-export function advanceCaretAfterDraftChange(
-  previousCaret: number,
-  nextValue: string,
-  previousValueLength: number,
-): number {
-  if (nextValue.length === 0) {
-    return 0;
-  }
-  if (previousCaret === 0 && nextValue.length > previousValueLength) {
-    return nextValue.length;
-  }
-  return previousCaret;
-}
+export {
+  advanceCaretAfterDraftChange,
+  resolveComposerCaret,
+} from "@altai/agent-ui";
