@@ -119,6 +119,7 @@
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/agentPickerChrome.test.ts",
     "test/unit/chatWorkspaceTopbar.test.ts",
+    "test/unit/composerSlashCommands.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
     "out",
