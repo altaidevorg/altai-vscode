@@ -135,6 +135,7 @@ import {
   removePickedSnippet,
   type Snippet,
 } from "./composerSnippets.js";
+import { applyComposerSlashOutcome } from "./composerDraft.js";
 import {
   parseSnippetsJson,
 } from "../shared/extensionPreferences.js";
@@ -1330,7 +1331,11 @@ function AgentUiShell({
         return;
       }
       if (outcome.kind === "send-prompt") {
-        await submitExpandedPrompt(outcome.prompt, preferSteer);
+        const mapped = applyComposerSlashOutcome(outcome, text);
+        const marked = [mapped.commandMarker, mapped.effectiveText]
+          .filter(Boolean)
+          .join("\n\n");
+        await submitExpandedPrompt(marked, preferSteer, text);
         return;
       }
     }
