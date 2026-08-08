@@ -60,6 +60,7 @@
     "test/unit/transcriptGroupChrome.test.ts",
     "test/unit/messageCopyChrome.test.ts",
     "test/unit/transcriptCopyChrome.test.ts",
+    "test/unit/projectTargetChrome.test.ts",
     "test/unit/surfaceTabsChrome.test.ts",
     "test/unit/shellChrome.test.ts",
     "test/unit/composerSubmitChrome.test.ts",
