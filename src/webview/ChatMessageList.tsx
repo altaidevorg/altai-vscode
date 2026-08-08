@@ -10,7 +10,10 @@ import {
   chatDisplayRoleLabel,
   CommandSnippet,
   ContextChips,
+  hasDisplayMessageActions,
   HoverActionButton,
+  lastAssistantMessageId,
+  resolveDisplayMessageActions,
   TodoChecklist,
   UnifiedDiffPreview,
   useCapability,
@@ -22,7 +25,6 @@ import { useState } from "react";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 import { ChatMessageContent } from "./ChatMessageContent.js";
 import { type ToolGroupKind } from "./transcriptGroupChrome.js";
-import { canCopyDisplayMessage } from "./messageCopyChrome.js";
 
 export type ChatMessageListProps = {
   messages: readonly ChatDisplayMessage[];
@@ -68,36 +70,27 @@ export function ChatMessageList({
   const [openingId, setOpeningId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const lastAssistantId = [...messages]
-    .reverse()
-    .find((message) => message.role === "assistant")?.id;
+  const lastAssistantId = lastAssistantMessageId(messages);
 
   const renderMessage = (message: ChatDisplayMessage) => {
     const label = chatDisplayRoleLabel(message.role);
     const isEditing = editingId === message.id;
-    const showEdit =
-      message.role === "user" &&
-      canEditUserMessages &&
-      Boolean(onEditUserMessage) &&
-      !message.streaming;
-    const showRetry =
-      message.role === "assistant" &&
-      message.id === lastAssistantId &&
-      canRetry &&
-      Boolean(onRetry) &&
-      !message.streaming;
-    const showOpenFile =
-      message.role === "tool" &&
-      canOpenFile &&
-      Boolean(message.fileUri) &&
-      !message.streaming;
-    const showOpenDiff =
-      message.role === "tool" &&
-      canOpenDiff &&
-      message.diffOriginalText !== undefined &&
-      message.diffModifiedText !== undefined &&
-      !message.streaming;
-    const showCopy = canCopyDisplayMessage(message);
+    const {
+      showEdit,
+      showRetry,
+      showCopy,
+      showOpenFile,
+      showOpenDiff,
+    } = resolveDisplayMessageActions({
+      message,
+      lastAssistantId,
+      canEditUserMessages,
+      canRetry,
+      canOpenFile,
+      canOpenDiff,
+      hasEditHandler: Boolean(onEditUserMessage),
+      hasRetryHandler: Boolean(onRetry),
+    });
 
     return (
       <article
@@ -195,8 +188,14 @@ export function ChatMessageList({
             ) : null}
           </>
         )}
-        {(showEdit || showRetry || showOpenFile || showOpenDiff || showCopy) &&
-        !isEditing ? (
+        {(hasDisplayMessageActions({
+          showEdit,
+          showRetry,
+          showOpenFile,
+          showOpenDiff,
+          showCopy,
+        }) &&
+          !isEditing) ? (
           <footer className="altai-chat-bubble-actions">
             {showCopy ? (
               <HoverActionButton

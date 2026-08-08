@@ -1,17 +1,13 @@
 /**
- * When to offer a Copy action on a transcript bubble.
+ * VS Code re-exports shared display-message action flags from
+ * `@altai/agent-ui` (A6.39). Host still owns clipboard / open-file I/O.
  */
 
-export function canCopyDisplayMessage(input: {
-  role: string;
-  content: string;
-  streaming?: boolean;
-}): boolean {
-  if (input.streaming) {
-    return false;
-  }
-  if (input.role !== "user" && input.role !== "assistant") {
-    return false;
-  }
-  return input.content.trim().length > 0;
-}
+export {
+  canCopyDisplayMessage,
+  hasDisplayMessageActions,
+  lastAssistantMessageId,
+  resolveDisplayMessageActions,
+  type DisplayMessageActionFlags,
+  type DisplayMessageActionInput,
+} from "@altai/agent-ui";
