@@ -99,6 +99,7 @@
     "test/unit/aiDisplayMessageActions.test.ts",
     "test/unit/displayMessageActionsFooter.test.ts",
     "test/unit/aiComposerCompactControl.test.ts",
+    "test/unit/aiComposerFollowupControl.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
