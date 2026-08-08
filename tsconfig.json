@@ -38,6 +38,7 @@
     "test/unit/sessionTranscript.test.ts",
     "test/unit/sessionHistoryMap.test.ts",
     "test/unit/permissionModeChrome.test.ts",
+    "test/unit/skillsStatusChrome.test.ts",
     "test/unit/interactivePrompt.test.ts",
     "test/unit/modelPickerChrome.test.ts",
     "test/unit/providerStatusChrome.test.ts",
