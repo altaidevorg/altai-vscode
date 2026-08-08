@@ -5,6 +5,8 @@
 import {
   ComposerSuggestionList,
   detectSlashOrSnippetTrigger,
+  resolveComposerSuggestionKeyAction,
+  resolveComposerSuggestionOpen,
   type ComposerSuggestionItem,
 } from "@altai/agent-ui";
 import {
@@ -52,10 +54,12 @@ export function ChatComposerSnippet({
     return detectSlashOrSnippetTrigger(prompt, cursor);
   }, [prompt, cursor, disabled]);
 
-  const snippetOpen =
-    Boolean(trigger) && trigger?.prefix === "#" && !forceClosed;
+  const { open: snippetOpen, query } = resolveComposerSuggestionOpen({
+    trigger,
+    forceClosed,
+    prefix: "#",
+  });
 
-  const query = snippetOpen && trigger ? trigger.query : "";
   const matches = useMemo(
     () => (snippetOpen ? findSnippets(catalog, query).slice(0, 24) : []),
     [snippetOpen, catalog, query],
@@ -92,30 +96,26 @@ export function ChatComposerSnippet({
           return false;
         }
         const snap = stateRef.current;
-        if (key === "Escape") {
+        const action = resolveComposerSuggestionKeyAction(key, {
+          matchCount: snap.matches.length,
+          activeIndex: snap.activeIndex,
+        });
+        if (action.type === "close") {
           setForceClosed(true);
           return true;
         }
-        if (snap.matches.length === 0) {
+        if (action.type === "ignore") {
           return false;
         }
-        if (key === "ArrowDown") {
-          setActiveIndex((i) =>
-            Math.min(snap.matches.length - 1, i + 1),
-          );
+        if (action.type === "move") {
+          setActiveIndex(action.index);
           return true;
         }
-        if (key === "ArrowUp") {
-          setActiveIndex((i) => Math.max(0, i - 1));
+        const snippet = snap.matches[action.index];
+        if (snippet) {
+          onPickSnippet(snippet);
+          setForceClosed(true);
           return true;
-        }
-        if (key === "Enter" || key === "Tab") {
-          const snippet = snap.matches[snap.activeIndex];
-          if (snippet) {
-            onPickSnippet(snippet);
-            setForceClosed(true);
-            return true;
-          }
         }
         return false;
       },
