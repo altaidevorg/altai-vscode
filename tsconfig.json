@@ -90,6 +90,7 @@
     "test/unit/assistantSdkGroupsState.test.ts",
     "test/unit/aiAssistantRunActions.test.ts",
     "test/unit/aiDisplayMessageBubble.test.ts",
+    "test/unit/aiDisplayMessageEditForm.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
