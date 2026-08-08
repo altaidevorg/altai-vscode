@@ -25,6 +25,20 @@ describe("displayMessagesFromSession", () => {
     expect(messages[0]?.content).toBe("hi");
   });
 
+  it("strips command markers and context chips for user turns", () => {
+    const raw = [
+      '<altai-command name="init" />',
+      '<terminal-context name="zsh">\nls\n</terminal-context>',
+      "please review",
+    ].join("\n\n");
+    const [user] = displayMessagesFromSession([
+      { id: "u", role: "user", content: raw },
+    ]);
+    expect(user?.commandName).toBe("init");
+    expect(user?.chips?.some((c) => c.kind === "terminal")).toBe(true);
+    expect(user?.content).toBe("please review");
+  });
+
   it("treats only user/assistant as conversation content", () => {
     expect(shouldShowChatEmptyHome([])).toBe(true);
     expect(
