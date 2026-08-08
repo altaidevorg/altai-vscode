@@ -2,13 +2,13 @@
  * Role-styled chat transcript cards for the VS Code webview.
  * User bubbles support inline edit + resend when the host allows truncate.
  * List chrome + tool collapse live in shared AiDisplayTranscriptList (A6.38).
+ * Bubble shell: AiDisplayMessageBubble (A6.51).
  */
 
 import {
+  AiDisplayMessageBubble,
   AiDisplayTranscriptList,
   AiUserTurnBody,
-  chatDisplayBubbleClassName,
-  chatDisplayRoleLabel,
   hasDisplayMessageActions,
   HoverActionButton,
   lastAssistantMessageId,
@@ -72,7 +72,6 @@ export function ChatMessageList({
   const lastAssistantId = lastAssistantMessageId(messages);
 
   const renderMessage = (message: ChatDisplayMessage) => {
-    const label = chatDisplayRoleLabel(message.role);
     const isEditing = editingId === message.id;
     const {
       showEdit,
@@ -91,18 +90,22 @@ export function ChatMessageList({
       hasRetryHandler: Boolean(onRetry),
     });
 
+    const showActions = hasDisplayMessageActions({
+      showEdit,
+      showRetry,
+      showOpenFile,
+      showOpenDiff,
+      showCopy,
+    });
+
     return (
-      <article
+      <AiDisplayMessageBubble
         key={message.id}
-        id={`altai-msg-${message.id}`}
-        className={chatDisplayBubbleClassName(message.role)}
-        data-role={message.role}
-        data-streaming={message.streaming ? "true" : undefined}
-      >
-        {label ? (
-          <header className="altai-chat-bubble-label">{label}</header>
-        ) : null}
-        {isEditing ? (
+        messageId={message.id}
+        role={message.role}
+        streaming={Boolean(message.streaming)}
+        isEditing={isEditing}
+        editSlot={
           <div className="altai-chat-edit">
             <textarea
               className="altai-chat-edit-input"
@@ -155,7 +158,8 @@ export function ChatMessageList({
               </button>
             </div>
           </div>
-        ) : (
+        }
+        body={
           <>
             <AiUserTurnBody
               commandName={message.commandName}
@@ -186,127 +190,122 @@ export function ChatMessageList({
               </div>
             ) : null}
           </>
-        )}
-        {(hasDisplayMessageActions({
-          showEdit,
-          showRetry,
-          showOpenFile,
-          showOpenDiff,
-          showCopy,
-        }) &&
-          !isEditing) ? (
-          <footer className="altai-chat-bubble-actions">
-            {showCopy ? (
-              <HoverActionButton
-                title="Copy message"
-                onClick={() => {
-                  void (async () => {
-                    try {
-                      await navigator.clipboard.writeText(message.content);
-                      setCopiedId(message.id);
-                      window.setTimeout(() => {
-                        setCopiedId((id) =>
-                          id === message.id ? null : id,
+        }
+        actions={
+          showActions ? (
+            <>
+              {showCopy ? (
+                <HoverActionButton
+                  title="Copy message"
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        await navigator.clipboard.writeText(message.content);
+                        setCopiedId(message.id);
+                        window.setTimeout(() => {
+                          setCopiedId((id) =>
+                            id === message.id ? null : id,
+                          );
+                        }, 1500);
+                      } catch (err: unknown) {
+                        onOpenFileError?.(
+                          err instanceof Error ? err.message : String(err),
                         );
-                      }, 1500);
-                    } catch (err: unknown) {
-                      onOpenFileError?.(
-                        err instanceof Error ? err.message : String(err),
-                      );
-                    }
-                  })();
-                }}
-              >
-                {copiedId === message.id ? "Copied" : "Copy"}
-              </HoverActionButton>
-            ) : null}
-            {showEdit ? (
-              <HoverActionButton
-                title="Edit message"
-                disabled={editingBusy}
-                onClick={() => {
-                  setEditingId(message.id);
-                  setDraft(message.content);
-                }}
-              >
-                Edit
-              </HoverActionButton>
-            ) : null}
-            {showRetry ? (
-              <HoverActionButton
-                title="Retry"
-                disabled={editingBusy}
-                onClick={() => onRetry?.()}
-              >
-                Retry
-              </HoverActionButton>
-            ) : null}
-            {showOpenDiff ? (
-              <HoverActionButton
-                title={
-                  message.filePath
-                    ? `Review diff for ${message.filePath}`
-                    : "Open diff"
-                }
-                disabled={openingId === message.id}
-                onClick={() => {
-                  setOpeningId(message.id);
-                  void ports.workspace
-                    .openDiff({
-                      title: message.filePath
-                        ? `ALTAI · ${message.filePath}`
-                        : "ALTAI review",
-                      originalText: message.diffOriginalText ?? "",
-                      modifiedText: message.diffModifiedText ?? "",
-                      ...(message.filePath
-                        ? { path: message.filePath }
-                        : {}),
-                    })
-                    .catch((err: unknown) => {
-                      onOpenFileError?.(
-                        err instanceof Error ? err.message : String(err),
-                      );
-                    })
-                    .finally(() => {
-                      setOpeningId(null);
-                    });
-                }}
-              >
-                {openingId === message.id ? "Opening…" : "Diff"}
-              </HoverActionButton>
-            ) : null}
-            {showOpenFile ? (
-              <HoverActionButton
-                title={
-                  message.filePath
-                    ? `Open ${message.filePath}`
-                    : "Open file"
-                }
-                disabled={openingId === message.id}
-                onClick={() => {
-                  const uri = message.fileUri;
-                  if (!uri) {
-                    return;
+                      }
+                    })();
+                  }}
+                >
+                  {copiedId === message.id ? "Copied" : "Copy"}
+                </HoverActionButton>
+              ) : null}
+              {showEdit ? (
+                <HoverActionButton
+                  title="Edit message"
+                  disabled={editingBusy}
+                  onClick={() => {
+                    setEditingId(message.id);
+                    setDraft(message.content);
+                  }}
+                >
+                  Edit
+                </HoverActionButton>
+              ) : null}
+              {showRetry ? (
+                <HoverActionButton
+                  title="Retry"
+                  disabled={editingBusy}
+                  onClick={() => onRetry?.()}
+                >
+                  Retry
+                </HoverActionButton>
+              ) : null}
+              {showOpenDiff ? (
+                <HoverActionButton
+                  title={
+                    message.filePath
+                      ? `Review diff for ${message.filePath}`
+                      : "Open diff"
                   }
-                  setOpeningId(message.id);
-                  void ports.workspace
-                    .openFile(uri)
-                    .catch((err: unknown) => {
-                      onOpenFileError?.(
-                        err instanceof Error ? err.message : String(err),
-                      );
-                    })
-                    .finally(() => {
-                      setOpeningId(null);
-                    });
-                }}
-              >
-                {openingId === message.id ? "Opening…" : "Open"}
-              </HoverActionButton>
-            ) : null}
-          </footer>
-        ) : null}
-      </article>
+                  disabled={openingId === message.id}
+                  onClick={() => {
+                    setOpeningId(message.id);
+                    void ports.workspace
+                      .openDiff({
+                        title: message.filePath
+                          ? `ALTAI · ${message.filePath}`
+                          : "ALTAI review",
+                        originalText: message.diffOriginalText ?? "",
+                        modifiedText: message.diffModifiedText ?? "",
+                        ...(message.filePath
+                          ? { path: message.filePath }
+                          : {}),
+                      })
+                      .catch((err: unknown) => {
+                        onOpenFileError?.(
+                          err instanceof Error ? err.message : String(err),
+                        );
+                      })
+                      .finally(() => {
+                        setOpeningId(null);
+                      });
+                  }}
+                >
+                  {openingId === message.id ? "Opening…" : "Diff"}
+                </HoverActionButton>
+              ) : null}
+              {showOpenFile ? (
+                <HoverActionButton
+                  title={
+                    message.filePath
+                      ? `Open ${message.filePath}`
+                      : "Open file"
+                  }
+                  disabled={openingId === message.id}
+                  onClick={() => {
+                    const uri = message.fileUri;
+                    if (!uri) {
+                      return;
+                    }
+                    setOpeningId(message.id);
+                    void ports.workspace
+                      .openFile(uri)
+                      .catch((err: unknown) => {
+                        onOpenFileError?.(
+                          err instanceof Error ? err.message : String(err),
+                        );
+                      })
+                      .finally(() => {
+                        setOpeningId(null);
+                      });
+                  }}
+                >
+                  {openingId === message.id ? "Opening…" : "Open"}
+                </HoverActionButton>
+              ) : null}
+            </>
+          ) : undefined
+        }
+      />
     );
   };
 
