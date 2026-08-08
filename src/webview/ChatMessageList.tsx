@@ -10,6 +10,11 @@ import {
   AiDisplayMessageEditForm,
   AiDisplayTranscriptList,
   AiUserTurnBody,
+  displayCopyActionLabel,
+  displayDiffReviewTitle,
+  displayOpenDiffActionTitle,
+  displayOpenFileActionTitle,
+  displayOpeningActionLabel,
   hasDisplayMessageActions,
   HoverActionButton,
   lastAssistantMessageId,
@@ -177,7 +182,7 @@ export function ChatMessageList({
                     })();
                   }}
                 >
-                  {copiedId === message.id ? "Copied" : "Copy"}
+                  {displayCopyActionLabel(copiedId === message.id)}
                 </HoverActionButton>
               ) : null}
               {showEdit ? (
@@ -203,19 +208,13 @@ export function ChatMessageList({
               ) : null}
               {showOpenDiff ? (
                 <HoverActionButton
-                  title={
-                    message.filePath
-                      ? `Review diff for ${message.filePath}`
-                      : "Open diff"
-                  }
+                  title={displayOpenDiffActionTitle(message.filePath)}
                   disabled={openingId === message.id}
                   onClick={() => {
                     setOpeningId(message.id);
                     void ports.workspace
                       .openDiff({
-                        title: message.filePath
-                          ? `ALTAI · ${message.filePath}`
-                          : "ALTAI review",
+                        title: displayDiffReviewTitle(message.filePath),
                         originalText: message.diffOriginalText ?? "",
                         modifiedText: message.diffModifiedText ?? "",
                         ...(message.filePath
@@ -232,16 +231,15 @@ export function ChatMessageList({
                       });
                   }}
                 >
-                  {openingId === message.id ? "Opening…" : "Diff"}
+                  {displayOpeningActionLabel(
+                    openingId === message.id,
+                    "Diff",
+                  )}
                 </HoverActionButton>
               ) : null}
               {showOpenFile ? (
                 <HoverActionButton
-                  title={
-                    message.filePath
-                      ? `Open ${message.filePath}`
-                      : "Open file"
-                  }
+                  title={displayOpenFileActionTitle(message.filePath)}
                   disabled={openingId === message.id}
                   onClick={() => {
                     const uri = message.fileUri;
@@ -261,7 +259,10 @@ export function ChatMessageList({
                       });
                   }}
                 >
-                  {openingId === message.id ? "Opening…" : "Open"}
+                  {displayOpeningActionLabel(
+                    openingId === message.id,
+                    "Open",
+                  )}
                 </HoverActionButton>
               ) : null}
             </>
