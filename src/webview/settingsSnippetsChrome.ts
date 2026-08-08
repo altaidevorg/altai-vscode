@@ -1,38 +1,21 @@
 /**
  * Map extension preference snippets into the composer catalog shape.
+ * Shared mapping lives in `@altai/agent-ui` (A6.91); host keeps DEFAULT_SNIPPETS.
  */
 
 import type { SnippetPref } from "../shared/extensionPreferences.js";
 import type { Snippet } from "./composerSnippets.js";
-import { DEFAULT_SNIPPETS, normalizeHandle } from "./composerSnippets.js";
+import { DEFAULT_SNIPPETS } from "./composerSnippets.js";
+import {
+  mergeSnippetCatalogFromPrefs,
+  prefsToComposerSnippets as packagePrefsToComposerSnippets,
+} from "@altai/agent-ui";
 
 export function prefsToComposerSnippets(prefs: SnippetPref[]): Snippet[] {
-  return prefs
-    .map((pref) => {
-      const handle = normalizeHandle(pref.handle);
-      if (!handle) {
-        return null;
-      }
-      return {
-        id: pref.id || `pref-${handle}`,
-        handle,
-        name: `#${handle}`,
-        description: "Custom snippet from Settings → Agents",
-        content: pref.body,
-      } satisfies Snippet;
-    })
-    .filter((item): item is Snippet => item !== null);
+  return packagePrefsToComposerSnippets(prefs);
 }
 
 /** Built-ins first; user snippets override same handle. */
 export function mergeSnippetCatalog(user: SnippetPref[]): Snippet[] {
-  const custom = prefsToComposerSnippets(user);
-  const byHandle = new Map<string, Snippet>();
-  for (const snip of DEFAULT_SNIPPETS) {
-    byHandle.set(snip.handle, snip);
-  }
-  for (const snip of custom) {
-    byHandle.set(snip.handle, snip);
-  }
-  return [...byHandle.values()];
+  return mergeSnippetCatalogFromPrefs(DEFAULT_SNIPPETS, user);
 }
