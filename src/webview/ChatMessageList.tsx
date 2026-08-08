@@ -16,6 +16,7 @@ import {
   displayOpenDiffActionTitle,
   displayOpenFileActionTitle,
   displayOpeningActionLabel,
+  displayToolGroupIconKey,
   hasDisplayMessageActions,
   HoverActionButton,
   lastAssistantMessageId,
@@ -46,10 +47,11 @@ export type ChatMessageListProps = {
 };
 
 function groupIcon(kind: ToolGroupKind) {
+  const key = displayToolGroupIconKey(kind);
   const icon =
-    kind === "reads"
+    key === "file"
       ? File01Icon
-      : kind === "cmd"
+      : key === "terminal"
         ? TerminalIcon
         : Globe02Icon;
   return <HugeiconsIcon icon={icon} size={12} strokeWidth={1.75} />;
