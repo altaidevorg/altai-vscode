@@ -6,6 +6,7 @@
  */
 
 import {
+  AiDisplayMessageActions,
   AiDisplayMessageBodyExtras,
   AiDisplayMessageBubble,
   AiDisplayMessageEditForm,
@@ -17,7 +18,6 @@ import {
   displayOpenFileActionTitle,
   displayOpeningActionLabel,
   displayToolGroupIconKey,
-  hasDisplayMessageActions,
   HoverActionButton,
   lastAssistantMessageId,
   resolveDisplayMessageActions,
@@ -89,13 +89,7 @@ export function ChatMessageList({
 
   const renderMessage = (message: ChatDisplayMessage) => {
     const isEditing = editingId === message.id;
-    const {
-      showEdit,
-      showRetry,
-      showCopy,
-      showOpenFile,
-      showOpenDiff,
-    } = resolveDisplayMessageActions({
+    const actionFlags = resolveDisplayMessageActions({
       message,
       lastAssistantId,
       canEditUserMessages,
@@ -104,14 +98,6 @@ export function ChatMessageList({
       canOpenDiff,
       hasEditHandler: Boolean(onEditUserMessage),
       hasRetryHandler: Boolean(onRetry),
-    });
-
-    const showActions = hasDisplayMessageActions({
-      showEdit,
-      showRetry,
-      showOpenFile,
-      showOpenDiff,
-      showCopy,
     });
 
     return (
@@ -159,108 +145,107 @@ export function ChatMessageList({
           </AiDisplayMessageBodyExtras>
         }
         actions={
-          showActions ? (
-            <>
-              {showCopy ? (
-                <HoverActionButton
-                  title="Copy message"
-                  onClick={() => {
-                    void (async () => {
-                      try {
-                        await navigator.clipboard.writeText(message.content);
-                        markCopied(message.id);
-                      } catch (err: unknown) {
-                        onOpenFileError?.(
-                          err instanceof Error ? err.message : String(err),
-                        );
-                      }
-                    })();
-                  }}
-                >
-                  {displayCopyActionLabel(copiedId === message.id)}
-                </HoverActionButton>
-              ) : null}
-              {showEdit ? (
-                <HoverActionButton
-                  title="Edit message"
-                  disabled={editingBusy}
-                  onClick={() => {
-                    beginEdit(message.id, message.content);
-                  }}
-                >
-                  Edit
-                </HoverActionButton>
-              ) : null}
-              {showRetry ? (
-                <HoverActionButton
-                  title="Retry"
-                  disabled={editingBusy}
-                  onClick={() => onRetry?.()}
-                >
-                  Retry
-                </HoverActionButton>
-              ) : null}
-              {showOpenDiff ? (
-                <HoverActionButton
-                  title={displayOpenDiffActionTitle(message.filePath)}
-                  disabled={openingId === message.id}
-                  onClick={() => {
-                    beginOpen(message.id);
-                    void ports.workspace
-                      .openDiff({
-                        title: displayDiffReviewTitle(message.filePath),
-                        originalText: message.diffOriginalText ?? "",
-                        modifiedText: message.diffModifiedText ?? "",
-                        ...(message.filePath
-                          ? { path: message.filePath }
-                          : {}),
-                      })
-                      .catch((err: unknown) => {
-                        onOpenFileError?.(
-                          err instanceof Error ? err.message : String(err),
-                        );
-                      })
-                      .finally(() => {
-                        endOpen();
-                      });
-                  }}
-                >
-                  {displayOpeningActionLabel(
-                    openingId === message.id,
-                    "Diff",
-                  )}
-                </HoverActionButton>
-              ) : null}
-              {showOpenFile ? (
-                <HoverActionButton
-                  title={displayOpenFileActionTitle(message.filePath)}
-                  disabled={openingId === message.id}
-                  onClick={() => {
-                    const uri = message.fileUri;
-                    if (!uri) {
-                      return;
+          <AiDisplayMessageActions
+            flags={actionFlags}
+            copy={
+              <HoverActionButton
+                title="Copy message"
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      await navigator.clipboard.writeText(message.content);
+                      markCopied(message.id);
+                    } catch (err: unknown) {
+                      onOpenFileError?.(
+                        err instanceof Error ? err.message : String(err),
+                      );
                     }
-                    beginOpen(message.id);
-                    void ports.workspace
-                      .openFile(uri)
-                      .catch((err: unknown) => {
-                        onOpenFileError?.(
-                          err instanceof Error ? err.message : String(err),
-                        );
-                      })
-                      .finally(() => {
-                        endOpen();
-                      });
-                  }}
-                >
-                  {displayOpeningActionLabel(
-                    openingId === message.id,
-                    "Open",
-                  )}
-                </HoverActionButton>
-              ) : null}
-            </>
-          ) : undefined
+                  })();
+                }}
+              >
+                {displayCopyActionLabel(copiedId === message.id)}
+              </HoverActionButton>
+            }
+            edit={
+              <HoverActionButton
+                title="Edit message"
+                disabled={editingBusy}
+                onClick={() => {
+                  beginEdit(message.id, message.content);
+                }}
+              >
+                Edit
+              </HoverActionButton>
+            }
+            retry={
+              <HoverActionButton
+                title="Retry"
+                disabled={editingBusy}
+                onClick={() => onRetry?.()}
+              >
+                Retry
+              </HoverActionButton>
+            }
+            openDiff={
+              <HoverActionButton
+                title={displayOpenDiffActionTitle(message.filePath)}
+                disabled={openingId === message.id}
+                onClick={() => {
+                  beginOpen(message.id);
+                  void ports.workspace
+                    .openDiff({
+                      title: displayDiffReviewTitle(message.filePath),
+                      originalText: message.diffOriginalText ?? "",
+                      modifiedText: message.diffModifiedText ?? "",
+                      ...(message.filePath
+                        ? { path: message.filePath }
+                        : {}),
+                    })
+                    .catch((err: unknown) => {
+                      onOpenFileError?.(
+                        err instanceof Error ? err.message : String(err),
+                      );
+                    })
+                    .finally(() => {
+                      endOpen();
+                    });
+                }}
+              >
+                {displayOpeningActionLabel(
+                  openingId === message.id,
+                  "Diff",
+                )}
+              </HoverActionButton>
+            }
+            openFile={
+              <HoverActionButton
+                title={displayOpenFileActionTitle(message.filePath)}
+                disabled={openingId === message.id}
+                onClick={() => {
+                  const uri = message.fileUri;
+                  if (!uri) {
+                    return;
+                  }
+                  beginOpen(message.id);
+                  void ports.workspace
+                    .openFile(uri)
+                    .catch((err: unknown) => {
+                      onOpenFileError?.(
+                        err instanceof Error ? err.message : String(err),
+                      );
+                    })
+                    .finally(() => {
+                      endOpen();
+                    });
+                }}
+              >
+                {displayOpeningActionLabel(
+                  openingId === message.id,
+                  "Open",
+                )}
+              </HoverActionButton>
+            }
+          />
         }
       />
     );
