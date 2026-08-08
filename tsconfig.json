@@ -97,6 +97,7 @@
     "test/unit/displayToolGroupIcon.test.ts",
     "test/unit/aiDisplayMessageContent.test.ts",
     "test/unit/aiDisplayMessageActions.test.ts",
+    "test/unit/displayMessageActionsFooter.test.ts",
     "test/unit/settingsSnippetsChrome.test.ts",
     "test/unit/settingsDeepLink.test.ts",
     "dist",
