@@ -1,22 +1,22 @@
-# Remaining work plan — pure chrome complete through A6.132
+# Remaining work plan — pure chrome through A6.139
 
 Status: active  
 Owners: `altai-app` (product UI, protocol, Rust host), `altai-vscode` (thin adapter)  
 Related: [UNLOCK_PLAN.md](UNLOCK_PLAN.md), [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md), [FEATURE_MATRIX.md](FEATURE_MATRIX.md)
 
-Pure dual-chrome extraction continues (**A6.133–A6.136**: panel width, surface/tabs,
-storage I/O, Operations open intents). This document sequences **everything still
+Pure dual-chrome extraction continues (**A6.133–A6.139**: panel chrome, Escape
+dismiss, run-continue/budget soft-cap). This document sequences **everything still
 required** for production unlock, with one acceptance gate per PR.
 
 ## 0. Current baseline (2026-08-09+)
 
 | Track | State |
 |---|---|
-| Pure chrome `agent-ui` libs | ~A6.93–A6.136 on `altai-app` main (verify tip) |
-| VS Code host mirrors | Docs markers through A6.132; R1.1 webview pure re-export (#312) |
+| Pure chrome `agent-ui` libs | ~A6.93–A6.139 on `altai-app` main (verify tip) |
+| VS Code host mirrors | R1.1 #312 + keyboard A6.137 re-export #315; composer draft R3 #314 |
 | Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration + composite chrome wrappers |
-| Desktop | `AiSidePanel.tsx` thins toward package helpers; still owns Resizable + stores |
-| `review.editProposal` | Tauri advertises available; stdio/VS Code often **deferred** |
+| Desktop | `AiSidePanel` Escape + ops/width helpers wired; still owns Resizable + stores |
+| `review.editProposal` | stdio/VS Code capability + unit path present; trusted E2E smoke still due |
 | npm / Marketplace | Still `file:` sibling + local VSIX |
 
 ## 1. Program waves (order)
