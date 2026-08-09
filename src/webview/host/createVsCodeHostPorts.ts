@@ -32,6 +32,7 @@ import {
   type TaskRunInfo,
   type WorkspaceInfo,
 } from "@altai/host-contract";
+import { nativeMethodAvailable } from "@altai/agent-ui";
 import { withUnsupportedDefaults } from "./unsupported.js";
 
 const HOST_NAME = "altai-vscode";
@@ -61,10 +62,8 @@ export function createVsCodeHostPorts(
 ): HostPorts {
   const hostVersion = options.hostVersion ?? "0.1.0";
   const { transport, isHostReady } = options;
-  const hasNativeMethod = (method: string): boolean => {
-    const capabilities = options.getNativeCapabilities?.();
-    return capabilities === null || capabilities === undefined || capabilities.includes(method);
-  };
+  const hasNativeMethod = (method: string): boolean =>
+    nativeMethodAvailable(options.getNativeCapabilities?.(), method);
 
   return {
     runtime: withUnsupportedDefaults(

@@ -37,6 +37,7 @@ import {
   parseOpenChatWithSelectionPayload,
   parseOpenSettingsPayload,
   parsePersistedWebviewState,
+  parseNativeMethodList,
   recoveryHintForDiagnosticCode,
   shouldPersistComposerDraftImmediately,
   type OpenChatWithFilePayload,
@@ -540,8 +541,9 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     void client
       .request("host.getCapabilities")
       .then((result) => {
-        if (Array.isArray(result) && result.every((item) => typeof item === "string")) {
-          setNativeCapabilities(result);
+        const methods = parseNativeMethodList(result);
+        if (methods) {
+          setNativeCapabilities(methods);
         }
       })
       .catch(() => {
