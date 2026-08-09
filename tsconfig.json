@@ -79,6 +79,8 @@
     "test/unit/composerDraftPersistence.test.ts",
     "test/unit/nativeMethodList.test.ts",
     "test/unit/skillInstallSource.test.ts",
+    "test/unit/proposalKind.test.ts",
+    "test/unit/composerPlaceholders.test.ts",
     "test/unit/chatTranscriptChrome.test.ts",
     "test/unit/composerSubmitPlan.test.ts",
     "test/unit/composerDraftClear.test.ts",
