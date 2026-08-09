@@ -743,7 +743,7 @@ describe("createVsCodeHostPorts", () => {
   it("installs skills when native skills/install is advertised", async () => {
     const transport = mockTransport(async (method, params) => {
       if (method === "skills/install") {
-        expect(params).toEqual({ source: "owner/repo#demo" });
+        expect(params).toEqual({ source: "owner/repo", skill: "demo" });
         return {
           skills: [{ name: "demo", description: "Demo skill", enabled: true }],
           installed: ["demo"],

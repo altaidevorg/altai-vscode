@@ -32,7 +32,10 @@ import {
   type TaskRunInfo,
   type WorkspaceInfo,
 } from "@altai/host-contract";
-import { nativeMethodAvailable } from "@altai/agent-ui";
+import {
+  nativeMethodAvailable,
+  parseSkillInstallSource,
+} from "@altai/agent-ui";
 import { withUnsupportedDefaults } from "./unsupported.js";
 
 const HOST_NAME = "altai-vscode";
@@ -798,12 +801,13 @@ export function createVsCodeHostPorts(
         async installSkill(source: string): Promise<SkillInfo> {
           requireReady(isHostReady);
           requireNativeCapability(hasNativeMethod, "skills/install");
-          const trimmed = source.trim();
-          if (!trimmed) {
+          const { repo, skill } = parseSkillInstallSource(source);
+          if (!repo) {
             throw new Error("invalid_skill_source");
           }
           const result = await transport.request("skills/install", {
-            source: trimmed,
+            source: repo,
+            ...(skill ? { skill } : {}),
           });
           const skills = normalizeSkills(result);
           if (skills.length === 0) {
