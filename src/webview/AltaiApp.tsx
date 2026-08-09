@@ -46,6 +46,7 @@ import {
   type PersistedWebviewState,
   type PersistedWorkHubView,
 } from "@altai/agent-ui";
+import { createComposerDraftPersistence } from "./composerDraftPersistence.js";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
 import { formatDiagnosticClipboardText } from "./waitShellChrome.js";
 import { isEscapeDismissKey } from "./chatKeyboardChrome.js";
@@ -368,46 +369,37 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     [client],
   );
 
-  const draftPersistTimer = useRef<number | null>(null);
-  const pendingDraft = useRef<string | null>(null);
-
-  const flushComposerDraft = useCallback(() => {
-    if (draftPersistTimer.current !== null) {
-      window.clearTimeout(draftPersistTimer.current);
-      draftPersistTimer.current = null;
-    }
-    if (pendingDraft.current !== null) {
-      patchPersistedState(client, { composerDraft: pendingDraft.current });
-      pendingDraft.current = null;
-    }
-  }, [client]);
+  const persistComposerDraft = useCallback(
+    (draft: string) => {
+      patchPersistedState(client, { composerDraft: draft });
+    },
+    [client],
+  );
+  const composerDraftPersistence = useMemo(
+    () =>
+      createComposerDraftPersistence(
+        persistComposerDraft,
+        {
+          setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+          clearTimeout: (id) => {
+            window.clearTimeout(id);
+          },
+        },
+        {
+          debounceMs: COMPOSER_DRAFT_DEBOUNCE_MS,
+          shouldPersistImmediately: shouldPersistComposerDraftImmediately,
+        },
+      ),
+    [persistComposerDraft],
+  );
 
   useEffect(() => {
     return () => {
-      flushComposerDraft();
+      composerDraftPersistence.flush();
     };
-  }, [flushComposerDraft]);
+  }, [composerDraftPersistence]);
 
-  const onComposerDraftChange = useCallback(
-    (draft: string) => {
-      pendingDraft.current = draft;
-      if (shouldPersistComposerDraftImmediately(draft)) {
-        flushComposerDraft();
-        return;
-      }
-      if (draftPersistTimer.current !== null) {
-        window.clearTimeout(draftPersistTimer.current);
-      }
-      draftPersistTimer.current = window.setTimeout(() => {
-        draftPersistTimer.current = null;
-        if (pendingDraft.current !== null) {
-          patchPersistedState(client, { composerDraft: pendingDraft.current });
-          pendingDraft.current = null;
-        }
-      }, COMPOSER_DRAFT_DEBOUNCE_MS);
-    },
-    [client, flushComposerDraft],
-  );
+  const onComposerDraftChange = composerDraftPersistence.onChange;
 
 
   const openChatFromOperations = useCallback(
