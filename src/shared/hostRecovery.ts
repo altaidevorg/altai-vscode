@@ -1,6 +1,9 @@
 /**
  * Host-neutral recovery copy for host.status diagnostic codes.
- * Shared by Extension Host diagnostics report and Webview empty shell.
+ *
+ * Canonical implementation lives in `@altai/agent-ui` (A6.130). This host-
+ * local copy is kept so the Extension Host bundle never imports the agent-ui
+ * React tree. Keep behavior in lock-step with the package.
  */
 
 export function recoveryHintForDiagnosticCode(
