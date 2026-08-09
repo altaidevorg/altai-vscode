@@ -30,28 +30,22 @@ import {
   type OperationsDeepLinkView,
   type OperationsDeepLinkWorkHubView,
 } from "../shared/messages.js";
-import { parseOpenSettingsPayload } from "../shared/settingsDeepLink.js";
-import {
-  parseOpenChatWithSelectionPayload,
-  type OpenChatWithSelectionPayload,
-} from "../shared/selectionDeepLink.js";
-import {
-  parseOpenChatWithFilePayload,
-  type OpenChatWithFilePayload,
-} from "../shared/fileDeepLink.js";
-import {
-  mergePersistedWebviewState,
-  parsePersistedWebviewState,
-  type PersistedAltaiSurface,
-  type PersistedOperationsView,
-  type PersistedWorkHubView,
-  type PersistedWebviewState,
-} from "../shared/webviewState.js";
 import {
   COMPOSER_DRAFT_DEBOUNCE_MS,
+  mergePersistedWebviewState,
+  parseOpenChatWithFilePayload,
+  parseOpenChatWithSelectionPayload,
+  parseOpenSettingsPayload,
+  parsePersistedWebviewState,
+  recoveryHintForDiagnosticCode,
   shouldPersistComposerDraftImmediately,
-} from "../shared/composerDraftPersist.js";
-import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
+  type OpenChatWithFilePayload,
+  type OpenChatWithSelectionPayload,
+  type PersistedAltaiSurface,
+  type PersistedOperationsView,
+  type PersistedWebviewState,
+  type PersistedWorkHubView,
+} from "@altai/agent-ui";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
 import { formatDiagnosticClipboardText } from "./waitShellChrome.js";
 import { isEscapeDismissKey } from "./chatKeyboardChrome.js";
