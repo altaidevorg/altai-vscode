@@ -11,5 +11,8 @@ export {
   resolveChatAriaLive,
   resolveTranscriptRunErrorVariant,
   type AiChatTranscriptFrameProps,
-  type ChatAnnouncePref,
+  type TranscriptAriaLivePref,
 } from "@altai/agent-ui";
+
+/** Settings announce prefs use `ChatAnnouncePref` from extension preferences; aria-live input is looser. */
+export type { TranscriptAriaLivePref as ChatAnnouncePref } from "@altai/agent-ui";

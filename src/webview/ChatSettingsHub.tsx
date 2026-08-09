@@ -21,7 +21,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useMemo, useState } from "react";
-import { recoveryHintForDiagnosticCode } from "../shared/hostRecovery.js";
+import { recoveryHintForDiagnosticCode } from "@altai/agent-ui";
 import { ChatHostSettingsChrome } from "./ChatHostSettingsChrome.js";
 import {
   ChatSettingsAccessibilityPanel,

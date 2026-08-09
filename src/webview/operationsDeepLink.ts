@@ -10,7 +10,7 @@ import type {
 import {
   buildOpenOperationsPayload,
   parseOpenOperationsPayload,
-} from "../shared/operationsDeepLink.js";
+} from "@altai/agent-ui";
 import type { OperationsCapabilityFlags } from "./operationsRoutes.js";
 import { resolveAvailableOperationsViews } from "./operationsRoutes.js";
 

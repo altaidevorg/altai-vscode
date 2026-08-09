@@ -13,7 +13,7 @@ import {
 import {
   parsePersistedWebviewState,
   type PersistedWebviewState,
-} from "../shared/webviewState.js";
+} from "@altai/agent-ui";
 
 export type VsCodeApi = {
   postMessage(message: unknown): void;
