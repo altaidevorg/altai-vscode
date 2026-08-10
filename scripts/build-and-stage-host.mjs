@@ -15,6 +15,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const targetArg = args.find((a) => a.startsWith("--target="));
 const target = targetArg?.slice("--target=".length);
+const rustTarget = {
+  "darwin-arm64": "aarch64-apple-darwin",
+  "darwin-x64": "x86_64-apple-darwin",
+}[target];
 
 if (!target) {
   console.error("Usage: node scripts/build-and-stage-host.mjs --target=<os-arch>");
@@ -41,6 +45,7 @@ const build = spawnSync(
     "-p",
     "altai-cli",
     "--release",
+    ...(rustTarget ? ["--target", rustTarget] : []),
   ],
   { cwd: appRoot, stdio: "inherit", env: process.env },
 );
@@ -50,7 +55,13 @@ if (build.status !== 0) {
 
 const isWin = target.startsWith("win32");
 const builtName = isWin ? "altai-cli.exe" : "altai-cli";
-const built = path.join(appRoot, "src-tauri", "target", "release", builtName);
+const cargoTargetDir = process.env.CARGO_TARGET_DIR || path.join(appRoot, "src-tauri", "target");
+const built = path.join(
+  cargoTargetDir,
+  ...(rustTarget ? [rustTarget] : []),
+  "release",
+  builtName,
+);
 if (!existsSync(built)) {
   console.error(`Built binary missing: ${built}`);
   process.exit(1);
