@@ -104,12 +104,10 @@ npm run package:target -- --target=darwin-arm64 \
 ```
 
 CI tags `v*` and manual `release` runs produce **real** `altai-cli` hosts per
-OS, not fixtures. Marketplace publish remains operator-driven:
-
-```bash
-npx vsce publish --packagePath altai-0.1.0-linux-x64.vsix --pre-release
-# requires VSCE_PAT; set package.json preview=false only for stable
-```
+OS, not fixtures. A manual run also publishes all target VSIX artifacts as a
+Marketplace pre-release when both `ALTAI_PUBLISH_MARKETPLACE=true` and
+`VSCE_PAT` are configured. Tag pushes never publish by themselves; set
+`package.json` `preview=false` only for a stable release after the soak gate.
 
 ### Marketplace / npm (org secrets)
 
