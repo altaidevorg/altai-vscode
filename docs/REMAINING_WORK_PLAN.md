@@ -210,9 +210,21 @@ R6 multi-root ──────────────────┘
 
 ---
 
-## 4. Immediate execution (this session onward)
+## 4. Immediate execution (current gates)
 
-1. **R1** — VS Code webview pure re-export inventory: switch remaining `shared/*Chrome` imports to `@altai/agent-ui`.  
-2. **R2** — Extract remaining Desktop `AiSidePanel` composites (layout shell, chat column, input composition).  
-3. Then **R3** thin VS Code mount; parallel host waves **R4–R6** when not blocked.  
-4. **R7–R8** markdown polish + npm/Marketplace when secrets available.
+The original R1–R3 pure-chrome and frame work is delivered. The residual
+Desktop Zustand/Tauri and VS Code RPC orchestration is intentional host
+ownership, rather than a second presentational panel tree. Do not create a
+new extraction PR unless it removes a demonstrable duplicate UI component.
+
+1. **R4:** run the proposal Apply/Deny path in a trusted VS Code workspace
+   against the installed native host.
+2. **R5:** run a credentialed provider request and verify a non-zero usage
+   event reaches the Webview meter; exercise one MCP configuration and one
+   fixture skill install in that same trusted-host session.
+3. **R8 credentials:** configure repository/environment `NPM_TOKEN`, VS Code
+   `VSCE_PAT`, and the explicit `ALTAI_PUBLISH_MARKETPLACE=true` variable.
+4. **R8 publication:** dispatch the package publish workflow, replace the
+   VS Code `file:` package references with the exact published versions, run
+   registry install + VSIX verification, then dispatch the Marketplace
+   pre-release workflow and complete the soak checklist.
