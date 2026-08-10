@@ -271,13 +271,13 @@ const vsceEntry = existsSync(vsceJs)
   ? vsceJs
   : path.join(root, "node_modules", "@vscode", "vsce", "out", "vsce");
 
-// Prefer npx/vsce bin via npm exec for reliability across package layouts
+// Invoke the repository-local entry point so packaging does not depend on
+// npx resolving a bin from the dependency-free staging directory on Windows.
 console.log(`Packaging ${vsixName} …`);
 const pack = spawnSync(
-  "npx",
+  process.execPath,
   [
-    "--no-install",
-    "vsce",
+    vsceEntry,
     "package",
     "--no-dependencies",
     "--allow-missing-repository",
@@ -292,8 +292,6 @@ const pack = spawnSync(
     stdio: "inherit",
     env: {
       ...process.env,
-      // Prefer repo node_modules for npx resolution when staging has none
-      PATH: process.env.PATH,
       NODE_PATH: path.join(root, "node_modules"),
     },
   },
