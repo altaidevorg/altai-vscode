@@ -18,6 +18,8 @@ with one acceptance gate per PR.
 | Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration and host-specific composite adapters, but mounts shared panel, chat-column, topbar and surface-tabs frames |
 | Desktop | `AiSidePanel` uses shared frame/topbar/chat column/composer primitives; it still owns Resizable layout and Zustand/Tauri wiring |
 | `review.editProposal` | stdio apply/deny fixture and VS Code ports/capability tests pass; trusted-workspace end-to-end smoke remains |
+| Usage, MCP, skills | CLI advertises the live RPCs; stdio usage serialization, MCP lifecycle, and skill install/list tests pass; a credentialed provider run is still needed for the live-meter gate |
+| Multi-root | Preferred-root QuickPick, host restart, persistence, relative-path attachment, and diagnostics coverage are implemented and tested |
 | npm / Marketplace | Publish workflows, package verification and Marketplace multi-target pre-release automation are ready; registry credentials are not configured |
 
 ## 1. Program waves (order)
@@ -52,6 +54,13 @@ product green needs host waves.
 - **R4:** CLI unit and stdio fixture tests cover proposal apply/deny and reject
   workspace-path escape; the host advertises the capability only when methods
   are available.
+- **R5:** `usage` run events preserve token totals at the CLI stdio boundary;
+  MCP lifecycle and skills list/install RPCs are capability-gated and covered
+  by native tests. The only remaining gate is a credentialed live provider run
+  that reports non-zero usage in the Webview.
+- **R6:** the VS Code project chip selects an open workspace root through a
+  QuickPick, persists it, restarts the native host against that root, and keeps
+  attached paths and diagnostics scoped honestly.
 - **R7:** safe shared GFM rendering is mounted in both hosts.
 - **R8:** npm workflow packages in dependency order with auth preflight;
   Marketplace release downloads all target artifacts and invokes `vsce` only
