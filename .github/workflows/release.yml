@@ -112,12 +112,28 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' && vars.ALTAI_PUBLISH_MARKETPLACE == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Skip unless secrets present
+      - name: Download target VSIX packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: altai-real-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Verify Marketplace credentials and packages
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
-          if [ -z "${{ secrets.VSCE_PAT }}" ]; then
-            echo "VSCE_PAT not configured; skipping Marketplace publish."
-            exit 0
-          fi
-          echo "Marketplace publish is gated on human ops with VSCE_PAT + ALTAI_PUBLISH_MARKETPLACE."
-          echo "Download alpha artifacts from this run and publish with:"
-          echo "  npx vsce publish --packagePath <vsix> --pre-release"
+          test -n "$VSCE_PAT" || {
+            echo "VSCE_PAT is not configured for Marketplace publishing." >&2
+            exit 1
+          }
+          find artifacts -type f -name '*.vsix' -print | sort
+          test "$(find artifacts -type f -name '*.vsix' -print -quit)"
+
+      - name: Publish Marketplace pre-release
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          mapfile -t VSIXES < <(find artifacts -type f -name '*.vsix' -print | sort)
+          npm exec --yes --package=@vscode/vsce@3.4.0 -- \
+            vsce publish --packagePath "${VSIXES[@]}" --pre-release --skip-duplicate
