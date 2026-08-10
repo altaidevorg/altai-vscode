@@ -5,12 +5,12 @@
 
 import {
   PermissionModeSwitcher,
+  formatHostUserError,
   useCapability,
   useHostPorts,
 } from "@altai/agent-ui";
 import type { PermissionMode } from "@altai/host-contract";
 import { useCallback, useEffect, useState } from "react";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import { canMountPermissionModeSwitcher } from "./permissionModeChrome.js";
 
 export type ChatPermissionModeChromeProps = {

@@ -4,6 +4,7 @@
 
 import {
   ComposerConfigTrigger,
+  formatHostUserError,
   ModelOption,
   useCapability,
   useHostPorts,
@@ -12,7 +13,6 @@ import type { ModelInfo } from "@altai/host-contract";
 import { AiBookIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import {
   AUTO_MODEL_ID,
   canMountModelPicker,

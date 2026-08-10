@@ -5,6 +5,7 @@ import {
   AiChatTranscriptFrame,
   ChatTabStrip,
   detectSlashOrSnippetTrigger,
+  formatHostUserError,
   EmptyState,
   HostPortsProvider,
   SurfaceEmptyState,
@@ -40,6 +41,7 @@ import {
   parseNativeMethodList,
   recoveryHintForDiagnosticCode,
   shouldPersistComposerDraftImmediately,
+  shouldShowHostSubtitle,
   type OpenChatWithFilePayload,
   type OpenChatWithSelectionPayload,
   type PersistedAltaiSurface,
@@ -133,9 +135,7 @@ import {
   type Snippet,
 } from "./composerSnippets.js";
 import { applyComposerSlashOutcome } from "./composerDraft.js";
-import {
-  parseSnippetsJson,
-} from "../shared/extensionPreferences.js";
+import { parseSnippetsJson } from "@altai/agent-ui";
 import { mergeSnippetCatalog } from "./settingsSnippetsChrome.js";
 import {
   addContextItem,
@@ -197,12 +197,6 @@ import {
   type HostRpcTransport,
 } from "./host/createVsCodeHostPorts.js";
 import type { PermissionMode } from "@altai/host-contract";
-import {
-  formatHostUserError,
-} from "../shared/hostUserError.js";
-import {
-  shouldShowHostSubtitle,
-} from "../shared/hostChromeLabels.js";
 
 export type AltaiAppProps = {
   client: WebviewClient;

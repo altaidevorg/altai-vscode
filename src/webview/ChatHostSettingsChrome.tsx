@@ -2,9 +2,8 @@
  * Host / workspace Settings section — Desktop SettingRow layout.
  */
 
-import { SurfaceSecondaryAction } from "@altai/agent-ui";
+import { SurfaceSecondaryAction, formatHostUserError } from "@altai/agent-ui";
 import { useCallback, useEffect, useState } from "react";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
 import {
   SettingsSettingRow,

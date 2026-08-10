@@ -5,18 +5,16 @@
 
 import {
   ChatHistoryPanel,
+  formatHostUserError,
   groupSessionsByRecency,
   useCapability,
   useHostPorts,
   type SessionHistoryItem,
+  isJournalUnavailableError,
 } from "@altai/agent-ui";
 import { Add01Icon, Clock01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  formatHostUserError,
-  isJournalUnavailableError,
-} from "../shared/hostUserError.js";
 import { sessionsToHistoryItems } from "./sessionHistoryMap.js";
 import { filterSessionsBySearch } from "./sessionSearch.js";
 

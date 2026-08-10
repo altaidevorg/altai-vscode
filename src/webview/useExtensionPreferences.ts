@@ -2,14 +2,14 @@
  * Preference patch helper for Studio-style settings panels.
  */
 
-import { useCallback, useEffect, useState } from "react";
 import {
   coerceExtensionPreferences,
   defaultExtensionPreferences,
+  formatHostUserError,
   type ExtensionPreferences,
   type ExtensionSettingKey,
-} from "../shared/extensionPreferences.js";
-import { formatHostUserError } from "../shared/hostUserError.js";
+} from "@altai/agent-ui";
+import { useCallback, useEffect, useState } from "react";
 
 export function useExtensionPreferences(
   requestWorkspace: (method: string, params?: unknown) => Promise<unknown>,

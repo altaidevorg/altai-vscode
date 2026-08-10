@@ -7,20 +7,18 @@
 import {
   SurfacePrimaryAction,
   SurfaceSecondaryAction,
+  coerceExtensionPreferences,
+  formatHostUserError,
+  parseSnippetsJson,
+  serializeSnippets,
   useCapability,
   useHostPorts,
+  type ExtensionPreferences,
+  type SnippetPref,
 } from "@altai/agent-ui";
 import type { ModelInfo } from "@altai/host-contract";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  coerceExtensionPreferences,
-  parseSnippetsJson,
-  serializeSnippets,
-  type ExtensionPreferences,
-  type SnippetPref,
-} from "../shared/extensionPreferences.js";
 import { knownProviderById } from "../shared/providerCatalog.js";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import { ChatComposerCompact } from "./ChatComposerCompact.js";
 import { ChatModelPickerChrome } from "./ChatModelPickerChrome.js";
 import { ChatMcpStatusChrome } from "./ChatMcpStatusChrome.js";
