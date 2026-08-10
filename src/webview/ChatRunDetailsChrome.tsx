@@ -5,6 +5,7 @@
 
 import {
   AgentStatusPill,
+  AiRunInspectorFrame,
   RunDetailsHeader,
   RunOverviewCard,
 } from "@altai/agent-ui";
@@ -122,15 +123,17 @@ export function ChatRunDetailsChrome({
   const outTok = outputTokens || runUsage?.outputTokens || 0;
 
   return (
-    <section className="altai-run-details-chrome" aria-label="Run details">
-      <RunDetailsHeader
+    <AiRunInspectorFrame
+      variant="compact"
+      className="altai-run-details-chrome"
+      header={<RunDetailsHeader
         subtitle={runDetailsSubtitle({ chatId, status })}
         status={status}
         onClose={onClose}
         onStop={hasActiveRun && onStop ? onStop : undefined}
-      />
-      <div className="px-2.5 pb-2">
-        <RunOverviewCard
+      />}
+      summaryClassName="px-2.5 pb-2"
+      summary={<RunOverviewCard
           statusPill={
             <AgentStatusPill
               meta={meta}
@@ -148,8 +151,8 @@ export function ChatRunDetailsChrome({
           })}
           step={step}
           metrics={metrics}
-        />
-      </div>
+        />}
+    >
       {onApprovalsChange ? (
         <ChatRunInspectorSections
           messages={messages}
@@ -160,6 +163,6 @@ export function ChatRunDetailsChrome({
           outputTokens={outTok}
         />
       ) : null}
-    </section>
+    </AiRunInspectorFrame>
   );
 }
