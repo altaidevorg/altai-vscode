@@ -1,17 +1,19 @@
-# Remaining work plan — pure chrome through A6.261
+# Remaining work plan — pure A6 chrome drained (through A6.268)
 
 Status: active  
 Owners: `altai-app` (product UI, protocol, Rust host), `altai-vscode` (thin adapter)  
 Related: [UNLOCK_PLAN.md](UNLOCK_PLAN.md), [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md), [FEATURE_MATRIX.md](FEATURE_MATRIX.md)
 
-Pure dual-chrome extraction continues (**A6.140–A6.261**: automations list empty/filter chrome). This document sequences **everything still required**
-for production unlock, with one acceptance gate per PR.
+**Pure dual-chrome helpers (A6)** for Desktop AI label/copy micro-extracts are **drained through A6.268**
+on `altai-app` main (inventory of host-component user-facing strings is empty aside from comments).
+This document sequences **everything still required** for production unlock (R1–R8),
+with one acceptance gate per PR.
 
 ## 0. Current baseline (2026-08-10+)
 
 | Track | State |
 |---|---|
-| Pure chrome `agent-ui` libs | ~A6.140–A6.261 on `altai-app` main (through automations list empty/filter chrome) |
+| Pure chrome `agent-ui` libs | **A6 pure-label drain complete** through A6.268 (paper import / compact labels). Residual A6 work = R1 reexports + R2 composites only |
 | VS Code host mirrors | Through A6.149 redact #320; plan #321; native method #317; skills install #318; placeholders/proposal #319; keyboard #315; draft R3 #314 |
 | Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration + composite chrome wrappers |
 | Desktop | `AiSidePanel` Escape + ops/width helpers wired; still owns Resizable + stores |
@@ -181,7 +183,7 @@ R6 multi-root ──────────────────┘
 
 ## 4. Immediate execution (this session onward)
 
-1. **R1.1** — Webview re-export A6.130–132 (+ draft persist) and switch `AltaiApp` imports.  
-2. **R2.1** — Package pure panel width helpers (A6.133).  
-3. Repeat until R1 inventory empty; then R2.2+.  
-4. Host waves R4+ in `altai-app` when UI cutover is not blocked by pure work.
+1. **R1** — VS Code webview pure re-export inventory: switch remaining `shared/*Chrome` imports to `@altai/agent-ui`.  
+2. **R2** — Extract remaining Desktop `AiSidePanel` composites (layout shell, chat column, input composition).  
+3. Then **R3** thin VS Code mount; parallel host waves **R4–R6** when not blocked.  
+4. **R7–R8** markdown polish + npm/Marketplace when secrets available.
