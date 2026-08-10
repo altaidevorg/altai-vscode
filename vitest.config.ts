@@ -24,6 +24,7 @@ const peerAlias = {
     root,
     "node_modules/react-dom/client.js",
   ),
+  streamdown: path.resolve(root, "node_modules/streamdown"),
 };
 
 export default defineConfig({

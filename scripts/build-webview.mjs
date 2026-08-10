@@ -25,6 +25,7 @@ const peerAliasPlugin = {
       "react/jsx-dev-runtime",
       "react-dom",
       "react-dom/client",
+      "streamdown",
       "@hugeicons/react",
       "@hugeicons/core-free-icons",
       "clsx",
@@ -36,7 +37,10 @@ const peerAliasPlugin = {
         `^${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
       );
       build.onResolve({ filter }, () => ({
-        path: require.resolve(id),
+        path:
+          id === "streamdown"
+            ? path.join(extensionRoot, "node_modules/streamdown/dist/index.js")
+            : require.resolve(id),
       }));
     }
   },
