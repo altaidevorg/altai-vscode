@@ -1,17 +1,17 @@
-# Remaining work plan — pure chrome through A6.234
+# Remaining work plan — pure chrome through A6.235
 
 Status: active  
 Owners: `altai-app` (product UI, protocol, Rust host), `altai-vscode` (thin adapter)  
 Related: [UNLOCK_PLAN.md](UNLOCK_PLAN.md), [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md), [FEATURE_MATRIX.md](FEATURE_MATRIX.md)
 
-Pure dual-chrome extraction continues (**A6.140–A6.234**: session history items, context source detail labels). This document sequences **everything still required**
+Pure dual-chrome extraction continues (**A6.140–A6.235**: context source labels, model dropdown filter). This document sequences **everything still required**
 for production unlock, with one acceptance gate per PR.
 
 ## 0. Current baseline (2026-08-10+)
 
 | Track | State |
 |---|---|
-| Pure chrome `agent-ui` libs | ~A6.140–A6.234 on `altai-app` main (through task context source detail labels) |
+| Pure chrome `agent-ui` libs | ~A6.140–A6.235 on `altai-app` main (through model dropdown filter + fav/recent partition) |
 | VS Code host mirrors | Through A6.149 redact #320; plan #321; native method #317; skills install #318; placeholders/proposal #319; keyboard #315; draft R3 #314 |
 | Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration + composite chrome wrappers |
 | Desktop | `AiSidePanel` Escape + ops/width helpers wired; still owns Resizable + stores |
