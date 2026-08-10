@@ -149,7 +149,7 @@ Suggested extract order (each = 1 PR):
 |---|---|
 | Usage events on stdio → Webview run meter | non-zero tokens on live run |
 | MCP list/configure RPC + capability | list ≥1 fixture server |
-| Skills list/install + capability | install fixture skill; untrusted blocked |
+| Skills list/install + capability | local Git fixture install/list passes; untrusted host start is blocked |
 
 ---
 
