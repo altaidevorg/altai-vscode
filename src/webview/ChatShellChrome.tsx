@@ -5,6 +5,7 @@
 
 import { Settings01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { AiPanelTopbar } from "@altai/agent-ui";
 import {
   compactHostStatusLabel,
   nextSurfaceAfterSettingsToggle,
@@ -44,8 +45,10 @@ export function ChatShellChrome({
   const settingsPressed = settingsGearPressed(surface);
 
   return (
-    <header className="altai-ai-topbar" aria-label="ALTAI panel chrome">
-      <div className="altai-ai-topbar-row altai-ai-topbar-row--primary">
+    <AiPanelTopbar
+      aria-label="ALTAI panel chrome"
+      className="altai-shell-topbar"
+      primary={<div className="altai-ai-topbar-row altai-ai-topbar-row--primary">
         <div className="altai-ai-topbar-brand" aria-hidden="true">
           ALTAI
         </div>
@@ -66,9 +69,9 @@ export function ChatShellChrome({
           }}
         >
           <HugeiconsIcon icon={Settings01Icon} size={14} strokeWidth={1.75} />
-        </button>
-      </div>
-      <div className="altai-ai-topbar-row altai-ai-topbar-row--actions">
+          </button>
+      </div>}
+      secondary={<div className="altai-ai-topbar-row altai-ai-topbar-row--actions">
         <ChatShellTopbar
           surface={surface}
           operationsView={operationsView}
@@ -91,7 +94,7 @@ export function ChatShellChrome({
             Back to chat
           </button>
         ) : null}
-      </div>
-    </header>
+      </div>}
+    />
   );
 }
