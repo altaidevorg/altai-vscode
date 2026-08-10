@@ -20,4 +20,4 @@ export {
   isExtensionSettingKey,
   type ExtensionPreferences as ExtensionSettingsSnapshot,
   type ExtensionSettingKey,
-} from "../shared/extensionPreferences.js";
+} from "@altai/agent-ui";

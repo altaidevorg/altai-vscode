@@ -4,13 +4,13 @@
 
 import {
   PlanModeStrip,
+  formatHostUserError,
   TodoSummaryChip,
   useCapability,
   useHostPorts,
 } from "@altai/agent-ui";
 import type { PermissionMode } from "@altai/host-contract";
 import { useState } from "react";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import type { ChatDisplayMessage } from "./chatDisplayMessage.js";
 import {
   isPlanPermissionMode,

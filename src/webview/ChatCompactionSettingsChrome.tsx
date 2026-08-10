@@ -3,9 +3,8 @@
  * Desktop ContextSection-style SettingRow when layout=settings.
  */
 
-import { useCapability, useHostPorts } from "@altai/agent-ui";
+import { formatHostUserError, useCapability, useHostPorts } from "@altai/agent-ui";
 import { useCallback, useEffect, useState } from "react";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import { SettingsSettingRow } from "./settingsSectionLayout.js";
 import { SettingsSwitch } from "./SettingsSwitch.js";
 

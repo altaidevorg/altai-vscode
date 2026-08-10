@@ -5,12 +5,12 @@
 
 import {
   ProviderConnectBanner,
+  formatHostUserError,
   useCapability,
   useHostPorts,
 } from "@altai/agent-ui";
 import type { ProviderStatus } from "@altai/host-contract";
 import { useCallback, useEffect, useState } from "react";
-import { formatHostUserError } from "../shared/hostUserError.js";
 import {
   canMountProviderStatus,
   firstConnectableProvider,
