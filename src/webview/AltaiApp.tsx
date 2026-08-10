@@ -2,6 +2,7 @@ import {
   AgentChatLayout,
   AiChatMainColumn,
   AiSidePanelFrame,
+  AiPanelSurfaceTabs,
   AiChatTranscriptFrame,
   ChatTabStrip,
   detectSlashOrSnippetTrigger,
@@ -661,39 +662,18 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
         }
       >
         {shouldShowSurfaceTextTabs() ? (
-          <div
-            className="altai-view-tabs"
-            role="tablist"
+          <AiPanelSurfaceTabs
+            activeId={surface}
             aria-label="ALTAI surfaces"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={surface === "chat"}
-              className="altai-view-tab"
-              onClick={() => selectSurface("chat")}
-            >
-              Chat
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={surface === "operations"}
-              className="altai-view-tab"
-              onClick={() => selectSurface("operations")}
-            >
-              Operations
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={surface === "settings"}
-              className="altai-view-tab"
-              onClick={() => selectSurface("settings")}
-            >
-              Settings
-            </button>
-          </div>
+            tabs={[
+              { id: "chat", label: "Chat" },
+              { id: "operations", label: "Operations" },
+              { id: "settings", label: "Settings" },
+            ]}
+            onSelect={(next) => {
+              selectSurface(next as PersistedAltaiSurface);
+            }}
+          />
         ) : null}
         {hostStatus.status === "ready" && !initError ? (
           surface === "operations" ? (
