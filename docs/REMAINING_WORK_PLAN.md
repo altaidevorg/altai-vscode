@@ -9,16 +9,16 @@ on `altai-app` main (inventory of host-component user-facing strings is empty as
 This document sequences **everything still required** for production unlock (R1–R8),
 with one acceptance gate per PR.
 
-## 0. Current baseline (2026-08-10+)
+## 0. Current baseline (verified 2026-08-10)
 
 | Track | State |
 |---|---|
-| Pure chrome `agent-ui` libs | **A6 pure-label drain complete** through A6.268 (paper import / compact labels). Residual A6 work = R1 reexports + R2 composites only |
-| VS Code host mirrors | Through A6.149 redact #320; plan #321; native method #317; skills install #318; placeholders/proposal #319; keyboard #315; draft R3 #314 |
-| Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration + composite chrome wrappers |
-| Desktop | `AiSidePanel` Escape + ops/width helpers wired; still owns Resizable + stores |
-| `review.editProposal` | stdio/VS Code capability + unit path present; trusted E2E smoke still due |
-| npm / Marketplace | Still `file:` sibling + local VSIX |
+| Pure chrome `agent-ui` libs | **A6 pure-label drain complete** through A6.268; shared Markdown, panel frame, topbar, surface tabs, chat column, composer frame and draft persistence are exported |
+| VS Code host mirrors | Webview uses the shared helpers/frames; Extension Host retains its non-React pure mirrors by design |
+| Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration and host-specific composite adapters, but mounts shared panel, chat-column, topbar and surface-tabs frames |
+| Desktop | `AiSidePanel` uses shared frame/topbar/chat column/composer primitives; it still owns Resizable layout and Zustand/Tauri wiring |
+| `review.editProposal` | stdio apply/deny fixture and VS Code ports/capability tests pass; trusted-workspace end-to-end smoke remains |
+| npm / Marketplace | Publish workflows, package verification and Marketplace multi-target pre-release automation are ready; registry credentials are not configured |
 
 ## 1. Program waves (order)
 
@@ -36,6 +36,26 @@ R8  Wave 7 / Wave 0    npm publish, pins, Marketplace (needs org secrets)
 
 Waves R4–R6 are **host-first** (`altai-app`). R1–R3 can proceed without them but full
 product green needs host waves.
+
+### Delivered since the original baseline
+
+- **R1:** `webviewState`, recovery/deep-link helpers, and composer draft
+  persistence are consumed from `@altai/agent-ui`; the Webview draft controller
+  is now a thin re-export.
+- **R2:** panel width storage, adaptive chrome layout, `AiSidePanelFrame`,
+  `AiPanelTopbar`, `AiChatMainColumn`, and the presentational composer tree are
+  shared and consumed by Desktop. The remaining work is store/Tauri/resizable
+  composition, not another copy of those primitives.
+- **R3:** VS Code mounts the shared panel/chat frames and now uses shared
+  surface tabs. `AltaiApp` has not yet been deleted because it remains the
+  host RPC/state adapter.
+- **R4:** CLI unit and stdio fixture tests cover proposal apply/deny and reject
+  workspace-path escape; the host advertises the capability only when methods
+  are available.
+- **R7:** safe shared GFM rendering is mounted in both hosts.
+- **R8:** npm workflow packages in dependency order with auth preflight;
+  Marketplace release downloads all target artifacts and invokes `vsce` only
+  for an explicit opt-in dispatch. Both remain blocked on organization secrets.
 
 **Rules (unchanged):**
 
