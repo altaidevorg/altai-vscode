@@ -25,7 +25,7 @@ jobs:
           - os: macos-14
             target: darwin-arm64
             host_name: altai-agent-host
-          - os: macos-13
+          - os: macos-14
             target: darwin-x64
             host_name: altai-agent-host
           - os: windows-latest
@@ -62,6 +62,10 @@ jobs:
         with:
           workspaces: altai-app-main/src-tauri -> target
           shared-key: altai-cli-${{ matrix.target }}
+
+      - name: Install Intel macOS Rust target
+        if: matrix.target == 'darwin-x64'
+        run: rustup target add x86_64-apple-darwin
 
       - name: Install JS deps and build extension
         working-directory: altai-vscode
