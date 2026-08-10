@@ -11,7 +11,7 @@ for production unlock, with one acceptance gate per PR.
 
 | Track | State |
 |---|---|
-| Pure chrome `agent-ui` libs | ~A6.140–A6.207 on `altai-app` main (through env blocks, slash prompts, run meta, compaction toast) |
+| Pure chrome `agent-ui` libs | ~A6.140–A6.207 on `altai-app` main (through inbox view, plan queue, error/pending helpers, automation list) |
 | VS Code host mirrors | Through A6.149 redact #320; plan #321; native method #317; skills install #318; placeholders/proposal #319; keyboard #315; draft R3 #314 |
 | Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration + composite chrome wrappers |
 | Desktop | `AiSidePanel` Escape + ops/width helpers wired; still owns Resizable + stores |
