@@ -4,7 +4,7 @@ Status: active
 Owners: `altai-app` (product UI, protocol, Rust host), `altai-vscode` (thin adapter)  
 Related: [UNLOCK_PLAN.md](UNLOCK_PLAN.md), [ENGINEERING_PLAN.md](ENGINEERING_PLAN.md), [FEATURE_MATRIX.md](FEATURE_MATRIX.md)
 
-Pure dual-chrome extraction continues (**A6.140–A6.225**: catalog model filter, automation interval, task list order, context path chrome. **everything still required**
+Pure dual-chrome extraction continues (**A6.140–A6.225**: catalog model filter, automation interval, task list order, context path chrome). This document sequences **everything still required**
 for production unlock, with one acceptance gate per PR.
 
 ## 0. Current baseline (2026-08-10+)
