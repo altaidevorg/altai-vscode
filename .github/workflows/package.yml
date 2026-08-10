@@ -42,18 +42,18 @@ jobs:
             host_name: altai-agent-host.exe
     steps:
       - name: Checkout altai-vscode
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: altai-vscode
 
       - name: Checkout altai-app (shared packages)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: altaidevorg/altai-app
           path: altai-app-main
           token: ${{ github.token }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
@@ -84,7 +84,7 @@ jobs:
           node scripts/verify-vsix.mjs --vsix="$VSIX" --target=${{ matrix.target }}
 
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: altai-${{ matrix.target }}
           path: altai-vscode/artifacts/*.vsix
