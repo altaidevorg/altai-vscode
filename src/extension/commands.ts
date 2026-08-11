@@ -96,7 +96,7 @@ export function registerCommands(
       );
     }),
     vscode.commands.registerCommand("altai.openOperations", async () => {
-      await provider.openOperations({ view: "overview" });
+      await provider.openOperations({ view: "work" });
     }),
     vscode.commands.registerCommand("altai.openOperationsWork", async () => {
       await provider.openOperations({ view: "work", workHubView: "runs" });

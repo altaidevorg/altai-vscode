@@ -18,7 +18,7 @@ export { buildOpenOperationsPayload, parseOpenOperationsPayload };
 
 /**
  * Map a deep-link target onto an available Operations secondary view.
- * Unavailable targets fall back to overview rather than enabling placeholders.
+ * Unavailable targets (including legacy overview/runs) fall back to work.
  */
 export function resolveDeepLinkOperationsView(
   requested: OperationsDeepLinkView,
@@ -28,7 +28,7 @@ export function resolveDeepLinkOperationsView(
   if (available.includes(requested as OperationsView)) {
     return requested as OperationsView;
   }
-  return "overview";
+  return "work";
 }
 
 /**

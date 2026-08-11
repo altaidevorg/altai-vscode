@@ -78,7 +78,7 @@ export type OperationsPanelProps = {
 
 export function OperationsPanel({
   navigation,
-  initialView = "overview",
+  initialView = "work",
   initialWorkHubView = "runs",
   onPresentationChange,
   onAttentionCountChange,
@@ -142,7 +142,7 @@ export function OperationsPanel({
 
   useEffect(() => {
     if (!availableViews.includes(view)) {
-      setView("overview");
+      setView("work");
     }
   }, [availableViews, view]);
 

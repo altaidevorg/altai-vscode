@@ -1,9 +1,16 @@
 /**
  * Capability-gated Operations secondary routes for the VS Code host.
  * Pure helpers — unit-testable without React or ports.
+ *
+ * Work OS Milestone 1: primary nav is Work + Inbox only (SCREENS.md /
+ * WORK_OS_VIEWS). Overview/Runs remain in types for legacy deep-link remap.
  */
 
-import type { OperationsView, TaskRunStatus } from "@altai/agent-ui";
+import {
+  WORK_OS_VIEWS,
+  type OperationsView,
+  type TaskRunStatus,
+} from "@altai/agent-ui";
 import type {
   AutomationInfo,
   NotificationInfo,
@@ -17,23 +24,14 @@ export type OperationsCapabilityFlags = {
 };
 
 /**
- * Overview is always live once the panel mounts. Work/Runs/Inbox enable only
- * when the host advertises the corresponding domain slice.
+ * Milestone 1 Work OS destinations — match altai-app Desktop/Studio.
+ * Capability flags are retained for call-site compatibility but do not expand
+ * primary nav beyond Work + Inbox.
  */
 export function resolveAvailableOperationsViews(
-  flags: OperationsCapabilityFlags,
+  _flags: OperationsCapabilityFlags,
 ): OperationsView[] {
-  const views: OperationsView[] = ["overview"];
-  if (flags.taskRuns || flags.automations) {
-    views.push("work");
-  }
-  if (flags.taskRuns) {
-    views.push("runs");
-  }
-  if (flags.inbox) {
-    views.push("inbox");
-  }
-  return views;
+  return [...WORK_OS_VIEWS];
 }
 
 /** Map host TaskRunInfo status onto shared TaskRunCard status. */
