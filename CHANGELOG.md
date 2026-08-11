@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API key cards with a clear “Paste API key” field; opens Cursor’s top secure
   password bar (keys still never enter the Webview).
 - Stronger key-entry guidance and focused InputBox title for each provider.
+- Align extension compatibility metadata and release documentation with 0.1.10.
+- Refresh the unlock tracker after shared UI, host RPC, multi-root, Markdown,
+  and real-host packaging gates reached green.
+- Refresh the locked `nanoid` transitively to remove the reported high-severity
+  development dependency advisory.
 
 ## [0.1.9] — 2026-08-07
 

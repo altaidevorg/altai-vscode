@@ -9,7 +9,7 @@ on `altai-app` main (inventory of host-component user-facing strings is empty as
 This document sequences **everything still required** for production unlock (R1–R8),
 with one acceptance gate per PR.
 
-## 0. Current baseline (verified 2026-08-10)
+## 0. Current baseline (verified 2026-08-11)
 
 | Track | State |
 |---|---|
@@ -18,9 +18,9 @@ with one acceptance gate per PR.
 | Dual shell | VS Code still owns large `AltaiApp.tsx` orchestration and host-specific composite adapters, but mounts shared panel, chat-column, topbar and surface-tabs frames |
 | Desktop | `AiSidePanel` uses shared frame/topbar/chat column/composer primitives; it still owns Resizable layout and Zustand/Tauri wiring |
 | `review.editProposal` | stdio apply/deny fixture and VS Code ports/capability tests pass; trusted-workspace end-to-end smoke remains |
-| Usage, MCP, skills | CLI advertises the live RPCs; stdio usage serialization, MCP lifecycle, and skill install/list tests pass; a credentialed provider run is still needed for the live-meter gate |
+| Usage, MCP, skills | CLI advertises the live RPCs; MCP lifecycle and skill install/list tests pass; a credentialed live stdio run emitted 5,596 non-zero usage tokens and the Webview meter mapper is covered |
 | Multi-root | Preferred-root QuickPick, host restart, persistence, relative-path attachment, and diagnostics coverage are implemented and tested |
-| npm / Marketplace | Publish workflows, package verification and Marketplace multi-target pre-release automation are ready; registry credentials are not configured |
+| npm / Marketplace | Publish workflows, package verification and Marketplace multi-target pre-release automation are ready; npm authentication succeeds but the token lacks `@altai` scope publish authorization, and `VSCE_PAT` is not configured |
 
 ## 1. Program waves (order)
 
@@ -56,8 +56,8 @@ product green needs host waves.
   are available.
 - **R5:** `usage` run events preserve token totals at the CLI stdio boundary;
   MCP lifecycle and skills list/install RPCs are capability-gated and covered
-  by native tests. The only remaining gate is a credentialed live provider run
-  that reports non-zero usage in the Webview.
+  by native tests. A credentialed live provider run completed with 5,596 tokens;
+  the installed-VSIX visual meter check remains part of release smoke.
 - **R6:** the VS Code project chip selects an open workspace root through a
   QuickPick, persists it, restarts the native host against that root, and keeps
   attached paths and diagnostics scoped honestly.
@@ -219,11 +219,12 @@ new extraction PR unless it removes a demonstrable duplicate UI component.
 
 1. **R4:** run the proposal Apply/Deny path in a trusted VS Code workspace
    against the installed native host.
-2. **R5:** run a credentialed provider request and verify a non-zero usage
-   event reaches the Webview meter; exercise one MCP configuration and one
+2. **R5:** in the installed VSIX, visually confirm the already-verified live
+   usage event reaches the meter; exercise one MCP configuration and one
    fixture skill install in that same trusted-host session.
-3. **R8 credentials:** configure repository/environment `NPM_TOKEN`, VS Code
-   `VSCE_PAT`, and the explicit `ALTAI_PUBLISH_MARKETPLACE=true` variable.
+3. **R8 credentials:** grant the npm automation identity publish permission for
+   the `@altai` scope, configure VS Code `VSCE_PAT`, and set the explicit
+   `ALTAI_PUBLISH_MARKETPLACE=true` variable.
 4. **R8 publication:** dispatch the package publish workflow, replace the
    VS Code `file:` package references with the exact published versions, run
    registry install + VSIX verification, then dispatch the Marketplace

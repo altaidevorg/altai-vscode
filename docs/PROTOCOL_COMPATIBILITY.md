@@ -5,7 +5,7 @@ Pinned versions for this repository. Update this file whenever
 
 | Extension | `@altai/agent-ui` | Protocol major | `altai-agent-host` | Notes |
 |---|---|---:|---|---|
-| 0.1.0 | `0.1.0` (sibling `file:` until npm publish) | 1 | `0.1.0-cli-stdio` | Matches `resources/native/PIN.json`; binary is release `altai-cli` staged via `stage:native-host` / release.yml |
+| 0.1.10 | `0.1.0` (sibling `file:` until npm publish) | 1 | `0.1.0-cli-stdio` | Matches `resources/native/PIN.json`; binary is release `altai-cli` staged via `stage:native-host` / release.yml |
 
 Edit-proposal methods (Wave 1): hosts that implement
 `review/proposals/{list,upsert,apply,deny}` are advertised on initialize.

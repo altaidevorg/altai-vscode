@@ -22,6 +22,14 @@ const pkg = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8"));
 const version = pkg.version;
 const changelog = readFileSync(path.join(root, "CHANGELOG.md"), "utf8");
 const release = readFileSync(path.join(root, "docs", "RELEASE.md"), "utf8");
+const compatibilitySource = readFileSync(
+  path.join(root, "src", "extension", "compatibility.ts"),
+  "utf8",
+);
+const protocolCompatibility = readFileSync(
+  path.join(root, "docs", "PROTOCOL_COMPATIBILITY.md"),
+  "utf8",
+);
 
 /** @type {{code:string,message:string}[]} */
 const findings = [];
@@ -56,6 +64,27 @@ if (!changelogRe.test(changelog)) {
   findings.push({
     code: "changelog_version_missing",
     message: `CHANGELOG.md must contain a "## [${version}]" section`,
+  });
+}
+
+const compatibilityVersion = /\bextension:\s*["']([^"']+)["']/.exec(
+  compatibilitySource,
+)?.[1];
+if (compatibilityVersion !== version) {
+  findings.push({
+    code: "compatibility_version_mismatch",
+    message: `COMPATIBILITY.extension must equal package version ${version} (got ${compatibilityVersion ?? "missing"})`,
+  });
+}
+
+const compatibilityRowRe = new RegExp(
+  `^\\|\\s*${escaped}\\s*\\|`,
+  "m",
+);
+if (!compatibilityRowRe.test(protocolCompatibility)) {
+  findings.push({
+    code: "protocol_compatibility_version_missing",
+    message: `docs/PROTOCOL_COMPATIBILITY.md must contain an extension ${version} table row`,
   });
 }
 
