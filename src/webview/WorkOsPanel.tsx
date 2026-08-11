@@ -3,8 +3,8 @@
  * Backed by the canonical WorkPort and the native host's durable work.db.
  */
 
-import type { WorkItem } from "@altai/host-contract";
-import { useCallback, useEffect, useState } from "react";
+import type { EventPort, WorkItem } from "@altai/host-contract";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   NewWorkDialog,
   WorkDetail,
@@ -16,9 +16,19 @@ import {
   type WorkListRow,
 } from "./workOsUi.js";
 import {
+  loadWorkInboxRows,
+  type WorkInboxPort,
+} from "./workInboxUi.js";
+import {
   executeWorkAction,
   type WorkOsPort,
 } from "./workOsActions.js";
+import {
+  canCommitWorkDetailRequest,
+  createCoalescedAsyncGate,
+  shouldRequestWorkInboxRefresh,
+  WORK_INBOX_POLL_INTERVAL_MS,
+} from "./workOsRefresh.js";
 
 function stateLabel(state: string): string {
   return state.split("_").join(" ");
@@ -56,25 +66,50 @@ function primaryActionsFor(state: string): WorkDetailPrimaryAction[] {
 export type WorkOsPanelProps = {
   surface: "work" | "inbox";
   workPort: WorkOsPort;
+  inboxPort: WorkInboxPort;
+  eventPort: Pick<EventPort, "subscribe">;
   available: boolean;
+  inboxAvailable: boolean;
   onOpenInbox: () => void;
   onGoToWork: () => void;
+  onInboxCountChange?: (count: number) => void;
 };
 
 export function WorkOsPanel({
   surface,
   workPort,
+  inboxPort,
+  eventPort,
   available,
+  inboxAvailable,
   onOpenInbox,
   onGoToWork,
+  onInboxCountChange,
 }: WorkOsPanelProps) {
   const [filter, setFilter] = useState<WorkListFilterId>("my_active");
   const [rows, setRows] = useState<WorkListRow[]>([]);
   const [listStatus, setListStatus] = useState<
     "loading" | "ready" | "error"
   >("loading");
-  const [inboxRows] = useState<WorkInboxRow[]>([]);
+  const [inboxRows, setInboxRows] = useState<WorkInboxRow[]>([]);
+  const [inboxStatus, setInboxStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+  const [inboxError, setInboxError] = useState<string | null>(null);
+  const inboxGenerationRef = useRef(0);
+  const inboxRefreshExecutorRef = useRef<() => Promise<void>>(async () => {});
+  const inboxRefreshGateRef = useRef<ReturnType<
+    typeof createCoalescedAsyncGate
+  > | null>(null);
+  if (!inboxRefreshGateRef.current) {
+    inboxRefreshGateRef.current = createCoalescedAsyncGate(() =>
+      inboxRefreshExecutorRef.current(),
+    );
+  }
+  const previousSurfaceRef = useRef(surface);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
+  const detailGenerationRef = useRef(0);
   const [detail, setDetail] = useState<WorkItem | null>(null);
   const [detailStatus, setDetailStatus] = useState<
     "loading" | "ready" | "error" | "not_found"
@@ -107,7 +142,18 @@ export function WorkOsPanel({
 
   const loadDetail = useCallback(
     async (workId: string) => {
+      const request = {
+        generation: ++detailGenerationRef.current,
+        workId,
+      };
+      const canCommit = () =>
+        canCommitWorkDetailRequest(
+          request,
+          detailGenerationRef.current,
+          selectedIdRef.current,
+        );
       if (!available) {
+        if (!canCommit()) return;
         setDetail(null);
         setDetailStatus("error");
         setError(
@@ -115,18 +161,24 @@ export function WorkOsPanel({
         );
         return;
       }
+      if (!canCommit()) return;
       setDetailStatus("loading");
       try {
         const item = await workPort.getWork(workId);
+        if (!canCommit()) return;
         if (!item) {
           setDetail(null);
           setDetailStatus("not_found");
           return;
         }
+        if (item.id !== workId) {
+          throw new Error("invalid_work_detail_identity");
+        }
         setDetail(item);
         setDetailStatus("ready");
         setError(null);
       } catch (err) {
+        if (!canCommit()) return;
         setDetail(null);
         setDetailStatus("error");
         setError(err instanceof Error ? err.message : String(err));
@@ -135,21 +187,147 @@ export function WorkOsPanel({
     [available, workPort],
   );
 
+  inboxRefreshExecutorRef.current = async () => {
+    const generation = ++inboxGenerationRef.current;
+    if (!inboxAvailable) {
+      setInboxRows([]);
+      setInboxStatus("error");
+      setInboxError(
+        "Canonical Inbox is unavailable. Update or restart the native host.",
+      );
+      onInboxCountChange?.(0);
+      return;
+    }
+    setInboxStatus("loading");
+    try {
+      const nextRows = await loadWorkInboxRows(inboxPort);
+      if (generation !== inboxGenerationRef.current) return;
+      setInboxRows(nextRows);
+      setInboxStatus("ready");
+      setInboxError(null);
+      onInboxCountChange?.(nextRows.length);
+    } catch (err) {
+      if (generation !== inboxGenerationRef.current) return;
+      setInboxRows([]);
+      setInboxStatus("error");
+      setInboxError(err instanceof Error ? err.message : String(err));
+      // The mounted Inbox shows this error, while its badge deliberately keeps
+      // the last-known actionable count until a successful refresh.
+    }
+  };
+
+  const requestInboxRefresh = useCallback((): Promise<void> => {
+    return inboxRefreshGateRef.current!.request();
+  }, []);
+
+  const clearSelectedWork = useCallback(() => {
+    detailGenerationRef.current += 1;
+    selectedIdRef.current = null;
+    setSelectedId(null);
+    setDetail(null);
+    setDetailStatus("ready");
+    setError(null);
+  }, []);
+
+  const openWork = useCallback(
+    (workId: string) => {
+      selectedIdRef.current = workId;
+      setSelectedId(workId);
+      setDetail(null);
+      setError(null);
+      // Deliberately load even when the same Inbox row is selected again.
+      void loadDetail(workId);
+    },
+    [loadDetail],
+  );
+
+  const goToWorkList = useCallback(() => {
+    clearSelectedWork();
+    onGoToWork();
+  }, [clearSelectedWork, onGoToWork]);
+
   useEffect(() => {
     if (surface === "work") void refresh();
   }, [refresh, surface]);
 
   useEffect(() => {
-    if (selectedId) void loadDetail(selectedId);
-  }, [selectedId, loadDetail]);
+    inboxGenerationRef.current += 1;
+    void requestInboxRefresh();
+    return () => {
+      inboxGenerationRef.current += 1;
+      inboxRefreshGateRef.current?.cancelPending();
+    };
+  }, [inboxAvailable, inboxPort, onInboxCountChange, requestInboxRefresh]);
 
   useEffect(() => {
-    if (surface === "inbox") setSelectedId(null);
-  }, [surface]);
+    const previousSurface = previousSurfaceRef.current;
+    previousSurfaceRef.current = surface;
+    if (
+      shouldRequestWorkInboxRefresh("surface", {
+        previousSurface,
+        surface,
+      })
+    ) {
+      void requestInboxRefresh();
+    }
+  }, [requestInboxRefresh, surface]);
+
+  useEffect(() => {
+    if (!inboxAvailable) return;
+    const interval = window.setInterval(() => {
+      if (
+        shouldRequestWorkInboxRefresh("poll", {
+          visibilityState: document.visibilityState,
+        })
+      ) {
+        void requestInboxRefresh();
+      }
+    }, WORK_INBOX_POLL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [inboxAvailable, requestInboxRefresh]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      if (shouldRequestWorkInboxRefresh("focus")) {
+        void requestInboxRefresh();
+      }
+    };
+    const onVisibility = () => {
+      if (
+        shouldRequestWorkInboxRefresh("visibility", {
+          visibilityState: document.visibilityState,
+        })
+      ) {
+        void requestInboxRefresh();
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [requestInboxRefresh]);
+
+  useEffect(
+    () =>
+      eventPort.subscribe((event) => {
+        if (event.type === "lifecycle" || event.type === "notification") {
+          void requestInboxRefresh();
+        }
+      }),
+    [eventPort, requestInboxRefresh],
+  );
 
   const runAction = useCallback(
     async (action: WorkDetailPrimaryAction) => {
-      if (!detail || actionBusy) return;
+      if (!detail || !selectedId || detail.id !== selectedId || actionBusy) {
+        return;
+      }
+      const request = {
+        generation: detailGenerationRef.current,
+        workId: detail.id,
+      };
       let returnGuidance: string | undefined;
       if (action === "return") {
         returnGuidance =
@@ -165,30 +343,57 @@ export function WorkOsPanel({
           action,
           returnGuidance,
         );
-        if (next) {
+        if (
+          next &&
+          canCommitWorkDetailRequest(
+            request,
+            detailGenerationRef.current,
+            selectedIdRef.current,
+          )
+        ) {
           setDetail(next);
           setDetailStatus("ready");
         }
         await refresh();
+        await requestInboxRefresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        if (
+          canCommitWorkDetailRequest(
+            request,
+            detailGenerationRef.current,
+            selectedIdRef.current,
+          )
+        ) {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       } finally {
         setActionBusy(false);
       }
     },
-    [actionBusy, detail, refresh, workPort],
+    [
+      actionBusy,
+      detail,
+      refresh,
+      requestInboxRefresh,
+      selectedId,
+      workPort,
+    ],
   );
 
   if (surface === "inbox") {
     return (
       <WorkInbox
-        status="ready"
+        status={inboxStatus}
         rows={inboxRows}
         onOpenWork={(id) => {
+          openWork(id);
           onGoToWork();
-          setSelectedId(id);
         }}
-        onGoToWork={onGoToWork}
+        onGoToWork={goToWorkList}
+        errorMessage={inboxError ?? undefined}
+        onRetry={() => {
+          void requestInboxRefresh();
+        }}
       />
     );
   }
@@ -215,7 +420,7 @@ export function WorkOsPanel({
           onPrimaryAction={(action) => {
             void runAction(action);
           }}
-          onBack={() => setSelectedId(null)}
+          onBack={clearSelectedWork}
           onRetry={
             selectedId
               ? () => {
@@ -241,7 +446,7 @@ export function WorkOsPanel({
         filter={filter}
         onFilterChange={setFilter}
         rows={rows}
-        onOpenWork={(id) => setSelectedId(id)}
+        onOpenWork={openWork}
         onNewWork={() => {
           if (available) setNewWorkOpen(true);
         }}
@@ -267,6 +472,8 @@ export function WorkOsPanel({
               setNewWorkOpen(false);
               setDetail(created);
               setDetailStatus("ready");
+              detailGenerationRef.current += 1;
+              selectedIdRef.current = created.id;
               setSelectedId(created.id);
               setError(null);
             } catch (err) {

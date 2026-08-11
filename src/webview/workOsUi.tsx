@@ -584,6 +584,8 @@ export function WorkInbox({
             className="m-3"
             message={errorMessage ?? "Inbox failed to load."}
             onDismiss={onRetry}
+            dismissLabel="Retry"
+            dismissAriaLabel="Retry loading Inbox"
           />
         ) : null}
         {status === "ready" && rows.length === 0 ? (

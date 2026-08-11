@@ -1,11 +1,19 @@
-/**
- * Shell-owned attention polling when the Operations surface is not mounted.
- * Shared implementation lives in `@altai/agent-ui` (A6.105).
- */
+/** Shell-owned canonical Work Inbox polling when Operations is unmounted. */
 
-export {
-  fetchOperationsAttentionCount,
-  shouldRefreshAttentionOnEvent,
-  type AttentionPollFlags,
-  type AttentionPollSources,
-} from "@altai/agent-ui";
+import type { AgentEventType, WorkInboxItem } from "@altai/host-contract";
+
+export type AttentionPollSource = {
+  listWorkInbox(): Promise<WorkInboxItem[]>;
+};
+
+export async function fetchOperationsAttentionCount(
+  available: boolean,
+  source: AttentionPollSource,
+): Promise<number> {
+  if (!available) return 0;
+  return (await source.listWorkInbox()).length;
+}
+
+export function shouldRefreshAttentionOnEvent(type: AgentEventType): boolean {
+  return type === "lifecycle" || type === "notification";
+}

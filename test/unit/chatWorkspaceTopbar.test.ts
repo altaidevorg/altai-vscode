@@ -1,41 +1,59 @@
 import { describe, expect, it } from "vitest";
 import {
-  canMountWorkspaceTopbar,
+  canMountWorkOsTopbar,
+  resolveWorkOsTopbarMode,
   workspaceTopbarInboxOpen,
   workspaceTopbarWorkOpen,
 } from "../../src/webview/chatWorkspaceTopbar.js";
 
-describe("canMountWorkspaceTopbar", () => {
-  it("requires at least one Operations domain capability", () => {
+describe("canMountWorkOsTopbar", () => {
+  it("mounts the canonical cluster only as a pair or keeps the inspector alone", () => {
     expect(
-      canMountWorkspaceTopbar({
-        taskRuns: false,
-        automations: false,
+      canMountWorkOsTopbar({
+        work: false,
         inbox: false,
       }),
     ).toBe(false);
     expect(
-      canMountWorkspaceTopbar({
-        taskRuns: true,
-        automations: false,
+      canMountWorkOsTopbar({
+        work: true,
         inbox: false,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
-      canMountWorkspaceTopbar({
-        taskRuns: false,
-        automations: false,
+      canMountWorkOsTopbar({
+        work: false,
         inbox: true,
       }),
-    ).toBe(true);
+    ).toBe(false);
     expect(
-      canMountWorkspaceTopbar({
-        taskRuns: false,
-        automations: false,
+      canMountWorkOsTopbar({
+        work: false,
         inbox: false,
         inspector: true,
       }),
     ).toBe(true);
+    expect(
+      canMountWorkOsTopbar({
+        work: true,
+        inbox: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps only the independent inspector for partial host capabilities", () => {
+    expect(
+      resolveWorkOsTopbarMode({ work: false, inbox: false, inspector: true }),
+    ).toBe("inspector");
+    expect(
+      resolveWorkOsTopbarMode({ work: true, inbox: false, inspector: true }),
+    ).toBe("inspector");
+    expect(
+      resolveWorkOsTopbarMode({ work: false, inbox: true, inspector: true }),
+    ).toBe("inspector");
+    expect(
+      resolveWorkOsTopbarMode({ work: true, inbox: true, inspector: true }),
+    ).toBe("work");
   });
 });
 

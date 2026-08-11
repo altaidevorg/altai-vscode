@@ -31,6 +31,8 @@ import {
   type TerminalContext,
   type TaskRunInfo,
   type WorkItem,
+  type WorkInboxItem,
+  type WorkInboxKind,
   type WorkState,
   type WorkspaceInfo,
 } from "@altai/host-contract";
@@ -151,6 +153,9 @@ export function createVsCodeHostPorts(
                   "work.items": nativeAvailability(
                     WORK_ITEM_METHODS.every(hasAdvertisedNativeMethod),
                   ),
+                  "work.inbox": nativeAvailability(
+                    hasAdvertisedNativeMethod("work/inbox/list"),
+                  ),
                   "work.taskRuns": nativeAvailability(
                     ["work/tasks/list", "work/tasks/create", "work/tasks/cancel", "work/tasks/retry", "work/tasks/remove"].every(hasNativeMethod),
                   ),
@@ -219,6 +224,7 @@ export function createVsCodeHostPorts(
                   "review.restoreCheckpoint": "deferred",
                   "review.editProposal": "deferred",
                   "work.items": "deferred",
+                  "work.inbox": "deferred",
                   "work.taskRuns": "deferred",
                   "work.automations": "deferred",
                   "mcp.list": "deferred",
@@ -822,12 +828,23 @@ export function createVsCodeHostPorts(
     inbox: withUnsupportedDefaults(
       "inbox",
       [
+        "listWorkInbox",
         "listNotifications",
         "markNotificationSeen",
         "resolveNotification",
         "dismissNotification",
       ],
       {
+        async listWorkInbox(): Promise<WorkInboxItem[]> {
+          requireReady(isHostReady);
+          requireNativeCapability(
+            hasAdvertisedNativeMethod,
+            "work/inbox/list",
+          );
+          return normalizeWorkInboxItems(
+            await transport.request("work/inbox/list", {}),
+          );
+        },
         async listNotifications(): Promise<NotificationInfo[]> {
           requireReady(isHostReady);
           const result = await transport.request("inbox/list", {});
@@ -969,6 +986,14 @@ const WORK_STATES = new Set<WorkState>([
   "cancelled",
 ]);
 
+const WORK_INBOX_KINDS = new Set<WorkInboxKind>([
+  "review_required",
+  "approval",
+  "question",
+  "failed_attempt",
+  "blocked",
+]);
+
 function normalizeWorkItems(value: unknown): WorkItem[] {
   if (!Array.isArray(value)) {
     throw new Error("invalid_work_list_response");
@@ -1023,6 +1048,58 @@ function normalizeWorkItem(value: unknown): WorkItem {
       ? { blocker: value.blocker as string | null }
       : {}),
   };
+}
+
+function normalizeWorkInboxItems(value: unknown): WorkInboxItem[] {
+  if (!Array.isArray(value)) {
+    throw new Error("invalid_work_inbox_response");
+  }
+  return value.map(normalizeWorkInboxItem);
+}
+
+function normalizeWorkInboxItem(value: unknown): WorkInboxItem {
+  if (
+    !isRecord(value) ||
+    !isNonEmptyString(value.id) ||
+    !isNonEmptyString(value.workId) ||
+    typeof value.kind !== "string" ||
+    !WORK_INBOX_KINDS.has(value.kind as WorkInboxKind) ||
+    !isNonEmptyString(value.title) ||
+    !isNonEmptyString(value.why) ||
+    typeof value.createdAtMs !== "number" ||
+    !Number.isSafeInteger(value.createdAtMs) ||
+    value.createdAtMs < 0 ||
+    !isOptionalNullableNonEmptyString(value.attemptId) ||
+    !isOptionalNullableNonEmptyString(value.chatId) ||
+    !isOptionalNullableNonEmptyString(value.runId)
+  ) {
+    throw new Error("invalid_work_inbox_item_response");
+  }
+  return {
+    id: value.id,
+    workId: value.workId,
+    kind: value.kind as WorkInboxKind,
+    title: value.title,
+    why: value.why,
+    createdAtMs: value.createdAtMs,
+    ...(value.attemptId !== undefined
+      ? { attemptId: value.attemptId as string | null }
+      : {}),
+    ...(value.chatId !== undefined
+      ? { chatId: value.chatId as string | null }
+      : {}),
+    ...(value.runId !== undefined
+      ? { runId: value.runId as string | null }
+      : {}),
+  };
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isOptionalNullableNonEmptyString(value: unknown): boolean {
+  return value === undefined || value === null || isNonEmptyString(value);
 }
 
 function normalizeSessionList(value: unknown): SessionInfo[] {

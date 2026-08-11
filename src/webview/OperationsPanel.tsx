@@ -30,7 +30,6 @@ import {
 } from "./operationsDeepLink.js";
 import {
   buildOperationsOverview,
-  countOperationsAttention,
   EMPTY_OPERATIONS_DATA,
   overviewActiveRunId,
   overviewFailedRunId,
@@ -87,9 +86,10 @@ export function OperationsPanel({
   const ports = useHostPorts();
   const { capabilities } = useHostPortsContext();
   const canWorkItems = useCapability("work.items");
+  const canWorkInbox = useCapability("work.inbox");
   const canTaskRuns = useCapability("work.taskRuns");
   const canAutomations = useCapability("work.automations");
-  const canInbox = useCapability("inbox.notifications");
+  const canLegacyInbox = useCapability("inbox.notifications");
   const [view, setView] = useState<OperationsView>(initialView);
   const [workHubView, setWorkHubView] =
     useState<WorkHubView>(initialWorkHubView);
@@ -108,9 +108,9 @@ export function OperationsPanel({
     () => ({
       taskRuns: canTaskRuns,
       automations: canAutomations,
-      inbox: canInbox,
+      inbox: canWorkInbox,
     }),
-    [canTaskRuns, canAutomations, canInbox],
+    [canTaskRuns, canAutomations, canWorkInbox],
   );
 
   const availableViews = useMemo(
@@ -180,7 +180,9 @@ export function OperationsPanel({
       const [taskRuns, automations, notifications] = await Promise.all([
         canTaskRuns ? ports.work.listTaskRuns() : Promise.resolve([]),
         canAutomations ? ports.work.listAutomations() : Promise.resolve([]),
-        canInbox ? ports.inbox.listNotifications() : Promise.resolve([]),
+        canLegacyInbox
+          ? ports.inbox.listNotifications()
+          : Promise.resolve([]),
       ]);
       setState({
         status: "ready",
@@ -192,7 +194,7 @@ export function OperationsPanel({
         message: error instanceof Error ? error.message : String(error),
       });
     }
-  }, [ports, capabilities, canTaskRuns, canAutomations, canInbox]);
+  }, [ports, capabilities, canTaskRuns, canAutomations, canLegacyInbox]);
 
   useEffect(() => {
     setState({ status: "loading" });
@@ -369,13 +371,6 @@ export function OperationsPanel({
     focusedChatId,
   };
 
-  useEffect(() => {
-    if (state.status !== "ready") {
-      return;
-    }
-    onAttentionCountChange?.(countOperationsAttention(state.data));
-  }, [state, onAttentionCountChange]);
-
   const viewModel = useMemo(() => {
     const base = buildOperationsOverview(data);
     const attention = withOverviewRowNavigation(
@@ -403,7 +398,7 @@ export function OperationsPanel({
           ),
         );
       }
-      if (inboxId && canInbox) {
+      if (inboxId && canLegacyInbox) {
         buttons.push(
           createElement(
             "button",
@@ -465,7 +460,7 @@ export function OperationsPanel({
     flags,
     navigateOverviewRow,
     canTaskRuns,
-    canInbox,
+    canLegacyInbox,
     actionBusyId,
     onStopTask,
     onRetryTask,
@@ -527,13 +522,17 @@ export function OperationsPanel({
         )
       ) : null}
 
-      {view === "work" ? (
+      {view === "work" || view === "inbox" ? (
         <WorkOsPanel
-          surface="work"
+          surface={view}
           workPort={ports.work}
+          inboxPort={ports.inbox}
+          eventPort={ports.events}
           available={canWorkItems}
+          inboxAvailable={canWorkInbox}
           onOpenInbox={() => setView("inbox")}
           onGoToWork={() => setView("work")}
+          onInboxCountChange={onAttentionCountChange}
         />
       ) : null}
 
@@ -557,15 +556,6 @@ export function OperationsPanel({
         )
       ) : null}
 
-      {view === "inbox" ? (
-        <WorkOsPanel
-          surface="inbox"
-          workPort={ports.work}
-          available={canWorkItems}
-          onOpenInbox={() => setView("inbox")}
-          onGoToWork={() => setView("work")}
-        />
-      ) : null}
     </OperationsNavigationShell>
   );
 }
