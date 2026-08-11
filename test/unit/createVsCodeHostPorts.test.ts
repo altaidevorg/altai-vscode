@@ -25,6 +25,18 @@ const WORK_ITEM = {
   updatedAtMs: 1_700_000_000_100,
 };
 
+const WORK_INBOX_ITEM = {
+  id: "review_required:work-1:attempt-1",
+  workId: "work-1",
+  kind: "review_required",
+  title: "Durable Work",
+  why: "Attempt finished — decide Accept or Return",
+  createdAtMs: 1_700_000_000_200,
+  attemptId: "attempt-1",
+  chatId: "chat-1",
+  runId: "run-1",
+};
+
 function mockTransport(requestImpl?: (method: string, params?: unknown) => Promise<unknown>) {
   return {
     request: vi.fn(
@@ -176,6 +188,155 @@ describe("createVsCodeHostPorts", () => {
     await expect(ports.work.getWork("work-1")).rejects.toThrow(
       "invalid_work_item_response",
     );
+  });
+
+  it("gates and maps the canonical source-backed Work Inbox", async () => {
+    const rows = [
+      WORK_INBOX_ITEM,
+      {
+        ...WORK_INBOX_ITEM,
+        id: "failed_attempt:work-2:attempt-2",
+        workId: "work-2",
+        kind: "failed_attempt",
+        attemptId: "attempt-2",
+        chatId: null,
+        runId: null,
+      },
+      {
+        ...WORK_INBOX_ITEM,
+        id: "blocked:work-3",
+        workId: "work-3",
+        kind: "blocked",
+        attemptId: null,
+        chatId: null,
+        runId: null,
+      },
+      { ...WORK_INBOX_ITEM, id: "approval:work-4", kind: "approval" },
+      { ...WORK_INBOX_ITEM, id: "question:work-5", kind: "question" },
+    ];
+    const transport = mockTransport(async (method) => {
+      if (method === "work/inbox/list") return rows;
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["work/inbox/list"],
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+
+    expect(
+      capabilities.capabilities.find((item) => item.id === "work.inbox")
+        ?.availability,
+    ).toBe("available");
+    await expect(ports.inbox.listWorkInbox()).resolves.toEqual(rows);
+    expect(transport.request).toHaveBeenCalledWith("work/inbox/list", {});
+    expect(transport.requestWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("keeps canonical Work Inbox fail-closed when its RPC is not advertised", async () => {
+    const transport = mockTransport();
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["inbox/list"],
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+
+    expect(
+      capabilities.capabilities.find((item) => item.id === "work.inbox")
+        ?.availability,
+    ).toBe("deferred");
+    await expect(ports.inbox.listWorkInbox()).rejects.toThrow(
+      "capability_unavailable",
+    );
+    expect(transport.request).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed Work Inbox DTOs and legacy envelopes", async () => {
+    const invalidResponses = [
+      { items: [WORK_INBOX_ITEM] },
+      [{ ...WORK_INBOX_ITEM, kind: "notification" }],
+      [{ ...WORK_INBOX_ITEM, createdAtMs: -1 }],
+      [{ ...WORK_INBOX_ITEM, runId: 42 }],
+      [{ ...WORK_INBOX_ITEM, workId: "" }],
+    ];
+    for (const response of invalidResponses) {
+      const ports = createVsCodeHostPorts({
+        isHostReady: () => true,
+        getNativeCapabilities: () => ["work/inbox/list"],
+        transport: mockTransport(async () => response),
+      });
+      await expect(ports.inbox.listWorkInbox()).rejects.toThrow(
+        /invalid_work_inbox/,
+      );
+    }
+  });
+
+  it("keeps legacy notification Inbox callable without owning Work Inbox", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "inbox/list") {
+        return {
+          notifications: [
+            {
+              notification_id: "notification-1",
+              chat_id: "chat-legacy",
+              title: "Legacy notification",
+              body: "Compatibility only",
+              seen_at_ms: null,
+              created_at_ms: 1_700_000_000_000,
+            },
+          ],
+        };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "inbox/list",
+        "inbox/mark-seen",
+        "inbox/resolve",
+      ],
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+
+    expect(
+      capabilities.capabilities.find(
+        (item) => item.id === "inbox.notifications",
+      )?.availability,
+    ).toBe("available");
+    expect(
+      capabilities.capabilities.find((item) => item.id === "work.inbox")
+        ?.availability,
+    ).toBe("deferred");
+    await expect(ports.inbox.listNotifications()).resolves.toEqual([
+      {
+        id: "notification-1",
+        chatId: "chat-legacy",
+        title: "Legacy notification",
+        body: "Compatibility only",
+        seen: false,
+        createdAt: "2023-11-14T22:13:20.000Z",
+      },
+    ]);
+    expect(transport.request).toHaveBeenCalledWith("inbox/list", {});
   });
 
   it("proxies the complete native MCP lifecycle only when advertised", async () => {
