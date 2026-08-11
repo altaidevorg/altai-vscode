@@ -3,16 +3,6 @@
  * Backed by in-memory workOsStore until host work_* IPC is available.
  */
 
-import {
-  NewWorkDialog,
-  WorkDetail,
-  WorkInbox,
-  WorkList,
-  type WorkDetailPrimaryAction,
-  type WorkInboxRow,
-  type WorkListFilterId,
-  type WorkListRow,
-} from "@altai/agent-ui";
 import { useCallback, useEffect, useState } from "react";
 import {
   createWork,
@@ -25,6 +15,16 @@ import {
   type WorkItemDto,
   type WorkListFilter,
 } from "./workOsStore.js";
+import {
+  NewWorkDialog,
+  WorkDetail,
+  WorkInbox,
+  WorkList,
+  type WorkDetailPrimaryAction,
+  type WorkInboxRow,
+  type WorkListFilterId,
+  type WorkListRow,
+} from "./workOsUi.js";
 
 function stateLabel(state: string): string {
   return state.split("_").join(" ");
@@ -69,6 +69,10 @@ function toStoreFilter(filter: WorkListFilterId): WorkListFilter {
       return "backlog";
     case "done":
       return "done";
+    default: {
+      const _exhaustive: never = filter;
+      return _exhaustive;
+    }
   }
 }
 

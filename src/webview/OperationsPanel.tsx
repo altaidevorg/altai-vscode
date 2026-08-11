@@ -94,7 +94,6 @@ export function OperationsPanel({
     useState<WorkHubView>(initialWorkHubView);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
-  const [markingAllRead, setMarkingAllRead] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -492,6 +491,7 @@ export function OperationsPanel({
     onCreateClose: closeAutoCreate,
     onCreateSubmit: submitAutoCreate,
   };
+  void automationActions;
 
   return (
     <OperationsNavigationShell
