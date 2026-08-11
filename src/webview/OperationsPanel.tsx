@@ -86,6 +86,7 @@ export function OperationsPanel({
 }: OperationsPanelProps) {
   const ports = useHostPorts();
   const { capabilities } = useHostPortsContext();
+  const canWorkItems = useCapability("work.items");
   const canTaskRuns = useCapability("work.taskRuns");
   const canAutomations = useCapability("work.automations");
   const canInbox = useCapability("inbox.notifications");
@@ -529,6 +530,8 @@ export function OperationsPanel({
       {view === "work" ? (
         <WorkOsPanel
           surface="work"
+          workPort={ports.work}
+          available={canWorkItems}
           onOpenInbox={() => setView("inbox")}
           onGoToWork={() => setView("work")}
         />
@@ -557,6 +560,8 @@ export function OperationsPanel({
       {view === "inbox" ? (
         <WorkOsPanel
           surface="inbox"
+          workPort={ports.work}
+          available={canWorkItems}
           onOpenInbox={() => setView("inbox")}
           onGoToWork={() => setView("work")}
         />

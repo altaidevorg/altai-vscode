@@ -1,20 +1,10 @@
 /**
  * Work OS M1 surfaces for VS Code Operations (Work list/detail + Inbox).
- * Backed by in-memory workOsStore until host work_* IPC is available.
+ * Backed by the canonical WorkPort and the native host's durable work.db.
  */
 
+import type { WorkItem } from "@altai/host-contract";
 import { useCallback, useEffect, useState } from "react";
-import {
-  createWork,
-  getWork,
-  listWork,
-  readyForReview,
-  reviewWork,
-  startWork,
-  transitionWork,
-  type WorkItemDto,
-  type WorkListFilter,
-} from "./workOsStore.js";
 import {
   NewWorkDialog,
   WorkDetail,
@@ -25,16 +15,20 @@ import {
   type WorkListFilterId,
   type WorkListRow,
 } from "./workOsUi.js";
+import {
+  executeWorkAction,
+  type WorkOsPort,
+} from "./workOsActions.js";
 
 function stateLabel(state: string): string {
   return state.split("_").join(" ");
 }
 
-function toListRow(item: WorkItemDto): WorkListRow {
+function toListRow(item: WorkItem): WorkListRow {
   return {
     id: item.id,
     title: item.title,
-    projectLabel: "VS Code",
+    projectLabel: item.projectId,
     stateLabel: stateLabel(item.state),
     attemptLabel: "—",
     updatedLabel: "recent",
@@ -59,39 +53,29 @@ function primaryActionsFor(state: string): WorkDetailPrimaryAction[] {
   }
 }
 
-function toStoreFilter(filter: WorkListFilterId): WorkListFilter {
-  switch (filter) {
-    case "my_active":
-      return "my_active";
-    case "review":
-      return "review";
-    case "backlog":
-      return "backlog";
-    case "done":
-      return "done";
-    default: {
-      const _exhaustive: never = filter;
-      return _exhaustive;
-    }
-  }
-}
-
 export type WorkOsPanelProps = {
   surface: "work" | "inbox";
+  workPort: WorkOsPort;
+  available: boolean;
   onOpenInbox: () => void;
   onGoToWork: () => void;
 };
 
 export function WorkOsPanel({
   surface,
+  workPort,
+  available,
   onOpenInbox,
   onGoToWork,
 }: WorkOsPanelProps) {
   const [filter, setFilter] = useState<WorkListFilterId>("my_active");
   const [rows, setRows] = useState<WorkListRow[]>([]);
+  const [listStatus, setListStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
   const [inboxRows] = useState<WorkInboxRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<WorkItemDto | null>(null);
+  const [detail, setDetail] = useState<WorkItem | null>(null);
   const [detailStatus, setDetailStatus] = useState<
     "loading" | "ready" | "error" | "not_found"
   >("ready");
@@ -99,73 +83,100 @@ export function WorkOsPanel({
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
 
-  const refresh = useCallback(() => {
-    setRows(listWork(toStoreFilter(filter)).map(toListRow));
-    setError(null);
-  }, [filter]);
-
-  const loadDetail = useCallback((workId: string) => {
-    setDetailStatus("loading");
-    const item = getWork(workId);
-    if (!item) {
-      setDetail(null);
-      setDetailStatus("not_found");
+  const refresh = useCallback(async () => {
+    if (!available) {
+      setRows([]);
+      setListStatus("error");
+      setError(
+        "Canonical Work is unavailable. Update or restart the native host.",
+      );
       return;
     }
-    setDetail(item);
-    setDetailStatus("ready");
-  }, []);
+    setListStatus("loading");
+    try {
+      const items = await workPort.listWork(filter);
+      setRows(items.map(toListRow));
+      setListStatus("ready");
+      setError(null);
+    } catch (err) {
+      setRows([]);
+      setListStatus("error");
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, [available, filter, workPort]);
+
+  const loadDetail = useCallback(
+    async (workId: string) => {
+      if (!available) {
+        setDetail(null);
+        setDetailStatus("error");
+        setError(
+          "Canonical Work is unavailable. Update or restart the native host.",
+        );
+        return;
+      }
+      setDetailStatus("loading");
+      try {
+        const item = await workPort.getWork(workId);
+        if (!item) {
+          setDetail(null);
+          setDetailStatus("not_found");
+          return;
+        }
+        setDetail(item);
+        setDetailStatus("ready");
+        setError(null);
+      } catch (err) {
+        setDetail(null);
+        setDetailStatus("error");
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    [available, workPort],
+  );
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (surface === "work") void refresh();
+  }, [refresh, surface]);
 
   useEffect(() => {
-    if (selectedId) loadDetail(selectedId);
+    if (selectedId) void loadDetail(selectedId);
   }, [selectedId, loadDetail]);
 
   useEffect(() => {
-    if (surface === "inbox") {
-      setSelectedId(null);
-    }
+    if (surface === "inbox") setSelectedId(null);
   }, [surface]);
 
   const runAction = useCallback(
-    (action: WorkDetailPrimaryAction) => {
+    async (action: WorkDetailPrimaryAction) => {
       if (!detail || actionBusy) return;
+      let returnGuidance: string | undefined;
+      if (action === "return") {
+        returnGuidance =
+          window.prompt("Return guidance (required for the next attempt):") ??
+          "";
+        if (!returnGuidance.trim()) return;
+      }
       setActionBusy(true);
       try {
-        let next: WorkItemDto | null = null;
-        if (action === "ready" || action === "reopen") {
-          next = transitionWork(detail.id, detail.revision, "ready");
-        } else if (action === "start") {
-          next = startWork(detail.id, detail.revision);
-        } else if (action === "open_run") {
-          next = readyForReview(detail.id, detail.revision);
-        } else if (action === "accept") {
-          next = reviewWork(detail.id, detail.revision, true);
-        } else if (action === "return") {
-          const guidance =
-            window.prompt("Return guidance (required for the next attempt):") ??
-            "";
-          if (!guidance.trim()) {
-            setActionBusy(false);
-            return;
-          }
-          next = reviewWork(detail.id, detail.revision, false);
-        }
+        const next = await executeWorkAction(
+          workPort,
+          detail,
+          action,
+          returnGuidance,
+        );
         if (next) {
           setDetail(next);
           setDetailStatus("ready");
         }
-        refresh();
+        await refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       } finally {
         setActionBusy(false);
       }
     },
-    [actionBusy, detail, refresh],
+    [actionBusy, detail, refresh, workPort],
   );
 
   if (surface === "inbox") {
@@ -194,19 +205,21 @@ export function WorkOsPanel({
           status={detailStatus}
           title={detail?.title}
           stateLabel={detail ? stateLabel(detail.state) : undefined}
-          projectLabel="VS Code"
+          projectLabel={detail?.projectId}
           description={detail?.description}
           acceptanceCriteria={detail?.acceptanceCriteria}
           blocker={detail?.blocker}
           primaryActions={
             detail && !actionBusy ? primaryActionsFor(detail.state) : []
           }
-          onPrimaryAction={runAction}
+          onPrimaryAction={(action) => {
+            void runAction(action);
+          }}
           onBack={() => setSelectedId(null)}
           onRetry={
             selectedId
               ? () => {
-                  loadDetail(selectedId);
+                  void loadDetail(selectedId);
                 }
               : undefined
           }
@@ -224,32 +237,42 @@ export function WorkOsPanel({
         </p>
       ) : null}
       <WorkList
-        status="ready"
+        status={listStatus}
         filter={filter}
         onFilterChange={setFilter}
         rows={rows}
         onOpenWork={(id) => setSelectedId(id)}
-        onNewWork={() => setNewWorkOpen(true)}
+        onNewWork={() => {
+          if (available) setNewWorkOpen(true);
+        }}
         onOpenInbox={onOpenInbox}
+        errorMessage={error ?? undefined}
+        onRetry={() => {
+          void refresh();
+        }}
       />
       <NewWorkDialog
         open={newWorkOpen}
         projectLabel="VS Code"
         onClose={() => setNewWorkOpen(false)}
         onCreate={({ title, description, acceptanceCriteria }) => {
-          try {
-            const created = createWork({
-              title,
-              description,
-              acceptanceCriteria,
-            });
-            setFilter("backlog");
-            setNewWorkOpen(false);
-            refresh();
-            setSelectedId(created.id);
-          } catch (err) {
-            setError(err instanceof Error ? err.message : String(err));
-          }
+          void (async () => {
+            try {
+              const created = await workPort.createWork({
+                title,
+                description,
+                acceptanceCriteria,
+              });
+              setFilter("backlog");
+              setNewWorkOpen(false);
+              setDetail(created);
+              setDetailStatus("ready");
+              setSelectedId(created.id);
+              setError(null);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
         }}
       />
     </>

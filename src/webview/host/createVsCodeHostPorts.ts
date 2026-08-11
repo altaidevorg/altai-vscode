@@ -30,6 +30,8 @@ import {
   type SkillInfo,
   type TerminalContext,
   type TaskRunInfo,
+  type WorkItem,
+  type WorkState,
   type WorkspaceInfo,
 } from "@altai/host-contract";
 import {
@@ -39,6 +41,15 @@ import {
 import { withUnsupportedDefaults } from "./unsupported.js";
 
 const HOST_NAME = "altai-vscode";
+const WORK_ITEM_METHODS = [
+  "work/list",
+  "work/get",
+  "work/create",
+  "work/transition",
+  "work/start",
+  "work/ready-for-review",
+  "work/review",
+] as const;
 
 export type HostRpcTransport = {
   request(method: string, params?: unknown): Promise<unknown>;
@@ -67,6 +78,8 @@ export function createVsCodeHostPorts(
   const { transport, isHostReady } = options;
   const hasNativeMethod = (method: string): boolean =>
     nativeMethodAvailable(options.getNativeCapabilities?.(), method);
+  const hasAdvertisedNativeMethod = (method: string): boolean =>
+    options.getNativeCapabilities?.()?.includes(method) === true;
 
   return {
     runtime: withUnsupportedDefaults(
@@ -135,6 +148,9 @@ export function createVsCodeHostPorts(
                     hasNativeMethod("review/proposals/apply") &&
                       hasNativeMethod("review/proposals/deny"),
                   ),
+                  "work.items": nativeAvailability(
+                    WORK_ITEM_METHODS.every(hasAdvertisedNativeMethod),
+                  ),
                   "work.taskRuns": nativeAvailability(
                     ["work/tasks/list", "work/tasks/create", "work/tasks/cancel", "work/tasks/retry", "work/tasks/remove"].every(hasNativeMethod),
                   ),
@@ -202,6 +218,7 @@ export function createVsCodeHostPorts(
                   "review.checkpoints": "deferred",
                   "review.restoreCheckpoint": "deferred",
                   "review.editProposal": "deferred",
+                  "work.items": "deferred",
                   "work.taskRuns": "deferred",
                   "work.automations": "deferred",
                   "mcp.list": "deferred",
@@ -612,6 +629,13 @@ export function createVsCodeHostPorts(
     work: withUnsupportedDefaults(
       "work",
       [
+        "listWork",
+        "getWork",
+        "createWork",
+        "transitionWork",
+        "startWork",
+        "markWorkReadyForReview",
+        "reviewWork",
         "listTaskRuns",
         "createTaskRun",
         "cancelTaskRun",
@@ -625,6 +649,75 @@ export function createVsCodeHostPorts(
         "deleteAutomation",
       ],
       {
+        async listWork(filter): Promise<WorkItem[]> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasAdvertisedNativeMethod, "work/list");
+          return normalizeWorkItems(
+            await transport.request("work/list", {
+              filter: filter ?? "my_active",
+            }),
+          );
+        },
+        async getWork(workId): Promise<WorkItem | null> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasAdvertisedNativeMethod, "work/get");
+          const result = await transport.request("work/get", { workId });
+          return result === null ? null : normalizeWorkItem(result);
+        },
+        async createWork(input): Promise<WorkItem> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasAdvertisedNativeMethod, "work/create");
+          return normalizeWorkItem(
+            await transport.request("work/create", {
+              title: input.title,
+              ...(input.description !== undefined
+                ? { description: input.description }
+                : {}),
+              ...(input.acceptanceCriteria !== undefined
+                ? { acceptanceCriteria: input.acceptanceCriteria }
+                : {}),
+              ...(input.assigneeRef !== undefined
+                ? { assigneeRef: input.assigneeRef }
+                : {}),
+            }),
+          );
+        },
+        async transitionWork(input): Promise<WorkItem> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasAdvertisedNativeMethod, "work/transition");
+          return normalizeWorkItem(
+            await transport.request("work/transition", input),
+          );
+        },
+        async startWork(input): Promise<WorkItem> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasAdvertisedNativeMethod, "work/start");
+          return normalizeWorkItem(await transport.request("work/start", input));
+        },
+        async markWorkReadyForReview(input): Promise<WorkItem> {
+          requireReady(isHostReady);
+          requireNativeCapability(
+            hasAdvertisedNativeMethod,
+            "work/ready-for-review",
+          );
+          return normalizeWorkItem(
+            await transport.request("work/ready-for-review", input),
+          );
+        },
+        async reviewWork(input): Promise<WorkItem> {
+          requireReady(isHostReady);
+          requireNativeCapability(hasAdvertisedNativeMethod, "work/review");
+          return normalizeWorkItem(
+            await transport.request("work/review", {
+              workId: input.workId,
+              expectedRevision: input.expectedRevision,
+              accept: input.accept,
+              ...(input.guidance !== undefined
+                ? { guidance: input.guidance }
+                : {}),
+            }),
+          );
+        },
         async listTaskRuns(): Promise<TaskRunInfo[]> {
           requireReady(isHostReady);
           return normalizeTaskRuns(await transport.request("work/tasks/list"));
@@ -865,6 +958,71 @@ function readStringField(value: unknown, key: string): string | undefined {
   }
   const field = (value as Record<string, unknown>)[key];
   return typeof field === "string" ? field : undefined;
+}
+
+const WORK_STATES = new Set<WorkState>([
+  "backlog",
+  "ready",
+  "in_progress",
+  "in_review",
+  "done",
+  "cancelled",
+]);
+
+function normalizeWorkItems(value: unknown): WorkItem[] {
+  if (!Array.isArray(value)) {
+    throw new Error("invalid_work_list_response");
+  }
+  return value.map(normalizeWorkItem);
+}
+
+function normalizeWorkItem(value: unknown): WorkItem {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== "string" ||
+    !value.id ||
+    typeof value.projectId !== "string" ||
+    !value.projectId ||
+    typeof value.title !== "string" ||
+    typeof value.description !== "string" ||
+    typeof value.acceptanceCriteria !== "string" ||
+    typeof value.state !== "string" ||
+    !WORK_STATES.has(value.state as WorkState) ||
+    typeof value.revision !== "number" ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 0 ||
+    typeof value.createdAtMs !== "number" ||
+    !Number.isSafeInteger(value.createdAtMs) ||
+    value.createdAtMs < 0 ||
+    typeof value.updatedAtMs !== "number" ||
+    !Number.isSafeInteger(value.updatedAtMs) ||
+    value.updatedAtMs < 0 ||
+    (value.assigneeRef !== undefined &&
+      value.assigneeRef !== null &&
+      typeof value.assigneeRef !== "string") ||
+    (value.blocker !== undefined &&
+      value.blocker !== null &&
+      typeof value.blocker !== "string")
+  ) {
+    throw new Error("invalid_work_item_response");
+  }
+  return {
+    id: value.id,
+    projectId: value.projectId,
+    title: value.title,
+    description: value.description,
+    acceptanceCriteria: value.acceptanceCriteria,
+    state: value.state as WorkState,
+    revision: value.revision,
+    createdAtMs: value.createdAtMs,
+    updatedAtMs: value.updatedAtMs,
+    ...(value.assigneeRef !== undefined
+      ? { assigneeRef: value.assigneeRef as string | null }
+      : {}),
+    ...(value.blocker !== undefined
+      ? { blocker: value.blocker as string | null }
+      : {}),
+  };
 }
 
 function normalizeSessionList(value: unknown): SessionInfo[] {
