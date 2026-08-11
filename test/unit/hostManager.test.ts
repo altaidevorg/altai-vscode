@@ -28,7 +28,9 @@ function createFakeBinary(): string {
 function mockProcessFactory(options?: {
   crashAfterMs?: number;
   protocolMax?: number;
+  capabilitiesByStart?: readonly (readonly string[])[];
 }): HostProcessFactory {
+  let starts = 0;
   return () => {
     const stdin = new PassThrough();
     const stdout = new PassThrough();
@@ -45,6 +47,9 @@ function mockProcessFactory(options?: {
       const idMatch = /"id"\s*:\s*(\d+)/.exec(text);
       const id = idMatch ? Number(idMatch[1]) : 1;
       const protocolMax = options?.protocolMax ?? 1;
+      const capabilities =
+        options?.capabilitiesByStart?.[Math.min(starts - 1, options.capabilitiesByStart.length - 1)] ??
+        ["stdio.serve"];
       stdout.write(
         encodeFrame(
           Buffer.from(
@@ -54,7 +59,7 @@ function mockProcessFactory(options?: {
               result: {
                 protocol_min: 1,
                 protocol_max: protocolMax,
-                capabilities: ["stdio.serve"],
+                capabilities,
               },
             }),
             "utf8",
@@ -62,6 +67,8 @@ function mockProcessFactory(options?: {
         ),
       );
     });
+
+    starts += 1;
 
     if (options?.crashAfterMs !== undefined) {
       setTimeout(() => {
@@ -262,6 +269,37 @@ describe("HostManager", () => {
     await manager.restart();
     expect(manager.getLifecycleState()).toBe("Ready");
     expect(manager.getCapabilities()).toContain("stdio.serve");
+  });
+
+  it("clears the old capability snapshot during restart before accepting a partial host", async () => {
+    let manager: HostManager | undefined;
+    const nonReadySnapshots: string[][] = [];
+    manager = new HostManager({
+      extensionPath: "/tmp/ext",
+      getWorkspaceRoot: () => "/tmp/ws",
+      isTrusted: () => true,
+      extensionVersion: "0.1.0",
+      processFactory: mockProcessFactory({
+        capabilitiesByStart: [
+          ["run/start", "run/replay"],
+          ["run/replay"],
+        ],
+      }),
+      env: { [AGENT_HOST_PATH_ENV]: createFakeBinary() },
+      onStatus: (status) => {
+        if (status.status !== "ready") {
+          nonReadySnapshots.push([...manager!.getCapabilities()]);
+        }
+      },
+    });
+    managers.push(manager);
+
+    await manager.start();
+    expect(manager.getCapabilities()).toEqual(["run/start", "run/replay"]);
+    await manager.restart({ force: true });
+
+    expect(nonReadySnapshots.some((snapshot) => snapshot.length === 0)).toBe(true);
+    expect(manager.getCapabilities()).toEqual(["run/replay"]);
   });
 
   it("marks incompatible protocol", async () => {

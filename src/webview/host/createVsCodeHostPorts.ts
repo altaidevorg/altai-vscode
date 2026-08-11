@@ -31,13 +31,15 @@ import {
   type TerminalContext,
   type TaskRunInfo,
   type WorkItem,
+  type WorkAttempt,
+  type WorkAttemptPhase,
   type WorkInboxItem,
   type WorkInboxKind,
+  type WorkStartRunResult,
   type WorkState,
   type WorkspaceInfo,
 } from "@altai/host-contract";
 import {
-  nativeMethodAvailable,
   parseSkillInstallSource,
 } from "@altai/agent-ui";
 import { withUnsupportedDefaults } from "./unsupported.js";
@@ -52,6 +54,14 @@ const WORK_ITEM_METHODS = [
   "work/ready-for-review",
   "work/review",
 ] as const;
+const WORK_ATTEMPT_RUN_METHODS = [
+  "work/start-run",
+  "work/attempts/list",
+  "run/replay",
+  "run/cancel",
+] as const;
+const DEFAULT_REPLAY_LIMIT = 500;
+const MAX_REPLAY_LIMIT = 500;
 
 export type HostRpcTransport = {
   request(method: string, params?: unknown): Promise<unknown>;
@@ -79,7 +89,7 @@ export function createVsCodeHostPorts(
   const hostVersion = options.hostVersion ?? "0.1.0";
   const { transport, isHostReady } = options;
   const hasNativeMethod = (method: string): boolean =>
-    nativeMethodAvailable(options.getNativeCapabilities?.(), method);
+    options.getNativeCapabilities?.()?.includes(method) === true;
   const hasAdvertisedNativeMethod = (method: string): boolean =>
     options.getNativeCapabilities?.()?.includes(method) === true;
 
@@ -153,6 +163,9 @@ export function createVsCodeHostPorts(
                   "work.items": nativeAvailability(
                     WORK_ITEM_METHODS.every(hasAdvertisedNativeMethod),
                   ),
+                  "work.attemptRuns": nativeAvailability(
+                    WORK_ATTEMPT_RUN_METHODS.every(hasAdvertisedNativeMethod),
+                  ),
                   "work.inbox": nativeAvailability(
                     hasAdvertisedNativeMethod("work/inbox/list"),
                   ),
@@ -224,6 +237,7 @@ export function createVsCodeHostPorts(
                   "review.restoreCheckpoint": "deferred",
                   "review.editProposal": "deferred",
                   "work.items": "deferred",
+                  "work.attemptRuns": "deferred",
                   "work.inbox": "deferred",
                   "work.taskRuns": "deferred",
                   "work.automations": "deferred",
@@ -285,6 +299,17 @@ export function createVsCodeHostPorts(
         },
         async replayRun(input): Promise<ReplayPage> {
           requireReady(isHostReady);
+          const afterSeq = input.afterSeq ?? 0;
+          const limit = input.limit ?? DEFAULT_REPLAY_LIMIT;
+          if (
+            !Number.isSafeInteger(afterSeq) ||
+            afterSeq < 0 ||
+            !Number.isSafeInteger(limit) ||
+            limit <= 0 ||
+            limit > MAX_REPLAY_LIMIT
+          ) {
+            throw new Error("invalid_replay_request");
+          }
           const result = await transport.request("run/replay", {
             chat_id: input.chatId,
             run_id: input.runId,
@@ -293,7 +318,13 @@ export function createVsCodeHostPorts(
               : {}),
             ...(input.limit !== undefined ? { limit: input.limit } : {}),
           });
-          return normalizeReplayPage(result, input.chatId, input.runId);
+          return normalizeReplayPage(
+            result,
+            input.chatId,
+            input.runId,
+            afterSeq,
+            limit,
+          );
         },
         async compactContext(input) {
           requireReady(isHostReady);
@@ -640,6 +671,8 @@ export function createVsCodeHostPorts(
         "createWork",
         "transitionWork",
         "startWork",
+        "startWorkRun",
+        "listWorkAttempts",
         "markWorkReadyForReview",
         "reviewWork",
         "listTaskRuns",
@@ -699,6 +732,26 @@ export function createVsCodeHostPorts(
           requireReady(isHostReady);
           requireNativeCapability(hasAdvertisedNativeMethod, "work/start");
           return normalizeWorkItem(await transport.request("work/start", input));
+        },
+        async startWorkRun(input): Promise<WorkStartRunResult> {
+          requireReady(isHostReady);
+          requireNativeCapabilities(
+            hasAdvertisedNativeMethod,
+            WORK_ATTEMPT_RUN_METHODS,
+          );
+          const result = await transport.request("work/start-run", input);
+          return normalizeWorkStartRunResult(result, input.workId);
+        },
+        async listWorkAttempts(workId): Promise<WorkAttempt[]> {
+          requireReady(isHostReady);
+          requireNativeCapabilities(
+            hasAdvertisedNativeMethod,
+            WORK_ATTEMPT_RUN_METHODS,
+          );
+          return normalizeWorkAttempts(
+            await transport.request("work/attempts/list", { workId }),
+            workId,
+          );
         },
         async markWorkReadyForReview(input): Promise<WorkItem> {
           requireReady(isHostReady);
@@ -962,6 +1015,15 @@ function requireNativeCapability(
   }
 }
 
+function requireNativeCapabilities(
+  hasNativeMethod: (method: string) => boolean,
+  methods: readonly string[],
+): void {
+  if (!methods.every(hasNativeMethod)) {
+    throw new Error("capability_unavailable");
+  }
+}
+
 function cryptoRandomId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}_${crypto.randomUUID()}`;
@@ -992,6 +1054,15 @@ const WORK_INBOX_KINDS = new Set<WorkInboxKind>([
   "question",
   "failed_attempt",
   "blocked",
+]);
+
+const WORK_ATTEMPT_PHASES = new Set<WorkAttemptPhase>([
+  "queued",
+  "running",
+  "waiting",
+  "succeeded",
+  "failed",
+  "cancelled",
 ]);
 
 function normalizeWorkItems(value: unknown): WorkItem[] {
@@ -1050,6 +1121,106 @@ function normalizeWorkItem(value: unknown): WorkItem {
   };
 }
 
+function normalizeWorkStartRunResult(
+  value: unknown,
+  expectedWorkId: string,
+): WorkStartRunResult {
+  if (!isRecord(value)) {
+    throw new Error("invalid_work_start_run_response");
+  }
+  const work = normalizeWorkItem(value.work);
+  const attempt = normalizeWorkAttempt(value.attempt, expectedWorkId);
+  if (
+    work.id !== expectedWorkId ||
+    attempt.workId !== work.id ||
+    !isNonEmptyString(attempt.chatId) ||
+    !isNonEmptyString(attempt.sessionId) ||
+    !isNonEmptyString(attempt.runId)
+  ) {
+    throw new Error("invalid_work_start_run_identity");
+  }
+  return { work, attempt };
+}
+
+function normalizeWorkAttempts(
+  value: unknown,
+  expectedWorkId: string,
+): WorkAttempt[] {
+  if (!Array.isArray(value)) {
+    throw new Error("invalid_work_attempts_response");
+  }
+  const attempts = value.map((item) =>
+    normalizeWorkAttempt(item, expectedWorkId),
+  );
+  const ids = new Set<string>();
+  const numbers = new Set<number>();
+  let previousNumber = Number.POSITIVE_INFINITY;
+  for (const attempt of attempts) {
+    if (
+      ids.has(attempt.id) ||
+      numbers.has(attempt.number) ||
+      attempt.number >= previousNumber
+    ) {
+      throw new Error("invalid_work_attempts_order_or_duplicate");
+    }
+    ids.add(attempt.id);
+    numbers.add(attempt.number);
+    previousNumber = attempt.number;
+  }
+  return attempts;
+}
+
+function normalizeWorkAttempt(
+  value: unknown,
+  expectedWorkId: string,
+): WorkAttempt {
+  if (
+    !isRecord(value) ||
+    !isNonEmptyString(value.id) ||
+    value.workId !== expectedWorkId ||
+    typeof value.number !== "number" ||
+    !Number.isSafeInteger(value.number) ||
+    value.number <= 0 ||
+    !isNonEmptyString(value.role) ||
+    typeof value.phase !== "string" ||
+    !WORK_ATTEMPT_PHASES.has(value.phase as WorkAttemptPhase) ||
+    !hasOwn(value, "chatId") ||
+    !isNullableNonEmptyString(value.chatId) ||
+    !hasOwn(value, "sessionId") ||
+    !isNullableNonEmptyString(value.sessionId) ||
+    !hasOwn(value, "runId") ||
+    !isNullableNonEmptyString(value.runId) ||
+    !hasOwn(value, "inputJson") ||
+    !isNullableString(value.inputJson) ||
+    !hasOwn(value, "resultJson") ||
+    !isNullableString(value.resultJson) ||
+    typeof value.createdAtMs !== "number" ||
+    !Number.isSafeInteger(value.createdAtMs) ||
+    value.createdAtMs < 0 ||
+    typeof value.updatedAtMs !== "number" ||
+    !Number.isSafeInteger(value.updatedAtMs) ||
+    value.updatedAtMs < value.createdAtMs ||
+    (value.sessionId !== null || value.runId !== null) &&
+      !isNonEmptyString(value.chatId)
+  ) {
+    throw new Error("invalid_work_attempt_response");
+  }
+  return {
+    id: value.id,
+    workId: value.workId,
+    number: value.number,
+    role: value.role,
+    phase: value.phase as WorkAttemptPhase,
+    createdAtMs: value.createdAtMs,
+    updatedAtMs: value.updatedAtMs,
+    chatId: value.chatId as string | null,
+    sessionId: value.sessionId as string | null,
+    runId: value.runId as string | null,
+    inputJson: value.inputJson as string | null,
+    resultJson: value.resultJson as string | null,
+  };
+}
+
 function normalizeWorkInboxItems(value: unknown): WorkInboxItem[] {
   if (!Array.isArray(value)) {
     throw new Error("invalid_work_inbox_response");
@@ -1102,6 +1273,18 @@ function isOptionalNullableNonEmptyString(value: unknown): boolean {
   return value === undefined || value === null || isNonEmptyString(value);
 }
 
+function isNullableNonEmptyString(value: unknown): boolean {
+  return value === null || isNonEmptyString(value);
+}
+
+function isNullableString(value: unknown): boolean {
+  return value === null || typeof value === "string";
+}
+
+function hasOwn(value: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
 function normalizeSessionList(value: unknown): SessionInfo[] {
   if (!value || typeof value !== "object") {
     return [];
@@ -1149,20 +1332,58 @@ function normalizeReplayPage(
   value: unknown,
   chatId: string,
   runId: string,
+  afterSeq: number,
+  limit: number,
 ): ReplayPage {
-  const events = extractEvents(value)
-    .map((item) => mapRunEvent(item))
-    .filter((item): item is AgentEvent => item !== null);
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.events) ||
+    typeof value.last_seq !== "number" ||
+    !Number.isSafeInteger(value.last_seq) ||
+    value.last_seq < 0 ||
+    (value.terminal_seq !== null &&
+      (typeof value.terminal_seq !== "number" ||
+        !Number.isSafeInteger(value.terminal_seq) ||
+        value.terminal_seq <= 0 ||
+        value.terminal_seq > value.last_seq))
+  ) {
+    throw new Error("invalid_replay_page_response");
+  }
+  const events = value.events.map((item) => mapRunEvent(item));
+  if (events.length > limit) {
+    throw new Error("invalid_replay_page_bounds");
+  }
+  if (events.some((item) => item === null)) {
+    throw new Error("invalid_replay_event_response");
+  }
+  const normalized = events as AgentEvent[];
+  let expectedSeq = afterSeq + 1;
+  for (const event of normalized) {
+    if (
+      event.chatId !== chatId ||
+      event.runId !== runId ||
+      !Number.isSafeInteger(event.seq) ||
+      event.seq !== expectedSeq
+    ) {
+      throw new Error("invalid_replay_event_identity_or_sequence");
+    }
+    expectedSeq += 1;
+  }
   const seq =
-    events.length > 0 ? (events[events.length - 1]?.seq ?? 0) : 0;
-  const exhausted =
-    isRecord(value) && typeof value.exhausted === "boolean"
-      ? value.exhausted
-      : true;
+    normalized.length > 0
+      ? (normalized[normalized.length - 1]?.seq ?? afterSeq)
+      : afterSeq;
+  if (
+    value.last_seq < afterSeq ||
+    seq > value.last_seq ||
+    (normalized.length < limit && seq !== value.last_seq)
+  ) {
+    throw new Error("invalid_replay_page_bounds");
+  }
   return {
-    events,
-    cursor: events.length > 0 ? { chatId, runId, seq } : null,
-    exhausted,
+    events: normalized,
+    cursor: normalized.length > 0 ? { chatId, runId, seq } : null,
+    exhausted: seq === value.last_seq,
   };
 }
 
@@ -1266,20 +1487,6 @@ function normalizeProviderStatus(value: unknown): ProviderStatus[] {
       ...(typeof provider.error === "string" ? { error: provider.error } : {}),
     }];
   });
-}
-
-function extractEvents(value: unknown): unknown[] {
-  if (!value || typeof value !== "object") {
-    return [];
-  }
-  const record = value as { events?: unknown; items?: unknown };
-  if (Array.isArray(record.events)) {
-    return record.events;
-  }
-  if (Array.isArray(record.items)) {
-    return record.items;
-  }
-  return [];
 }
 
 const EVENT_TYPES = new Set<AgentEventType>([

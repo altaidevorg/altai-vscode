@@ -2,7 +2,6 @@ import type { WorkItem } from "@altai/host-contract";
 import { describe, expect, it, vi } from "vitest";
 import {
   executeWorkAction,
-  WorkActionUnavailableError,
   type WorkOsPort,
 } from "../../src/webview/workOsActions.js";
 
@@ -24,7 +23,22 @@ function workPort(result: WorkItem = DETAIL): WorkOsPort {
     getWork: vi.fn(async () => result),
     createWork: vi.fn(async () => result),
     transitionWork: vi.fn(async () => result),
-    startWork: vi.fn(async () => result),
+    startWorkRun: vi.fn(async () => ({
+      work: result,
+      attempt: {
+        id: "attempt-1",
+        workId: result.id,
+        number: 1,
+        role: "executor",
+        phase: "running",
+        chatId: "chat-1",
+        sessionId: "chat-1",
+        runId: "run-1",
+        createdAtMs: 1,
+        updatedAtMs: 2,
+      },
+    })),
+    listWorkAttempts: vi.fn(async () => []),
     markWorkReadyForReview: vi.fn(async () => result),
     reviewWork: vi.fn(async () => result),
   };
@@ -44,24 +58,16 @@ describe("executeWorkAction", () => {
       expectedRevision: 4,
       nextState: "ready",
     });
-    expect(port.startWork).toHaveBeenCalledWith({
+    expect(port.startWorkRun).toHaveBeenCalledWith({
       workId: "work-1",
       expectedRevision: 4,
     });
   });
 
-  it("rejects Open run without mutating durable Work", async () => {
+  it("leaves Open run to exact inspector navigation without mutating Work", async () => {
     const port = workPort();
 
-    await expect(executeWorkAction(port, DETAIL, "open_run")).rejects.toEqual(
-      expect.objectContaining({
-        name: "WorkActionUnavailableError",
-        code: "run_binding_unavailable",
-      }),
-    );
-    await expect(executeWorkAction(port, DETAIL, "open_run")).rejects.toThrow(
-      WorkActionUnavailableError,
-    );
+    await expect(executeWorkAction(port, DETAIL, "open_run")).resolves.toBeNull();
     expect(port.markWorkReadyForReview).not.toHaveBeenCalled();
   });
 

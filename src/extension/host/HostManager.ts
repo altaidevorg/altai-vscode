@@ -423,6 +423,12 @@ export class HostManager extends EventEmitter<HostManagerEvents> {
   }
 
   private setState(state: HostLifecycleState): void {
+    // Capabilities are scoped to the live native process and its workspace.
+    // Never expose a prior process snapshot while starting, restarting,
+    // stopping, or reporting an error.
+    if (state !== "Ready") {
+      this.capabilities.clear();
+    }
     this.state = state;
   }
 
