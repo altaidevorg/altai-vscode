@@ -1,4 +1,4 @@
-# Feature matrix (0.1.0 channel)
+# Feature matrix (0.1.x preview channel)
 
 Status for the ALTAI VS Code host against ENGINEERING_PLAN V4–V7 / TASK-012.
 
@@ -37,8 +37,8 @@ Status for the ALTAI VS Code host against ENGINEERING_PLAN V4–V7 / TASK-012.
 
 | Area | Status | Notes |
 |---|:---:|---|
-| npm publish `@altai/agent-ui` / `host-contract` | Y | scripts in altai-app; needs NPM_TOKEN |
-| Marketplace **pre-release** publish | Y | `vsce publish --pre-release` + `VSCE_PAT` |
+| npm publish `@altai/host-contract` / `agent-protocol` / `agent-ui` | Y | token authenticates; npm identity still needs `@altai` scope publish authorization |
+| Marketplace **pre-release** publish | Y | automation ready; repository still needs `VSCE_PAT` |
 | Marketplace **stable** | Y | after alpha soak; drop `"preview": true` |
 | Live Remote SSH e2e against fleet | Y | checklist in RELEASE.md |
 | Signed host signatures beyond sha256 | Y | org signing pipeline |

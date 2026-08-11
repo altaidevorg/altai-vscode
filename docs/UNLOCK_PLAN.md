@@ -436,31 +436,31 @@ Two engineers (host + UI): compress Wave 4 with Wave 1–2 parallelization after
 
 | Unblock item | Wave | Primary repo | Status |
 |---|---|---|---|
-| CI Actions reliability | 0 | org + both | open |
-| NPM_TOKEN / package publish | 0 + 7 | org + altai-app | open |
-| VSCE_PAT / Marketplace | 0 + 7 | org + altai-vscode | open |
-| edit Apply/Deny | 1 | altai-app → vscode | **in progress** — `review/proposals/*` on stdio host; VS Code Apply/Deny when capability present |
-| Real token meters | 2 | altai-app → vscode | **in progress** — vscode accumulates `usage` events into Run details |
-| MCP full product surface | 2 + 4/5 | altai-app → vscode | open (list cap partial) |
-| Skills install UI | 2 + 4/5 | altai-app → vscode | open |
-| Multi-project / multi-root target | 3 | product + both | open (reveal-only today) |
-| Full AiChat pixel parity | 4 + 5 | altai-app → vscode | open |
-| Rich markdown | 6 | agent-ui | open (light segments today) |
+| CI Actions reliability | 0 | org + both | **green** — quality, integration, package, and real-host release packaging pass |
+| NPM_TOKEN / package publish | 0 + 7 | org + altai-app | **blocked externally** — npm auth succeeds, but the automation identity cannot publish the `@altai` scope (registry E404) |
+| VSCE_PAT / Marketplace | 0 + 7 | org + altai-vscode | **blocked externally** — repository secret is not configured |
+| edit Apply/Deny | 1 | altai-app → vscode | **implemented** — stdio integration green; trusted VS Code smoke remains |
+| Real token meters | 2 | altai-app → vscode | **green at host boundary** — credentialed live run emitted 5,596 tokens; installed-VSIX visual check remains |
+| MCP full product surface | 2 + 4/5 | altai-app → vscode | **implemented** — configure/list/enable/restart integration green |
+| Skills install UI | 2 + 4/5 | altai-app → vscode | **implemented** — local Git fixture install/list integration green |
+| Multi-project / multi-root target | 3 | product + both | **green** — preferred-root picker, persistence, restart, paths, diagnostics |
+| Full AiChat pixel parity | 4 + 5 | altai-app → vscode | **shared-frame program complete** — host orchestration remains host-owned |
+| Rich markdown | 6 | agent-ui | **green** — shared safe GFM renderer mounted in both hosts |
 | Signed host beyond sha256 | 7 | org | open (optional) |
 
 ---
 
 ## 8. Immediate next actions (start here)
 
-1. **Land Wave 1 PRs:** `altai-app` `review/proposals/*` + protocol allow-list; then
-   `altai-vscode` Apply/Deny wire-up against a host binary that advertises the
-   methods (rebuild `altai-cli` from the Wave 1 branch).
-2. **Org:** create `NPM_TOKEN` + `VSCE_PAT`; fix Actions concurrency (Wave 0).  
-3. **altai-app:** Desktop PlanDiffReview → `ReviewPort.applyEditProposal` (stop
-   writing files only from the frontend plan store).  
-4. **altai-app:** inventory AiSidePanel import graph for Wave 4 extract.  
-5. **altai-vscode:** no large chrome PRs until Wave 2 usage/MCP/skills caps
-   land, except small host mapper prep.
+1. Run Apply/Deny in a trusted VS Code workspace against the installed native
+   host and record the smoke result.
+2. In the installed VSIX, visually confirm non-zero usage in the Webview and
+   exercise MCP configuration plus fixture skill install in the same session.
+3. **Org:** grant the npm automation identity `@altai` publish access, create
+   `VSCE_PAT`, and set the explicit Marketplace publish opt-in variable.
+4. Publish `@altai/host-contract` then `@altai/agent-ui`, replace sibling
+   `file:` dependencies with exact registry versions, and re-run VSIX gates.
+5. Publish the Marketplace pre-release and complete local plus Remote SSH soak.
 
 ---
 

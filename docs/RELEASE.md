@@ -114,8 +114,9 @@ Marketplace pre-release when both `ALTAI_PUBLISH_MARKETPLACE=true` and
 - [ ] `VSCE_PAT` configured for publisher `altaidevorg`
 - [ ] Pre-release publish of multi-target VSIX from `release.yml` artifacts
 - [ ] After soak: remove `"preview": true`, bump version, stable publish
-- [ ] `NPM_TOKEN` publishes `@altai/host-contract` then `@altai/agent-ui` from
-      `altai-app`; switch vscode `file:` deps to exact versions
+- [ ] npm automation identity can publish the `@altai` scope; publish
+      `@altai/host-contract`, `@altai/agent-protocol`, then `@altai/agent-ui`
+      from `altai-app`; switch vscode `file:` deps to exact versions
 
 ## Versioning rules
 
@@ -133,7 +134,8 @@ See [FEATURE_MATRIX.md](FEATURE_MATRIX.md) for the full internal matrix.
 
 External (not blocked on vscode-only code):
 
-- Real signed `altai-agent-host` artifacts per target (fixture hosts only in CI).
+- Release CI builds and packages real `altai-agent-host` artifacts for every
+  supported target; organization signing beyond the recorded sha256 remains.
 - Published `@altai/agent-ui` / `@altai/host-contract` npm versions (still
   `file:` links).
 - Automated Remote SSH e2e in CI (manual Remote section above for beta).
