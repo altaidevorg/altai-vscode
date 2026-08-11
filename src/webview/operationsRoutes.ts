@@ -2,20 +2,23 @@
  * Capability-gated Operations secondary routes for the VS Code host.
  * Pure helpers — unit-testable without React or ports.
  *
- * Work OS Milestone 1: primary nav is Work + Inbox only (SCREENS.md /
- * WORK_OS_VIEWS). Overview/Runs remain in types for legacy deep-link remap.
+ * Work OS Milestone 1: primary nav is Work + Inbox only (SCREENS.md).
+ * Overview/Runs remain in types for legacy deep-link remap.
+ *
+ * NOTE: Keep this list in sync with `@altai/agent-ui` WORK_OS_VIEWS. CI may
+ * resolve agent-ui from npm before that export is published, so the constant
+ * is local here.
  */
 
-import {
-  WORK_OS_VIEWS,
-  type OperationsView,
-  type TaskRunStatus,
-} from "@altai/agent-ui";
+import type { OperationsView, TaskRunStatus } from "@altai/agent-ui";
 import type {
   AutomationInfo,
   NotificationInfo,
   TaskRunInfo,
 } from "@altai/host-contract";
+
+/** Milestone 1 Work OS destinations (match altai-app SCREENS.md). */
+export const WORK_OS_VIEWS = ["work", "inbox"] as const satisfies readonly OperationsView[];
 
 export type OperationsCapabilityFlags = {
   taskRuns: boolean;
