@@ -21,9 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { OpenOperationsPayload } from "../shared/messages.js";
 import {
   OperationsDomainStatus,
-  OperationsInboxDomain,
   OperationsRunsDomain,
-  OperationsWorkDomain,
 } from "./OperationsDomainViews.js";
 import { OperationsOverviewMetrics } from "./OperationsOverviewMetrics.js";
 import {
@@ -42,6 +40,7 @@ import {
   type OperationsOverviewData,
 } from "./operationsOverview.js";
 import { resolveAvailableOperationsViews } from "./operationsRoutes.js";
+import { WorkOsPanel } from "./WorkOsPanel.js";
 import {
   newAutomationOwnerChatId,
   type AutomationDraft,
@@ -95,7 +94,6 @@ export function OperationsPanel({
     useState<WorkHubView>(initialWorkHubView);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
-  const [markingAllRead, setMarkingAllRead] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -493,6 +491,7 @@ export function OperationsPanel({
     onCreateClose: closeAutoCreate,
     onCreateSubmit: submitAutoCreate,
   };
+  void automationActions;
 
   return (
     <OperationsNavigationShell
@@ -528,29 +527,11 @@ export function OperationsPanel({
       ) : null}
 
       {view === "work" ? (
-        state.status !== "ready" ? (
-          <OperationsDomainStatus
-            status={state.status === "error" ? "error" : "loading"}
-            errorMessage={
-              state.status === "error" ? state.message : undefined
-            }
-            onRetry={() => {
-              setState({ status: "loading" });
-              void load();
-            }}
-          />
-        ) : (
-          <OperationsWorkDomain
-            taskRuns={data.taskRuns}
-            automations={data.automations}
-            canTaskRuns={canTaskRuns}
-            canAutomations={canAutomations}
-            hubView={workHubView}
-            onHubViewChange={setWorkHubView}
-            actions={taskActions}
-            automationActions={automationActions}
-          />
-        )
+        <WorkOsPanel
+          surface="work"
+          onOpenInbox={() => setView("inbox")}
+          onGoToWork={() => setView("work")}
+        />
       ) : null}
 
       {view === "runs" ? (
@@ -574,58 +555,11 @@ export function OperationsPanel({
       ) : null}
 
       {view === "inbox" ? (
-        state.status !== "ready" && state.status !== "error" ? (
-          <OperationsDomainStatus
-            status="loading"
-            onRetry={() => {
-              void load();
-            }}
-          />
-        ) : (
-          <OperationsInboxDomain
-            notifications={data.notifications}
-            actions={{
-              busyId: actionBusyId,
-              loading: false,
-              error: state.status === "error" ? state.message : null,
-              markingAllRead,
-              onOpenChat,
-              onRefresh: () => {
-                void load();
-              },
-              onMarkSeen: (id) => {
-                void withBusy(id, () => ports.inbox.markNotificationSeen(id));
-              },
-              onResolve: (id) => {
-                void withBusy(id, () => ports.inbox.resolveNotification(id));
-              },
-              onMarkAllRead: () => {
-                void (async () => {
-                  setMarkingAllRead(true);
-                  try {
-                    const unread = data.notifications.filter((item) => !item.seen);
-                    await Promise.all(
-                      unread.map((item) =>
-                        ports.inbox.markNotificationSeen(item.id),
-                      ),
-                    );
-                    await load();
-                  } catch (error) {
-                    setState({
-                      status: "error",
-                      message:
-                        error instanceof Error
-                          ? error.message
-                          : String(error),
-                    });
-                  } finally {
-                    setMarkingAllRead(false);
-                  }
-                })();
-              },
-            }}
-          />
-        )
+        <WorkOsPanel
+          surface="inbox"
+          onOpenInbox={() => setView("inbox")}
+          onGoToWork={() => setView("work")}
+        />
       ) : null}
     </OperationsNavigationShell>
   );
