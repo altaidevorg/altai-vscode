@@ -1,6 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
 import { createVsCodeHostPorts } from "../../src/webview/host/createVsCodeHostPorts.js";
 
+const WORK_ITEM_METHODS = [
+  "work/list",
+  "work/get",
+  "work/create",
+  "work/transition",
+  "work/start",
+  "work/ready-for-review",
+  "work/review",
+];
+
+const WORK_ITEM = {
+  id: "work-1",
+  projectId: "project-1",
+  title: "Durable Work",
+  description: "Shared by every host",
+  acceptanceCriteria: "Same ID after restart",
+  state: "backlog",
+  assigneeRef: null,
+  blocker: null,
+  revision: 7,
+  createdAtMs: 1_700_000_000_000,
+  updatedAtMs: 1_700_000_000_100,
+};
+
 function mockTransport(requestImpl?: (method: string, params?: unknown) => Promise<unknown>) {
   return {
     request: vi.fn(
@@ -17,6 +41,143 @@ function mockTransport(requestImpl?: (method: string, params?: unknown) => Promi
 }
 
 describe("createVsCodeHostPorts", () => {
+  it("enables canonical Work only with the complete lifecycle and maps every RPC", async () => {
+    const transport = mockTransport(async (method, params) => {
+      if (method === "work/list") return [WORK_ITEM];
+      if (method === "work/get") {
+        return (params as { workId: string }).workId === "missing"
+          ? null
+          : WORK_ITEM;
+      }
+      if (WORK_ITEM_METHODS.slice(2).includes(method)) return WORK_ITEM;
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => WORK_ITEM_METHODS,
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(
+      capabilities.capabilities.find((item) => item.id === "work.items")
+        ?.availability,
+    ).toBe("available");
+
+    await expect(ports.work.listWork("review")).resolves.toEqual([WORK_ITEM]);
+    await expect(ports.work.getWork("work-1")).resolves.toEqual(WORK_ITEM);
+    await expect(ports.work.getWork("missing")).resolves.toBeNull();
+    await expect(
+      ports.work.createWork({
+        title: "Durable Work",
+        description: "Shared by every host",
+        acceptanceCriteria: "Same ID after restart",
+        assigneeRef: "agent-1",
+      }),
+    ).resolves.toEqual(WORK_ITEM);
+    await expect(
+      ports.work.transitionWork({
+        workId: "work-1",
+        expectedRevision: 7,
+        nextState: "ready",
+      }),
+    ).resolves.toMatchObject({ revision: 7 });
+    await ports.work.startWork({ workId: "work-1", expectedRevision: 7 });
+    await ports.work.markWorkReadyForReview({
+      workId: "work-1",
+      expectedRevision: 7,
+    });
+    await ports.work.reviewWork({
+      workId: "work-1",
+      expectedRevision: 7,
+      accept: false,
+      guidance: "Add coverage",
+    });
+
+    expect(transport.request).toHaveBeenCalledWith("work/list", {
+      filter: "review",
+    });
+    expect(transport.request).toHaveBeenCalledWith("work/get", {
+      workId: "work-1",
+    });
+    expect(transport.request).toHaveBeenCalledWith("work/create", {
+      title: "Durable Work",
+      description: "Shared by every host",
+      acceptanceCriteria: "Same ID after restart",
+      assigneeRef: "agent-1",
+    });
+    expect(transport.request).toHaveBeenCalledWith("work/transition", {
+      workId: "work-1",
+      expectedRevision: 7,
+      nextState: "ready",
+    });
+    expect(transport.request).toHaveBeenCalledWith("work/start", {
+      workId: "work-1",
+      expectedRevision: 7,
+    });
+    expect(transport.request).toHaveBeenCalledWith(
+      "work/ready-for-review",
+      { workId: "work-1", expectedRevision: 7 },
+    );
+    expect(transport.request).toHaveBeenCalledWith("work/review", {
+      workId: "work-1",
+      expectedRevision: 7,
+      accept: false,
+      guidance: "Add coverage",
+    });
+  });
+
+  it("defers canonical Work and blocks calls when one native method is absent", async () => {
+    const transport = mockTransport();
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => WORK_ITEM_METHODS.filter(
+        (method) => method !== "work/review",
+      ),
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(
+      capabilities.capabilities.find((item) => item.id === "work.items")
+        ?.availability,
+    ).toBe("deferred");
+    await expect(
+      ports.work.reviewWork({
+        workId: "work-1",
+        expectedRevision: 7,
+        accept: true,
+      }),
+    ).rejects.toThrow("capability_unavailable");
+    expect(transport.request).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed canonical Work responses", async () => {
+    const transport = mockTransport(async (method) => {
+      if (method === "work/list") return { items: [WORK_ITEM] };
+      return { ...WORK_ITEM, state: "invented" };
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => WORK_ITEM_METHODS,
+      transport,
+    });
+    await expect(ports.work.listWork()).rejects.toThrow(
+      "invalid_work_list_response",
+    );
+    await expect(ports.work.getWork("work-1")).rejects.toThrow(
+      "invalid_work_item_response",
+    );
+  });
+
   it("proxies the complete native MCP lifecycle only when advertised", async () => {
     const transport = mockTransport(async (method) => {
       if (method === "mcp/servers/list") {
