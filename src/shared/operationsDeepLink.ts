@@ -88,7 +88,7 @@ export function buildOpenOperationsPayload(input: {
 }): OpenOperationsPayload {
   const payload: OpenOperationsPayload = {
     key: input.key ?? Date.now(),
-    view: input.view ?? "overview",
+    view: input.view ?? "work",
   };
   if (input.workHubView) {
     payload.workHubView = input.workHubView;

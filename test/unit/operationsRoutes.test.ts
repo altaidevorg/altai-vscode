@@ -7,30 +7,14 @@ import {
 } from "../../src/webview/operationsRoutes.js";
 
 describe("resolveAvailableOperationsViews", () => {
-  it("always includes overview and gates domain routes by capability", () => {
+  it("returns Work OS M1 destinations only (work + inbox)", () => {
     expect(
       resolveAvailableOperationsViews({
         taskRuns: false,
         automations: false,
         inbox: false,
       }),
-    ).toEqual(["overview"]);
-
-    expect(
-      resolveAvailableOperationsViews({
-        taskRuns: true,
-        automations: false,
-        inbox: false,
-      }),
-    ).toEqual(["overview", "work", "runs"]);
-
-    expect(
-      resolveAvailableOperationsViews({
-        taskRuns: false,
-        automations: true,
-        inbox: true,
-      }),
-    ).toEqual(["overview", "work", "inbox"]);
+    ).toEqual(["work", "inbox"]);
 
     expect(
       resolveAvailableOperationsViews({
@@ -38,7 +22,7 @@ describe("resolveAvailableOperationsViews", () => {
         automations: true,
         inbox: true,
       }),
-    ).toEqual(["overview", "work", "runs", "inbox"]);
+    ).toEqual(["work", "inbox"]);
   });
 });
 

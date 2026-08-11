@@ -296,7 +296,7 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     () => persisted.surface ?? "chat",
   );
   const [operationsView, setOperationsView] = useState<PersistedOperationsView>(
-    () => persisted.operationsView ?? "overview",
+    () => persisted.operationsView ?? "work",
   );
   const [workHubView, setWorkHubView] = useState<PersistedWorkHubView>(
     () => persisted.workHubView ?? "runs",

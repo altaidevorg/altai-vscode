@@ -38,29 +38,36 @@ describe("parseOpenOperationsPayload", () => {
 });
 
 describe("buildOpenOperationsPayload", () => {
-  it("defaults to overview and stamps a key", () => {
+  it("defaults to work and stamps a key", () => {
     const payload = buildOpenOperationsPayload({});
-    expect(payload.view).toBe("overview");
+    expect(payload.view).toBe("work");
     expect(typeof payload.key).toBe("number");
   });
 });
 
 describe("resolveDeepLinkOperationsView", () => {
-  it("falls back to overview when the target is not available", () => {
+  it("keeps work/inbox and remaps legacy overview/runs to work", () => {
     expect(
       resolveDeepLinkOperationsView("inbox", {
-        taskRuns: true,
+        taskRuns: false,
         automations: false,
         inbox: false,
       }),
-    ).toBe("overview");
+    ).toBe("inbox");
     expect(
       resolveDeepLinkOperationsView("runs", {
         taskRuns: true,
         automations: false,
         inbox: false,
       }),
-    ).toBe("runs");
+    ).toBe("work");
+    expect(
+      resolveDeepLinkOperationsView("overview", {
+        taskRuns: true,
+        automations: true,
+        inbox: true,
+      }),
+    ).toBe("work");
   });
 });
 
