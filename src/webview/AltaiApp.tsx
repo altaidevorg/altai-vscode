@@ -197,6 +197,7 @@ import {
   createVsCodeHostPorts,
   type HostRpcTransport,
 } from "./host/createVsCodeHostPorts.js";
+import { NativeCapabilitySnapshot } from "./nativeCapabilitySnapshot.js";
 import type { PermissionMode } from "@altai/host-contract";
 
 export type AltaiAppProps = {
@@ -235,7 +236,10 @@ function patchPersistedState(
  */
 export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const hostReadyRef = useRef(false);
-  const [nativeCapabilities, setNativeCapabilities] = useState<readonly string[] | null>(null);
+  const nativeCapabilitySnapshotRef = useRef(new NativeCapabilitySnapshot());
+  const [nativeCapabilities, setNativeCapabilities] = useState<readonly string[]>([]);
+  const [nativeCapabilitiesResolved, setNativeCapabilitiesResolved] =
+    useState(false);
   const persisted = client.getPersistedState();
   const [hostStatus, setHostStatus] = useState<HostStatusPayload>(() => {
     const previous = persisted.hostStatus;
@@ -478,6 +482,11 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   );
 
   useEffect(() => {
+    if (hostStatus.status !== "ready" || !nativeCapabilitiesResolved) {
+      setCapabilities(null);
+      setInitError(null);
+      return;
+    }
     let cancelled = false;
     void ports.runtime
       .initialize({
@@ -507,24 +516,83 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
     return () => {
       cancelled = true;
     };
-  }, [ports, extensionVersion, hostStatus.status]);
+  }, [
+    nativeCapabilitiesResolved,
+    ports,
+    extensionVersion,
+    hostStatus.status,
+  ]);
 
   useEffect(() => {
+    let disposed = false;
+    let statusGeneration = 0;
+    const clearNativeCapabilities = () => {
+      nativeCapabilitySnapshotRef.current.clear();
+      setNativeCapabilities([...nativeCapabilitySnapshotRef.current.list()]);
+      setNativeCapabilitiesResolved(false);
+      setCapabilities(null);
+      setInitError(null);
+    };
+    const refreshNativeCapabilities = () => {
+      const generation = nativeCapabilitySnapshotRef.current.beginReady();
+      setNativeCapabilities([...nativeCapabilitySnapshotRef.current.list()]);
+      setNativeCapabilitiesResolved(false);
+      setCapabilities(null);
+      setInitError(null);
+      void client
+        .request("host.getCapabilities")
+        .then((result) => {
+          const methods = parseNativeMethodList(result) ?? [];
+          if (
+            disposed ||
+            !nativeCapabilitySnapshotRef.current.commit(generation, methods)
+          ) {
+            return;
+          }
+          setNativeCapabilities([...nativeCapabilitySnapshotRef.current.list()]);
+          setNativeCapabilitiesResolved(true);
+        })
+        .catch(() => {
+          if (
+            disposed ||
+            !nativeCapabilitySnapshotRef.current.commit(generation, [])
+          ) {
+            return;
+          }
+          setNativeCapabilities([]);
+          setNativeCapabilitiesResolved(true);
+        });
+    };
+    const applyHostStatus = (payload: HostStatusPayload) => {
+      if (disposed) return;
+      setHostStatus(payload);
+      patchPersistedState(client, { hostStatus: payload });
+      if (payload.status === "ready") {
+        refreshNativeCapabilities();
+      } else {
+        clearNativeCapabilities();
+      }
+    };
     const off = client.onEvent(HOST_STATUS_EVENT, (payload) => {
       if (isHostStatusPayload(payload)) {
-        setHostStatus(payload);
-        patchPersistedState(client, { hostStatus: payload });
+        statusGeneration += 1;
+        applyHostStatus(payload);
       }
     });
+    const initialStatusGeneration = statusGeneration;
     void client
       .request("host.getStatus")
       .then((result) => {
-        if (isHostStatusPayload(result)) {
-          setHostStatus(result);
-          patchPersistedState(client, { hostStatus: result });
+        if (
+          statusGeneration === initialStatusGeneration &&
+          isHostStatusPayload(result)
+        ) {
+          applyHostStatus(result);
         }
       })
       .catch((error: unknown) => {
+        if (statusGeneration !== initialStatusGeneration || disposed) return;
+        clearNativeCapabilities();
         const message =
           error instanceof Error ? error.message : "host.getStatus failed";
         setHostStatus((prev) => ({
@@ -533,18 +601,11 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
           message: `Host status unavailable: ${message}`,
         }));
       });
-    void client
-      .request("host.getCapabilities")
-      .then((result) => {
-        const methods = parseNativeMethodList(result);
-        if (methods) {
-          setNativeCapabilities(methods);
-        }
-      })
-      .catch(() => {
-        setNativeCapabilities([]);
-      });
-    return off;
+    return () => {
+      disposed = true;
+      nativeCapabilitySnapshotRef.current.clear();
+      off();
+    };
   }, [client]);
 
   useEffect(() => {

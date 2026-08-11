@@ -1,4 +1,8 @@
-import type { WorkItem, WorkPort } from "@altai/host-contract";
+import type {
+  WorkItem,
+  WorkPort,
+  WorkStartRunResult,
+} from "@altai/host-contract";
 import type { WorkDetailPrimaryAction } from "./workOsUi.js";
 
 export type WorkOsPort = Pick<
@@ -7,26 +11,18 @@ export type WorkOsPort = Pick<
   | "getWork"
   | "createWork"
   | "transitionWork"
-  | "startWork"
+  | "startWorkRun"
+  | "listWorkAttempts"
   | "markWorkReadyForReview"
   | "reviewWork"
 >;
-
-export class WorkActionUnavailableError extends Error {
-  readonly code = "run_binding_unavailable";
-
-  constructor() {
-    super("Run binding is unavailable until an Attempt is connected to a run.");
-    this.name = "WorkActionUnavailableError";
-  }
-}
 
 export async function executeWorkAction(
   workPort: WorkOsPort,
   detail: WorkItem,
   action: WorkDetailPrimaryAction,
   returnGuidance?: string,
-): Promise<WorkItem | null> {
+): Promise<WorkItem | WorkStartRunResult | null> {
   const revision = {
     workId: detail.id,
     expectedRevision: detail.revision,
@@ -35,12 +31,11 @@ export async function executeWorkAction(
     return workPort.transitionWork({ ...revision, nextState: "ready" });
   }
   if (action === "start") {
-    return workPort.startWork(revision);
+    return workPort.startWorkRun(revision);
   }
   if (action === "open_run") {
-    // Never mutate durable Work as a substitute for opening a run. The
-    // Attempt↔run binding PR will replace this error with the real inspector.
-    throw new WorkActionUnavailableError();
+    // Navigation is handled by WorkOsPanel's isolated exact-run inspector.
+    return null;
   }
   if (action === "accept") {
     return workPort.reviewWork({ ...revision, accept: true, guidance: "" });

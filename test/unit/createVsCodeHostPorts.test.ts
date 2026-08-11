@@ -11,6 +11,13 @@ const WORK_ITEM_METHODS = [
   "work/review",
 ];
 
+const WORK_ATTEMPT_METHODS = [
+  "work/start-run",
+  "work/attempts/list",
+  "run/replay",
+  "run/cancel",
+];
+
 const WORK_ITEM = {
   id: "work-1",
   projectId: "project-1",
@@ -35,6 +42,21 @@ const WORK_INBOX_ITEM = {
   attemptId: "attempt-1",
   chatId: "chat-1",
   runId: "run-1",
+};
+
+const WORK_ATTEMPT = {
+  id: "attempt-1",
+  workId: "work-1",
+  number: 1,
+  role: "executor",
+  phase: "running",
+  chatId: "chat-1",
+  sessionId: "chat-1",
+  runId: "run-1",
+  inputJson: "{}",
+  resultJson: null,
+  createdAtMs: 1_700_000_000_200,
+  updatedAtMs: 1_700_000_000_300,
 };
 
 function mockTransport(requestImpl?: (method: string, params?: unknown) => Promise<unknown>) {
@@ -188,6 +210,117 @@ describe("createVsCodeHostPorts", () => {
     await expect(ports.work.getWork("work-1")).rejects.toThrow(
       "invalid_work_item_response",
     );
+  });
+
+  it("gates and maps bound Work Attempt start and newest-first history", async () => {
+    const second = {
+      ...WORK_ATTEMPT,
+      id: "attempt-2",
+      number: 2,
+      phase: "succeeded",
+      runId: "run-2",
+    };
+    const transport = mockTransport(async (method, params) => {
+      if (method === "work/start-run") {
+        expect(params).toEqual({ workId: "work-1", expectedRevision: 7 });
+        return { work: { ...WORK_ITEM, state: "in_progress" }, attempt: WORK_ATTEMPT };
+      }
+      if (method === "work/attempts/list") {
+        expect(params).toEqual({ workId: "work-1" });
+        return [second, WORK_ATTEMPT];
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => WORK_ATTEMPT_METHODS,
+      transport,
+    });
+    const capabilities = await ports.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+
+    expect(
+      capabilities.capabilities.find((item) => item.id === "work.attemptRuns")
+        ?.availability,
+    ).toBe("available");
+    await expect(
+      ports.work.startWorkRun({ workId: "work-1", expectedRevision: 7 }),
+    ).resolves.toEqual({
+      work: { ...WORK_ITEM, state: "in_progress" },
+      attempt: WORK_ATTEMPT,
+    });
+    await expect(ports.work.listWorkAttempts("work-1")).resolves.toEqual([
+      second,
+      WORK_ATTEMPT,
+    ]);
+  });
+
+  it("keeps Attempt runs deferred on a partial host and rejects malformed identities", async () => {
+    const partialTransport = mockTransport();
+    const partial = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["work/start-run", "work/attempts/list"],
+      transport: partialTransport,
+    });
+    const capabilities = await partial.runtime.initialize({
+      protocolMin: 1,
+      protocolMax: 1,
+      clientName: "test",
+      clientVersion: "0.1.0",
+    });
+    expect(
+      capabilities.capabilities.find((item) => item.id === "work.attemptRuns")
+        ?.availability,
+    ).toBe("deferred");
+    await expect(partial.work.listWorkAttempts("work-1")).rejects.toThrow(
+      "capability_unavailable",
+    );
+    await expect(
+      partial.work.startWorkRun({ workId: "work-1", expectedRevision: 7 }),
+    ).rejects.toThrow("capability_unavailable");
+    expect(partialTransport.request).not.toHaveBeenCalled();
+
+    const invalidResponses = [
+      { work: WORK_ITEM, attempt: { ...WORK_ATTEMPT, workId: "work-other" } },
+      { work: WORK_ITEM, attempt: { ...WORK_ATTEMPT, runId: null } },
+      { work: WORK_ITEM, attempt: { ...WORK_ATTEMPT, sessionId: "" } },
+    ];
+    for (const response of invalidResponses) {
+      const invalid = createVsCodeHostPorts({
+        isHostReady: () => true,
+        getNativeCapabilities: () => WORK_ATTEMPT_METHODS,
+        transport: mockTransport(async () => response),
+      });
+      await expect(
+        invalid.work.startWorkRun({ workId: "work-1", expectedRevision: 7 }),
+      ).rejects.toThrow(/invalid_work_start_run|invalid_work_attempt/);
+    }
+  });
+
+  it("rejects legacy Attempt envelopes, duplicates, and invalid DTO fields", async () => {
+    const invalidResponses = [
+      { attempts: [WORK_ATTEMPT] },
+      [{ ...WORK_ATTEMPT, number: 0 }],
+      [{ ...WORK_ATTEMPT, phase: "unknown" }],
+      [{ ...WORK_ATTEMPT, chatId: null, runId: "run-1" }],
+      [{ ...WORK_ATTEMPT, inputJson: undefined }],
+      [{ ...WORK_ATTEMPT, resultJson: undefined }],
+      [WORK_ATTEMPT, { ...WORK_ATTEMPT }],
+    ];
+    for (const response of invalidResponses) {
+      const ports = createVsCodeHostPorts({
+        isHostReady: () => true,
+        getNativeCapabilities: () => WORK_ATTEMPT_METHODS,
+        transport: mockTransport(async () => response),
+      });
+      await expect(ports.work.listWorkAttempts("work-1")).rejects.toThrow(
+        /invalid_work_attempt/,
+      );
+    }
   });
 
   it("gates and maps the canonical source-backed Work Inbox", async () => {
@@ -546,6 +679,141 @@ describe("createVsCodeHostPorts", () => {
     expect(capabilities.capabilities.find((item) => item.id === "work.automations")?.availability).toBe("deferred");
   });
 
+  it("normalizes exact replay pages and fails closed on identity or sequence drift", async () => {
+    const valid = {
+      chat_id: "chat-1",
+      run_id: "run-1",
+      seq: 4,
+      event: { type: "agent_message", text: "done" },
+    };
+    const transport = mockTransport(async (method) => {
+      if (method === "run/replay") {
+        return { events: [valid], last_seq: 4, terminal_seq: null };
+      }
+      throw new Error(`unexpected ${method}`);
+    });
+    const ports = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["run/replay"],
+      transport,
+    });
+
+    await expect(
+      ports.runtime.replayRun({
+        chatId: "chat-1",
+        runId: "run-1",
+        afterSeq: 3,
+        limit: 200,
+      }),
+    ).resolves.toMatchObject({
+      events: [expect.objectContaining({ chatId: "chat-1", runId: "run-1", seq: 4 })],
+      exhausted: true,
+    });
+
+    for (const invalid of [
+      { ...valid, run_id: "run-other" },
+      { ...valid, seq: 5 },
+      { event: { type: "agent_message" } },
+    ]) {
+      const invalidPorts = createVsCodeHostPorts({
+        isHostReady: () => true,
+        getNativeCapabilities: () => ["run/replay"],
+        transport: mockTransport(async () => ({
+          events: [invalid],
+          last_seq: 5,
+          terminal_seq: null,
+        })),
+      });
+      await expect(
+        invalidPorts.runtime.replayRun({
+          chatId: "chat-1",
+          runId: "run-1",
+          afterSeq: 3,
+        }),
+      ).rejects.toThrow(/invalid_replay_event/);
+    }
+
+    for (const invalidPage of [
+      { items: [valid], last_seq: 4, terminal_seq: null },
+      { events: [valid], terminal_seq: null },
+      { events: [valid], last_seq: 4, terminal_seq: 5 },
+    ]) {
+      const invalidPorts = createVsCodeHostPorts({
+        isHostReady: () => true,
+        getNativeCapabilities: () => ["run/replay"],
+        transport: mockTransport(async () => invalidPage),
+      });
+      await expect(
+        invalidPorts.runtime.replayRun({
+          chatId: "chat-1",
+          runId: "run-1",
+          afterSeq: 3,
+        }),
+      ).rejects.toThrow("invalid_replay_page_response");
+    }
+
+    for (const incompletePage of [
+      { events: [valid], last_seq: 5, terminal_seq: null },
+      { events: [], last_seq: 4, terminal_seq: null },
+    ]) {
+      const invalidPorts = createVsCodeHostPorts({
+        isHostReady: () => true,
+        getNativeCapabilities: () => ["run/replay"],
+        transport: mockTransport(async () => incompletePage),
+      });
+      await expect(
+        invalidPorts.runtime.replayRun({
+          chatId: "chat-1",
+          runId: "run-1",
+          afterSeq: 3,
+          limit: 200,
+        }),
+      ).rejects.toThrow("invalid_replay_page_bounds");
+    }
+
+    const oversized = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["run/replay"],
+      transport: mockTransport(async () => ({
+        events: [valid, { ...valid, seq: 5 }],
+        last_seq: 5,
+        terminal_seq: null,
+      })),
+    });
+    await expect(
+      oversized.runtime.replayRun({
+        chatId: "chat-1",
+        runId: "run-1",
+        afterSeq: 3,
+        limit: 1,
+      }),
+    ).rejects.toThrow("invalid_replay_page_bounds");
+
+    const invalidRequestTransport = mockTransport();
+    const invalidRequest = createVsCodeHostPorts({
+      isHostReady: () => true,
+      getNativeCapabilities: () => ["run/replay"],
+      transport: invalidRequestTransport,
+    });
+    for (const input of [
+      { afterSeq: -1 },
+      { afterSeq: 1.5 },
+      { afterSeq: Number.MAX_SAFE_INTEGER + 1 },
+      { limit: 0 },
+      { limit: 1.5 },
+      { limit: 501 },
+    ]) {
+      await expect(
+        invalidRequest.runtime.replayRun({
+          chatId: "chat-1",
+          runId: "run-1",
+          ...input,
+        }),
+      ).rejects.toThrow("invalid_replay_request");
+    }
+    expect(invalidRequestTransport.request).not.toHaveBeenCalled();
+  });
+
   it("defers chat capabilities while the host is not ready", async () => {
     const ports = createVsCodeHostPorts({
       hostVersion: "0.1.0",
@@ -583,6 +851,7 @@ describe("createVsCodeHostPorts", () => {
     const ports = createVsCodeHostPorts({
       hostVersion: "0.1.0",
       isHostReady: () => true,
+      getNativeCapabilities: () => ["sessions/create", "run/start", "run/retry"],
       transport,
     });
     const caps = await ports.runtime.initialize({
@@ -684,6 +953,14 @@ describe("createVsCodeHostPorts", () => {
     });
     const ports = createVsCodeHostPorts({
       isHostReady: () => true,
+      getNativeCapabilities: () => [
+        "checkpoints/list",
+        "checkpoints/restore",
+        "config/get",
+        "config/update",
+        "context/compact",
+        "clarification/respond",
+      ],
       transport,
     });
     const caps = await ports.runtime.initialize({

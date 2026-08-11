@@ -34,6 +34,8 @@
     "test/unit/workOsActions.test.ts",
     "test/unit/workInboxUi.test.ts",
     "test/unit/workOsRefresh.test.ts",
+    "test/unit/exactRunReplay.test.ts",
+    "test/unit/workAttemptUi.test.ts",
     "test/unit/taskRunDraft.test.ts",
     "test/unit/automationDraft.test.ts",
     "test/unit/operationsAttentionPoll.test.ts",

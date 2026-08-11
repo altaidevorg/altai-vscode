@@ -3,7 +3,13 @@
  * Backed by the canonical WorkPort and the native host's durable work.db.
  */
 
-import type { EventPort, WorkItem } from "@altai/host-contract";
+import type {
+  AgentRuntimePort,
+  EventPort,
+  WorkAttempt,
+  WorkItem,
+  WorkStartRunResult,
+} from "@altai/host-contract";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   NewWorkDialog,
@@ -15,6 +21,12 @@ import {
   type WorkListFilterId,
   type WorkListRow,
 } from "./workOsUi.js";
+import { ExactRunInspectorChrome } from "./ExactRunInspectorChrome.js";
+import {
+  canCommitExactRunReplay,
+  replayExactRun,
+  type ExactRunSnapshot,
+} from "./exactRunReplay.js";
 import {
   loadWorkInboxRows,
   type WorkInboxPort,
@@ -29,6 +41,10 @@ import {
   shouldRequestWorkInboxRefresh,
   WORK_INBOX_POLL_INTERVAL_MS,
 } from "./workOsRefresh.js";
+import {
+  latestBoundAttempt,
+  primaryWorkActions,
+} from "./workAttemptUi.js";
 
 function stateLabel(state: string): string {
   return state.split("_").join(" ");
@@ -45,30 +61,15 @@ function toListRow(item: WorkItem): WorkListRow {
   };
 }
 
-function primaryActionsFor(state: string): WorkDetailPrimaryAction[] {
-  switch (state) {
-    case "backlog":
-      return ["ready", "start"];
-    case "ready":
-      return ["start"];
-    case "in_progress":
-      return ["open_run"];
-    case "in_review":
-      return ["accept", "return"];
-    case "done":
-    case "cancelled":
-      return ["reopen"];
-    default:
-      return [];
-  }
-}
-
 export type WorkOsPanelProps = {
   surface: "work" | "inbox";
   workPort: WorkOsPort;
   inboxPort: WorkInboxPort;
   eventPort: Pick<EventPort, "subscribe">;
+  runtimePort: Pick<AgentRuntimePort, "replayRun">;
   available: boolean;
+  attemptRunsAvailable: boolean;
+  replayAvailable: boolean;
   inboxAvailable: boolean;
   onOpenInbox: () => void;
   onGoToWork: () => void;
@@ -80,7 +81,10 @@ export function WorkOsPanel({
   workPort,
   inboxPort,
   eventPort,
+  runtimePort,
   available,
+  attemptRunsAvailable,
+  replayAvailable,
   inboxAvailable,
   onOpenInbox,
   onGoToWork,
@@ -111,12 +115,24 @@ export function WorkOsPanel({
   const selectedIdRef = useRef<string | null>(null);
   const detailGenerationRef = useRef(0);
   const [detail, setDetail] = useState<WorkItem | null>(null);
+  const [attempts, setAttempts] = useState<WorkAttempt[]>([]);
   const [detailStatus, setDetailStatus] = useState<
     "loading" | "ready" | "error" | "not_found"
   >("ready");
   const [newWorkOpen, setNewWorkOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
+  const [inspectedRun, setInspectedRun] = useState<{
+    chatId: string;
+    runId: string;
+    snapshot: ExactRunSnapshot | null;
+    loading: boolean;
+    error: string | null;
+  } | null>(null);
+  const inspectedRunRef = useRef(inspectedRun);
+  inspectedRunRef.current = inspectedRun;
+  const inspectorGenerationRef = useRef(0);
+  const inspectorRefreshBusyRef = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {
     if (!available) {
@@ -141,7 +157,7 @@ export function WorkOsPanel({
   }, [available, filter, workPort]);
 
   const loadDetail = useCallback(
-    async (workId: string) => {
+    async (workId: string, background = false) => {
       const request = {
         generation: ++detailGenerationRef.current,
         workId,
@@ -155,6 +171,7 @@ export function WorkOsPanel({
       if (!available) {
         if (!canCommit()) return;
         setDetail(null);
+        setAttempts([]);
         setDetailStatus("error");
         setError(
           "Canonical Work is unavailable. Update or restart the native host.",
@@ -162,12 +179,18 @@ export function WorkOsPanel({
         return;
       }
       if (!canCommit()) return;
-      setDetailStatus("loading");
+      if (!background) setDetailStatus("loading");
       try {
-        const item = await workPort.getWork(workId);
+        const [item, nextAttempts] = await Promise.all([
+          workPort.getWork(workId),
+          attemptRunsAvailable
+            ? workPort.listWorkAttempts(workId)
+            : Promise.resolve([]),
+        ]);
         if (!canCommit()) return;
         if (!item) {
           setDetail(null);
+          setAttempts([]);
           setDetailStatus("not_found");
           return;
         }
@@ -175,16 +198,20 @@ export function WorkOsPanel({
           throw new Error("invalid_work_detail_identity");
         }
         setDetail(item);
+        setAttempts(nextAttempts);
         setDetailStatus("ready");
         setError(null);
       } catch (err) {
         if (!canCommit()) return;
-        setDetail(null);
-        setDetailStatus("error");
+        if (!background) {
+          setDetail(null);
+          setAttempts([]);
+          setDetailStatus("error");
+        }
         setError(err instanceof Error ? err.message : String(err));
       }
     },
-    [available, workPort],
+    [attemptRunsAvailable, available, workPort],
   );
 
   inboxRefreshExecutorRef.current = async () => {
@@ -220,20 +247,106 @@ export function WorkOsPanel({
     return inboxRefreshGateRef.current!.request();
   }, []);
 
+  const refreshInspectedRun = useCallback(async () => {
+    const current = inspectedRunRef.current;
+    if (!current) return;
+    const generation = inspectorGenerationRef.current;
+    if (inspectorRefreshBusyRef.current === generation) return;
+    const request = {
+      generation,
+      chatId: current.chatId,
+      runId: current.runId,
+    };
+    inspectorRefreshBusyRef.current = generation;
+    try {
+      const snapshot = await replayExactRun(
+        runtimePort.replayRun.bind(runtimePort),
+        current.chatId,
+        current.runId,
+        current.snapshot,
+      );
+      if (!canCommitExactRunReplay(
+        request,
+        inspectorGenerationRef.current,
+        inspectedRunRef.current,
+      )) {
+        return;
+      }
+      const next = { ...current, snapshot, loading: false, error: null };
+      inspectedRunRef.current = next;
+      setInspectedRun(next);
+    } catch (err) {
+      if (!canCommitExactRunReplay(
+        request,
+        inspectorGenerationRef.current,
+        inspectedRunRef.current,
+      )) return;
+      const next = {
+        ...current,
+        loading: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+      inspectedRunRef.current = next;
+      setInspectedRun(next);
+    } finally {
+      if (inspectorRefreshBusyRef.current === generation) {
+        inspectorRefreshBusyRef.current = null;
+      }
+    }
+  }, [runtimePort]);
+
+  const openAttemptRun = useCallback(
+    (attempt: WorkAttempt) => {
+      if (
+        !attemptRunsAvailable ||
+        !replayAvailable ||
+        !attempt.chatId ||
+        !attempt.runId
+      ) return;
+      inspectorGenerationRef.current += 1;
+      const next = {
+        chatId: attempt.chatId,
+        runId: attempt.runId,
+        snapshot: null,
+        loading: true,
+        error: null,
+      };
+      inspectedRunRef.current = next;
+      setInspectedRun(next);
+      setError(null);
+      void refreshInspectedRun();
+    },
+    [attemptRunsAvailable, refreshInspectedRun, replayAvailable],
+  );
+
+  const closeAttemptRun = useCallback(() => {
+    inspectorGenerationRef.current += 1;
+    inspectedRunRef.current = null;
+    setInspectedRun(null);
+  }, []);
+
   const clearSelectedWork = useCallback(() => {
     detailGenerationRef.current += 1;
+    inspectorGenerationRef.current += 1;
+    inspectedRunRef.current = null;
+    setInspectedRun(null);
     selectedIdRef.current = null;
     setSelectedId(null);
     setDetail(null);
+    setAttempts([]);
     setDetailStatus("ready");
     setError(null);
   }, []);
 
   const openWork = useCallback(
     (workId: string) => {
+      inspectorGenerationRef.current += 1;
+      inspectedRunRef.current = null;
+      setInspectedRun(null);
       selectedIdRef.current = workId;
       setSelectedId(workId);
       setDetail(null);
+      setAttempts([]);
       setError(null);
       // Deliberately load even when the same Inbox row is selected again.
       void loadDetail(workId);
@@ -249,6 +362,17 @@ export function WorkOsPanel({
   useEffect(() => {
     if (surface === "work") void refresh();
   }, [refresh, surface]);
+
+  useEffect(() => {
+    if (!attemptRunsAvailable) setAttempts([]);
+  }, [attemptRunsAvailable]);
+
+  useEffect(() => {
+    if (
+      (!attemptRunsAvailable || !replayAvailable) &&
+      inspectedRunRef.current
+    ) closeAttemptRun();
+  }, [attemptRunsAvailable, closeAttemptRun, replayAvailable]);
 
   useEffect(() => {
     inboxGenerationRef.current += 1;
@@ -309,19 +433,66 @@ export function WorkOsPanel({
     };
   }, [requestInboxRefresh]);
 
+  useEffect(() => {
+    if (!selectedId || !attemptRunsAvailable) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      void loadDetail(selectedId, true);
+    }, WORK_INBOX_POLL_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [attemptRunsAvailable, loadDetail, selectedId]);
+
+  useEffect(() => {
+    if (!inspectedRun || inspectedRun.snapshot?.terminal) return;
+    const timer = window.setInterval(() => {
+      void refreshInspectedRun();
+    }, 2_000);
+    return () => window.clearInterval(timer);
+  }, [inspectedRun, refreshInspectedRun]);
+
+  useEffect(() => () => {
+    inspectorGenerationRef.current += 1;
+  }, []);
+
   useEffect(
     () =>
       eventPort.subscribe((event) => {
         if (event.type === "lifecycle" || event.type === "notification") {
           void requestInboxRefresh();
         }
+        if (event.type === "lifecycle" && selectedIdRef.current) {
+          void loadDetail(selectedIdRef.current, true);
+          void refresh();
+          if (
+            inspectedRunRef.current?.chatId === event.chatId &&
+            inspectedRunRef.current?.runId === event.runId
+          ) {
+            void refreshInspectedRun();
+          }
+        }
       }),
-    [eventPort, requestInboxRefresh],
+    [
+      eventPort,
+      loadDetail,
+      refresh,
+      refreshInspectedRun,
+      requestInboxRefresh,
+    ],
   );
 
   const runAction = useCallback(
     async (action: WorkDetailPrimaryAction) => {
       if (!detail || !selectedId || detail.id !== selectedId || actionBusy) {
+        return;
+      }
+      if (action === "open_run") {
+        const attempt = latestBoundAttempt(attempts);
+        if (!attempt || !replayAvailable) {
+          setError("This Attempt has no replayable bound run.");
+          return;
+        }
+        openAttemptRun(attempt);
         return;
       }
       const request = {
@@ -337,12 +508,19 @@ export function WorkOsPanel({
       }
       setActionBusy(true);
       try {
-        const next = await executeWorkAction(
+        const result = await executeWorkAction(
           workPort,
           detail,
           action,
           returnGuidance,
         );
+        const startResult =
+          result && "work" in result
+            ? (result as WorkStartRunResult)
+            : null;
+        const next: WorkItem | null = startResult
+          ? startResult.work
+          : (result as WorkItem | null);
         if (
           next &&
           canCommitWorkDetailRequest(
@@ -353,6 +531,14 @@ export function WorkOsPanel({
         ) {
           setDetail(next);
           setDetailStatus("ready");
+          if (startResult) {
+            setAttempts((current) => [
+              startResult.attempt,
+              ...current.filter(
+                (attempt) => attempt.id !== startResult.attempt.id,
+              ),
+            ]);
+          }
         }
         await refresh();
         await requestInboxRefresh();
@@ -367,12 +553,23 @@ export function WorkOsPanel({
           setError(err instanceof Error ? err.message : String(err));
         }
       } finally {
+        if (selectedIdRef.current === request.workId) {
+          // A lost work/start-run response is ambiguous: the host may already
+          // have committed and dispatched the Attempt. Re-read Work + history
+          // before exposing Start again; a failed foreground recovery leaves
+          // the detail fail-closed behind its Retry state.
+          await loadDetail(request.workId, action !== "start");
+        }
         setActionBusy(false);
       }
     },
     [
       actionBusy,
+      attempts,
       detail,
+      loadDetail,
+      openAttemptRun,
+      replayAvailable,
       refresh,
       requestInboxRefresh,
       selectedId,
@@ -400,7 +597,7 @@ export function WorkOsPanel({
 
   if (selectedId) {
     return (
-      <>
+      <div className="relative h-full min-h-0 overflow-hidden">
         {error ? (
           <p className="altai-ops-inline-error" role="status">
             {error}
@@ -414,8 +611,24 @@ export function WorkOsPanel({
           description={detail?.description}
           acceptanceCriteria={detail?.acceptanceCriteria}
           blocker={detail?.blocker}
+          attempts={attempts.map((attempt) => ({
+            id: attempt.id,
+            label: `#${attempt.number} ${attempt.role}`,
+            phaseLabel: stateLabel(attempt.phase),
+            ...(attemptRunsAvailable &&
+            replayAvailable &&
+            attempt.chatId &&
+            attempt.runId
+              ? { onOpenRun: () => openAttemptRun(attempt) }
+              : {}),
+          }))}
           primaryActions={
-            detail && !actionBusy ? primaryActionsFor(detail.state) : []
+            detail && !actionBusy
+              ? primaryWorkActions(detail.state, attempts, {
+                  attemptRunsAvailable,
+                  replayAvailable,
+                })
+              : []
           }
           onPrimaryAction={(action) => {
             void runAction(action);
@@ -430,7 +643,27 @@ export function WorkOsPanel({
           }
           errorMessage={error ?? undefined}
         />
-      </>
+        {inspectedRun ? (
+          <div className="absolute inset-0 z-20 bg-card">
+            <ExactRunInspectorChrome
+              chatId={inspectedRun.chatId}
+              runId={inspectedRun.runId}
+              snapshot={inspectedRun.snapshot}
+              loading={inspectedRun.loading}
+              error={inspectedRun.error}
+              onClose={closeAttemptRun}
+              onRetry={() => {
+                const current = inspectedRunRef.current;
+                if (!current) return;
+                const next = { ...current, loading: true, error: null };
+                inspectedRunRef.current = next;
+                setInspectedRun(next);
+                void refreshInspectedRun();
+              }}
+            />
+          </div>
+        ) : null}
+      </div>
     );
   }
 
@@ -471,6 +704,7 @@ export function WorkOsPanel({
               setFilter("backlog");
               setNewWorkOpen(false);
               setDetail(created);
+              setAttempts([]);
               setDetailStatus("ready");
               detailGenerationRef.current += 1;
               selectedIdRef.current = created.id;

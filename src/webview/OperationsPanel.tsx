@@ -86,7 +86,9 @@ export function OperationsPanel({
   const ports = useHostPorts();
   const { capabilities } = useHostPortsContext();
   const canWorkItems = useCapability("work.items");
+  const canWorkAttemptRuns = useCapability("work.attemptRuns");
   const canWorkInbox = useCapability("work.inbox");
+  const canReplayRun = useCapability("runtime.replayRun");
   const canTaskRuns = useCapability("work.taskRuns");
   const canAutomations = useCapability("work.automations");
   const canLegacyInbox = useCapability("inbox.notifications");
@@ -528,7 +530,10 @@ export function OperationsPanel({
           workPort={ports.work}
           inboxPort={ports.inbox}
           eventPort={ports.events}
+          runtimePort={ports.runtime}
           available={canWorkItems}
+          attemptRunsAvailable={canWorkAttemptRuns}
+          replayAvailable={canReplayRun}
           inboxAvailable={canWorkInbox}
           onOpenInbox={() => setView("inbox")}
           onGoToWork={() => setView("work")}
