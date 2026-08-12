@@ -9,6 +9,7 @@ import {
   SettingsSettingRow,
   SettingsSubsection,
 } from "./settingsSectionLayout.js";
+import { useExtensionPreferences } from "./useExtensionPreferences.js";
 
 export type ChatHostSettingsChromeProps = {
   hostStatusLabel?: string;
@@ -58,6 +59,19 @@ export function ChatHostSettingsChrome({
   const [workspace, setWorkspace] = useState<WorkspaceSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const {
+    prefs,
+    ready: prefsReady,
+    busyKey,
+    patch,
+  } = useExtensionPreferences(requestWorkspace);
+  const [hostPathDraft, setHostPathDraft] = useState("");
+
+  useEffect(() => {
+    if (prefsReady) {
+      setHostPathDraft(prefs.agentHostPath);
+    }
+  }, [prefsReady, prefs.agentHostPath]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -123,6 +137,34 @@ export function ChatHostSettingsChrome({
               : "Not trusted"
             : "—"}
         </span>
+      </SettingsSettingRow>
+
+      <SettingsSubsection label="Agent host binary" />
+      <SettingsSettingRow
+        title="Agent host path"
+        description="Absolute path to altai-cli for local development. Empty uses the packaged binary."
+        stacked
+      >
+        <div className="altai-settings-field-row">
+          <input
+            className="altai-settings-input"
+            value={hostPathDraft}
+            placeholder="/path/to/altai-cli"
+            disabled={!prefsReady}
+            onChange={(e) => setHostPathDraft(e.target.value)}
+          />
+          <SurfaceSecondaryAction
+            type="button"
+            disabled={
+              !prefsReady ||
+              busyKey === "agentHostPath" ||
+              hostPathDraft === prefs.agentHostPath
+            }
+            onClick={() => void patch("agentHostPath", hostPathDraft.trim())}
+          >
+            Save
+          </SurfaceSecondaryAction>
+        </div>
       </SettingsSettingRow>
 
       <SettingsSubsection label="Project" />

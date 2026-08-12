@@ -1,14 +1,13 @@
 /**
- * Studio SettingsContent surface for VS Code — search, sticky section, and
- * full Studio tab bodies.
+ * Plugin settings hub — single sidebar nav, plugin-only catalog.
+ * Not a clone of Desktop app or Desktop IDE SettingsContent.
  */
 
-import { SurfaceSecondaryAction, useCapability } from "@altai/agent-ui";
+import { SurfaceSecondaryAction } from "@altai/agent-ui";
 import {
   AiBookIcon,
   CodeSquareIcon,
   ComputerIcon,
-  GithubIcon,
   InformationCircleIcon,
   KeyboardIcon,
   Layers02Icon,
@@ -28,25 +27,23 @@ import {
   ChatSettingsAgentsPanel,
   ChatSettingsContextPanel,
   ChatSettingsGeneralPanel,
-  ChatSettingsGithubPanel,
   ChatSettingsHooksPanel,
-  ChatSettingsLanguagesPanel,
   ChatSettingsMcpPanel,
   ChatSettingsModelsPanel,
   ChatSettingsShortcutsPanel,
   ChatSettingsSkillsPanel,
 } from "./ChatStudioSettingsPanels.js";
 import { listRecoveryActions } from "./hostRecoveryActions.js";
-import {
-  listSettingsHubNav,
-  normalizeSettingsHubSection,
-  type SettingsHubSectionId,
-} from "./settingsHubChrome.js";
-import { filterSettingsNav } from "./settingsSearchChrome.js";
 import { SettingsSectionShell } from "./settingsSectionLayout.js";
+import {
+  filterPluginSettingsNav,
+  groupPluginSettingsNav,
+  normalizePluginSettingsSection,
+  PLUGIN_SETTINGS_GROUP_LABELS,
+  PLUGIN_SETTINGS_NAV,
+  type SettingsHubSectionId,
+} from "./pluginSettingsChrome.js";
 import { formatDiagnosticClipboardText } from "./waitShellChrome.js";
-
-export { listSettingsHubSections } from "./settingsHubChrome.js";
 
 const SECTION_ICONS = {
   general: Settings01Icon,
@@ -55,8 +52,6 @@ const SECTION_ICONS = {
   context: Layers02Icon,
   agents: UserMultiple02Icon,
   skills: PuzzleIcon,
-  github: GithubIcon,
-  languages: CodeSquareIcon,
   mcp: PlugIcon,
   hooks: CodeSquareIcon,
   accessibility: UniversalAccessIcon,
@@ -64,26 +59,14 @@ const SECTION_ICONS = {
   about: InformationCircleIcon,
 } as const;
 
-const QUICK_JUMP: SettingsHubSectionId[] = [
-  "models",
-  "context",
-  "agents",
-  "mcp",
-  "accessibility",
-  "host",
-];
-
 export type ChatSettingsHubProps = {
   extensionVersion?: string;
   hostStatusLabel?: string;
   diagnosticCode?: string;
   hostMessage?: string;
   requestWorkspace?: (method: string, params?: unknown) => Promise<unknown>;
-  /** Restored section when reopening Settings. */
   initialSection?: string;
-  /** Persist section across reloads. */
   onSectionChange?: (section: SettingsHubSectionId) => void;
-  /** Deep-link focus from open-settings events. */
   focusSection?: string;
   focusKey?: number;
   activeChatId?: string | null;
@@ -101,45 +84,20 @@ export function ChatSettingsHub({
   focusKey,
   activeChatId,
 }: ChatSettingsHubProps) {
-  const canProvider = useCapability("settings.providerStatus");
-  const canListModels = useCapability("models.list");
-  const canGetSettings = useCapability("settings.get");
-  const canMcp = useCapability("mcp.list");
-  const canSkills = useCapability("skills.list");
   const hostReady = hostStatusLabel === "ready";
-
-  const nav = useMemo(
-    () =>
-      listSettingsHubNav({
-        canProvider,
-        canModel: canListModels && canGetSettings,
-        canPermission: canGetSettings,
-        canCompaction: canGetSettings,
-        canMcp,
-        canSkills,
-      }),
-    [canProvider, canListModels, canGetSettings, canMcp, canSkills],
-  );
-  const availableIds = useMemo(() => nav.map((item) => item.id), [nav]);
   const [section, setSection] = useState<SettingsHubSectionId>(() =>
-    normalizeSettingsHubSection(initialSection, availableIds),
+    normalizePluginSettingsSection(initialSection),
   );
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    setSection((current) =>
-      normalizeSettingsHubSection(current, availableIds),
-    );
-  }, [availableIds]);
 
   useEffect(() => {
     if (focusKey === undefined) {
       return;
     }
     if (focusSection) {
-      setSection(normalizeSettingsHubSection(focusSection, availableIds));
+      setSection(normalizePluginSettingsSection(focusSection));
     }
-  }, [focusKey, focusSection, availableIds]);
+  }, [focusKey, focusSection]);
 
   const selectSection = (next: SettingsHubSectionId) => {
     setSection(next);
@@ -147,11 +105,17 @@ export function ChatSettingsHub({
   };
 
   const visibleNav = useMemo(
-    () => filterSettingsNav(nav, query),
-    [nav, query],
+    () => filterPluginSettingsNav(query),
+    [query],
+  );
+  const groupedNav = useMemo(
+    () => groupPluginSettingsNav(visibleNav),
+    [visibleNav],
   );
 
-  const activeNav = nav.find((item) => item.id === section) ?? nav[0];
+  const activeNav =
+    PLUGIN_SETTINGS_NAV.find((item) => item.id === section) ??
+    PLUGIN_SETTINGS_NAV[0];
   const recoveryActions = listRecoveryActions({ diagnosticCode });
   const clipboardText = formatDiagnosticClipboardText({
     diagnosticCode,
@@ -161,172 +125,164 @@ export function ChatSettingsHub({
   const versionLabel = extensionVersion?.trim() || "unknown";
   const rw = requestWorkspace;
 
-  const hostBadge = !hostReady
-    ? "Host offline — live agent configs may be limited"
-    : null;
-
   return (
-    <section className="altai-settings-hub" aria-label="ALTAI settings">
-      <div className="altai-settings-hub-search">
-        <HugeiconsIcon
-          icon={Search01Icon}
-          size={13}
-          strokeWidth={1.75}
-          className="altai-settings-hub-search-icon"
-        />
-        <input
-          className="altai-settings-hub-search-input"
-          type="search"
-          value={query}
-          placeholder="Search settings…"
-          aria-label="Search settings"
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        {query ? (
-          <button
-            type="button"
-            className="altai-settings-hub-search-clear"
-            onClick={() => setQuery("")}
-          >
-            Clear
-          </button>
-        ) : null}
-      </div>
+    <section className="altai-settings-hub" aria-label="ALTAI extension settings">
+      <header className="altai-settings-hub-header">
+        <div>
+          <h1 className="altai-settings-hub-title">Extension settings</h1>
+          <p className="altai-settings-hub-subtitle">
+            Panel, agent host, and VS Code–specific preferences — not Desktop
+            IDE editor settings.
+          </p>
+        </div>
+        <div className="altai-settings-hub-search">
+          <HugeiconsIcon
+            icon={Search01Icon}
+            size={13}
+            strokeWidth={1.75}
+            className="altai-settings-hub-search-icon"
+          />
+          <input
+            className="altai-settings-hub-search-input"
+            type="search"
+            value={query}
+            placeholder="Search settings…"
+            aria-label="Search settings"
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {query ? (
+            <button
+              type="button"
+              className="altai-settings-hub-search-clear"
+              onClick={() => setQuery("")}
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+      </header>
 
-      {hostBadge ? (
+      {!hostReady ? (
         <p className="altai-settings-hub-banner" role="status">
-          {hostBadge}
+          Host offline — live agent configs may be limited
         </p>
       ) : null}
 
-      <div className="altai-settings-hub-quick" aria-label="Quick jump">
-        {QUICK_JUMP.map((id) => {
-          const item = nav.find((entry) => entry.id === id);
-          if (!item) {
-            return null;
-          }
-          return (
-            <button
-              key={id}
-              type="button"
-              className={
-                section === id
-                  ? "altai-settings-hub-chip is-active"
-                  : "altai-settings-hub-chip"
-              }
-              onClick={() => selectSection(id)}
-            >
-              {item.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        className="altai-settings-hub-tabbar"
-        role="tablist"
-        aria-label="Settings sections"
-      >
-        {visibleNav.length === 0 ? (
-          <span className="altai-shell-meta px-2">No sections match.</span>
-        ) : (
-          visibleNav.map((item) => {
-            const active = item.id === section;
-            const Icon = SECTION_ICONS[item.id];
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                className={
-                  active
-                    ? "altai-settings-hub-nav-item is-active"
-                    : "altai-settings-hub-nav-item"
-                }
-                onClick={() => selectSection(item.id)}
-              >
-                <HugeiconsIcon icon={Icon} size={12} strokeWidth={1.75} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })
-        )}
-      </div>
-
-      <main className="altai-settings-hub-main" data-section={section}>
-        <SettingsSectionShell
-          title={activeNav?.label ?? "Settings"}
-          description={activeNav?.description}
+      <div className="altai-settings-hub-body">
+        <nav
+          className="altai-settings-hub-rail"
+          aria-label="Settings sections"
         >
-          {section === "general" && rw ? (
-            <ChatSettingsGeneralPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "shortcuts" && rw ? (
-            <ChatSettingsShortcutsPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "models" ? (
-            <ChatSettingsModelsPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "context" && rw ? (
-            <ChatSettingsContextPanel
-              requestWorkspace={rw}
-              activeChatId={activeChatId}
-            />
-          ) : null}
-          {section === "agents" && rw ? (
-            <ChatSettingsAgentsPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "skills" ? <ChatSettingsSkillsPanel /> : null}
-          {section === "github" && rw ? (
-            <ChatSettingsGithubPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "languages" && rw ? (
-            <ChatSettingsLanguagesPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "mcp" ? <ChatSettingsMcpPanel /> : null}
-          {section === "hooks" && rw ? (
-            <ChatSettingsHooksPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "accessibility" && rw ? (
-            <ChatSettingsAccessibilityPanel requestWorkspace={rw} />
-          ) : null}
-          {section === "host" && rw ? (
-            <ChatHostSettingsChrome
-              hostStatusLabel={hostStatusLabel}
-              diagnosticCode={diagnosticCode}
-              hostMessage={hostMessage}
-              requestWorkspace={rw}
-            />
-          ) : null}
-          {section === "about" && rw ? (
-            <ChatSettingsAboutPanel
-              extensionVersion={versionLabel}
-              hostStatusLabel={hostStatusLabel}
-              diagnosticCode={diagnosticCode}
-              hostMessage={hostMessage}
-              clipboardText={clipboardText}
-              recoveryActions={recoveryActions}
-              requestWorkspace={rw}
-            />
-          ) : null}
-          {section === "about" && !rw ? (
-            <p className="altai-shell-meta">
-              Extension {versionLabel}
-              {hostStatusLabel ? ` · host ${hostStatusLabel}` : ""}
-            </p>
-          ) : null}
-          {!rw &&
-          section !== "models" &&
-          section !== "mcp" &&
-          section !== "skills" &&
-          section !== "about" ? (
-            <p className="altai-shell-meta">
-              Workspace bridge unavailable for this section.
-            </p>
-          ) : null}
-        </SettingsSectionShell>
-      </main>
+          {groupedNav.length === 0 ? (
+            <span className="altai-shell-meta">No sections match.</span>
+          ) : (
+            groupedNav.map((block) => (
+              <div key={block.group} className="altai-settings-hub-group">
+                <div className="altai-settings-hub-group-label">
+                  {PLUGIN_SETTINGS_GROUP_LABELS[block.group]}
+                </div>
+                <ul className="altai-settings-hub-rail-list">
+                  {block.items.map((item) => {
+                    const active = item.id === section;
+                    const Icon = SECTION_ICONS[item.id as keyof typeof SECTION_ICONS];
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          aria-current={active ? "page" : undefined}
+                          className={
+                            active
+                              ? "altai-settings-hub-rail-item is-active"
+                              : "altai-settings-hub-rail-item"
+                          }
+                          onClick={() => selectSection(item.id)}
+                        >
+                          {Icon ? (
+                            <HugeiconsIcon
+                              icon={Icon}
+                              size={13}
+                              strokeWidth={1.75}
+                            />
+                          ) : null}
+                          <span>{item.label}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))
+          )}
+        </nav>
+
+        <main className="altai-settings-hub-main" data-section={section}>
+          <SettingsSectionShell
+            title={activeNav?.label ?? "Settings"}
+            description={activeNav?.description}
+          >
+            {section === "general" && rw ? (
+              <ChatSettingsGeneralPanel requestWorkspace={rw} />
+            ) : null}
+            {section === "shortcuts" && rw ? (
+              <ChatSettingsShortcutsPanel requestWorkspace={rw} />
+            ) : null}
+            {section === "models" ? (
+              <ChatSettingsModelsPanel requestWorkspace={rw} />
+            ) : null}
+            {section === "context" && rw ? (
+              <ChatSettingsContextPanel
+                requestWorkspace={rw}
+                activeChatId={activeChatId}
+              />
+            ) : null}
+            {section === "agents" && rw ? (
+              <ChatSettingsAgentsPanel requestWorkspace={rw} />
+            ) : null}
+            {section === "skills" ? <ChatSettingsSkillsPanel /> : null}
+            {section === "mcp" ? <ChatSettingsMcpPanel /> : null}
+            {section === "hooks" && rw ? (
+              <ChatSettingsHooksPanel requestWorkspace={rw} />
+            ) : null}
+            {section === "accessibility" && rw ? (
+              <ChatSettingsAccessibilityPanel requestWorkspace={rw} />
+            ) : null}
+            {section === "host" && rw ? (
+              <ChatHostSettingsChrome
+                hostStatusLabel={hostStatusLabel}
+                diagnosticCode={diagnosticCode}
+                hostMessage={hostMessage}
+                requestWorkspace={rw}
+              />
+            ) : null}
+            {section === "about" && rw ? (
+              <ChatSettingsAboutPanel
+                extensionVersion={versionLabel}
+                hostStatusLabel={hostStatusLabel}
+                diagnosticCode={diagnosticCode}
+                hostMessage={hostMessage}
+                clipboardText={clipboardText}
+                recoveryActions={recoveryActions}
+                requestWorkspace={rw}
+              />
+            ) : null}
+            {section === "about" && !rw ? (
+              <p className="altai-shell-meta">
+                Extension {versionLabel}
+                {hostStatusLabel ? ` · host ${hostStatusLabel}` : ""}
+              </p>
+            ) : null}
+            {!rw &&
+            section !== "models" &&
+            section !== "mcp" &&
+            section !== "skills" &&
+            section !== "about" ? (
+              <p className="altai-shell-meta">
+                Workspace bridge unavailable for this section.
+              </p>
+            ) : null}
+          </SettingsSectionShell>
+        </main>
+      </div>
     </section>
   );
 }
@@ -359,8 +315,8 @@ function ChatSettingsAboutPanel({
         <div className="altai-settings-about-copy">
           <span className="altai-settings-about-name">ALTAI for VS Code</span>
           <span className="altai-settings-row-desc">
-            Thin host for the shared agent UI and IsanAgent runtime — Studio
-            settings surface.
+            Editor extension settings for the side panel and agent host — separate
+            from the Desktop app and Desktop IDE settings windows.
           </span>
           <span className="altai-settings-about-version">
             v{extensionVersion}
@@ -410,6 +366,16 @@ function ChatSettingsAboutPanel({
       </dl>
 
       <div className="altai-settings-field-actions altai-settings-field-actions--wrap">
+        <SurfaceSecondaryAction
+          type="button"
+          onClick={() => {
+            void requestWorkspace("executeAltaiCommand", {
+              command: "altai.openExtensionSettings",
+            }).catch(() => undefined);
+          }}
+        >
+          Open VS Code settings: ALTAI
+        </SurfaceSecondaryAction>
         <SurfaceSecondaryAction
           type="button"
           onClick={() => {

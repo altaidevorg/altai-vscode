@@ -1,5 +1,5 @@
 /**
- * Compact Run details strip: shared RunDetailsHeader + RunOverviewCard when a
+ * Compact Details chrome: shared RunDetailsHeader + RunOverviewCard when a
  * run is active or blocked, plus optional inspector sections.
  */
 
@@ -132,7 +132,6 @@ export function ChatRunDetailsChrome({
         onClose={onClose}
         onStop={hasActiveRun && onStop ? onStop : undefined}
       />}
-      summaryClassName="px-2.5 pb-2"
       summary={<RunOverviewCard
           statusPill={
             <AgentStatusPill

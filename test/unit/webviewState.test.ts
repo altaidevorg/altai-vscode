@@ -60,6 +60,19 @@ describe("parsePersistedWebviewState", () => {
     });
   });
 
+  it("seeds per-root active chat from preferred root + legacy id", () => {
+    expect(
+      parsePersistedWebviewState({
+        preferredRootUri: "file:///ws",
+        activeChatId: "chat-42",
+      }),
+    ).toEqual({
+      preferredRootUri: "file:///ws",
+      activeChatId: "chat-42",
+      activeChatIdByRoot: { "file:///ws": "chat-42" },
+    });
+  });
+
   it("drops empty activeChatId", () => {
     expect(parsePersistedWebviewState({ activeChatId: "" })).toEqual({});
   });

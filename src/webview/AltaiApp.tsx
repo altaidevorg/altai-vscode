@@ -2,7 +2,6 @@ import {
   AgentChatLayout,
   AiChatMainColumn,
   AiSidePanelFrame,
-  AiPanelSurfaceTabs,
   AiChatTranscriptFrame,
   ChatTabStrip,
   detectSlashOrSnippetTrigger,
@@ -34,6 +33,8 @@ import {
 } from "../shared/messages.js";
 import {
   COMPOSER_DRAFT_DEBOUNCE_MS,
+  activeChatFocusPatch,
+  activeChatIdForRoot,
   mergePersistedWebviewState,
   parseOpenChatWithFilePayload,
   parseOpenChatWithSelectionPayload,
@@ -57,8 +58,8 @@ import { isEscapeDismissKey } from "./chatKeyboardChrome.js";
 import { OperationsPanel } from "./OperationsPanel.js";
 import { OperationsAttentionReporter } from "./OperationsAttentionReporter.js";
 import { ChatSettingsHub } from "./ChatSettingsHub.js";
-import { shouldShowSurfaceTextTabs } from "./shellChrome.js";
 import { ChatShellChrome } from "./ChatShellChrome.js";
+import { ChatShellTopbar } from "./ChatShellTopbar.js";
 import {
   buildOpenChatFocus,
   chatFocusStatusLine,
@@ -308,22 +309,21 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const [operationsNav, setOperationsNav] = useState<
     OpenOperationsPayload | undefined
   >(undefined);
-  const [chatFocus, setChatFocus] = useState<OpenChatFocus | undefined>(
-    () =>
-      persisted.activeChatId
-        ? buildOpenChatFocus({ chatId: persisted.activeChatId }, 0)
-        : undefined,
-  );
+  const [chatFocus, setChatFocus] = useState<OpenChatFocus | undefined>(() => {
+    const chatId = activeChatIdForRoot(
+      persisted,
+      persisted.preferredRootUri,
+    );
+    return chatId
+      ? buildOpenChatFocus({ chatId }, 0)
+      : undefined;
+  });
   const [selectionAttach, setSelectionAttach] = useState<
     OpenChatWithSelectionPayload | undefined
   >(undefined);
   const [fileAttach, setFileAttach] = useState<
     OpenChatWithFilePayload | undefined
   >(undefined);
-  const [attentionCount, setAttentionCount] = useState(0);
-  const [runInspectorAvailable, setRunInspectorAvailable] = useState(false);
-  const [runInspectorOpen, setRunInspectorOpen] = useState(false);
-  const [runInspectorOpenRequest, setRunInspectorOpenRequest] = useState(0);
   const [settingsSection, setSettingsSection] = useState(
     () => persisted.settingsSection ?? "",
   );
@@ -408,9 +408,13 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
       setChatFocus(focus);
       selectSurface("chat");
       // Empty string clears focus so parse/getState drop the field on read.
-      patchPersistedState(client, {
-        activeChatId: focus.chatId ?? "",
-      });
+      // Keep focus keyed by preferred workspace root so chats don't leak
+      // across workspaces after a root switch.
+      const rootUri = client.getPersistedState().preferredRootUri;
+      patchPersistedState(
+        client,
+        activeChatFocusPatch(rootUri, focus.chatId ?? ""),
+      );
     },
     [client, selectSurface],
   );
@@ -435,7 +439,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const reportAttentionCount = useCallback(
     (count: number) => {
       const next = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
-      setAttentionCount(next);
       void client
         .request("operations.reportAttention", {
           params: { count: next },
@@ -688,54 +691,18 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
         topbar={
           <ChatShellChrome
             surface={surface}
-            operationsView={operationsView}
-            attentionCount={attentionCount}
             hostStatus={hostStatus.status}
             hostMessage={
               shouldShowHostSubtitle(hostStatus.status, hostStatus.message)
                 ? hostStatus.message
                 : undefined
             }
-            inspectorAvailable={runInspectorAvailable}
-            inspectorOpen={runInspectorOpen}
             onSelectSurface={(next) => {
               selectSurface(next);
-            }}
-            onOpenWork={() => {
-              openOperationsSurface({
-                view: "work",
-                workHubView: "runs",
-              });
-            }}
-            onOpenInbox={() => {
-              openOperationsSurface({ view: "inbox" });
-            }}
-            onToggleInspector={() => {
-              if (runInspectorOpen) {
-                setRunInspectorOpen(false);
-                return;
-              }
-              selectSurface("chat");
-              setRunInspectorOpen(true);
-              setRunInspectorOpenRequest((value) => value + 1);
             }}
           />
         }
       >
-        {shouldShowSurfaceTextTabs() ? (
-          <AiPanelSurfaceTabs
-            activeId={surface}
-            aria-label="ALTAI surfaces"
-            tabs={[
-              { id: "chat", label: "Chat" },
-              { id: "operations", label: "Operations" },
-              { id: "settings", label: "Settings" },
-            ]}
-            onSelect={(next) => {
-              selectSurface(next as PersistedAltaiSurface);
-            }}
-          />
-        ) : null}
         {hostStatus.status === "ready" && !initError ? (
           surface === "operations" ? (
             <OperationsPanel
@@ -783,9 +750,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 onFileAttachConsumed={() => {
                   setFileAttach(undefined);
                 }}
-                inspectorOpenRequest={runInspectorOpenRequest}
-                onInspectorAvailabilityChange={setRunInspectorAvailable}
-                onInspectorOpenChange={setRunInspectorOpen}
                 onFocusChat={openChatFromOperations}
                 onOpenOperations={openOperationsSurface}
                 onOpenSettings={() => {
@@ -821,9 +785,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             onFileAttachConsumed={() => {
               setFileAttach(undefined);
             }}
-            inspectorOpenRequest={runInspectorOpenRequest}
-            onInspectorAvailabilityChange={setRunInspectorAvailable}
-            onInspectorOpenChange={setRunInspectorOpen}
             onFocusChat={openChatFromOperations}
             onOpenOperations={openOperationsSurface}
             onOpenSettings={() => {
@@ -2050,6 +2011,12 @@ function AgentUiShell({
     canStartRun,
     runActive: Boolean(activeRunId),
   });
+  const detailsAvailable = canShowRunDetailsChrome({
+    hasActiveRun: Boolean(activeRunId),
+    blockedMessage: runBlockedMessage,
+    warningMessage: runWarningMessage,
+  });
+  const detailsOpen = detailsAvailable && !runDetailsDismissed;
 
   return (
     <main className="altai-shell-body altai-shell-body--chat">
@@ -2078,6 +2045,15 @@ function AgentUiShell({
                     onFocusChat({ chatId: id, label: tab?.title });
                   }}
                   onClose={(id) => {
+                    // Last open tab close → dismiss the side panel (Desktop parity).
+                    if (openTabs.length === 1 && openTabs[0]?.id === id) {
+                      void requestWorkspace("executeAltaiCommand", {
+                        command: "altai.closeSidePanel",
+                      }).catch(() => {
+                        /* allowlisted; failures surface in Extension Host */
+                      });
+                      return;
+                    }
                     setOpenTabs((prev) => prev.filter((tab) => tab.id !== id));
                     if (id === activeChatId) {
                       const remaining = openTabs.filter((tab) => tab.id !== id);
@@ -2106,6 +2082,24 @@ function AgentUiShell({
           <AiChatMainColumn
             planMode={
               <>
+          {detailsAvailable ? (
+            <div className="altai-ai-details-strip">
+              <div className="altai-ai-details-strip-main" />
+              <ChatShellTopbar
+                inspectorAvailable={detailsAvailable}
+                inspectorOpen={detailsOpen}
+                onToggleInspector={() => {
+                  if (detailsOpen) {
+                    setRunDetailsDismissed(true);
+                    onInspectorOpenChange?.(false);
+                    return;
+                  }
+                  setRunDetailsDismissed(false);
+                  onInspectorOpenChange?.(true);
+                }}
+              />
+            </div>
+          ) : null}
           <ChatPlanTodoChrome
             permissionMode={permissionMode}
             messages={messages}
@@ -2114,12 +2108,7 @@ function AgentUiShell({
               setError(message);
             }}
           />
-          {!runDetailsDismissed &&
-          canShowRunDetailsChrome({
-            hasActiveRun: Boolean(activeRunId),
-            blockedMessage: runBlockedMessage,
-            warningMessage: runWarningMessage,
-          }) ? (
+          {detailsOpen ? (
             <ChatRunDetailsChrome
               messages={messages}
               chatId={activeChatId}

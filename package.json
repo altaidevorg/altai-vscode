@@ -75,6 +75,11 @@
         "category": "ALTAI"
       },
       {
+        "command": "altai.closeSidePanel",
+        "title": "ALTAI: Close Side Panel",
+        "category": "ALTAI"
+      },
+      {
         "command": "altai.pickProjectRoot",
         "title": "ALTAI: Pick Project Root",
         "category": "ALTAI"
