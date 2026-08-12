@@ -179,6 +179,22 @@ body {
   border-top: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
 }
 
+/* Desktop parity: Details control on the chat column, no under-border. */
+.altai-ai-details-strip {
+  display: flex;
+  height: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.4rem;
+  background: var(--card, var(--background));
+}
+
+.altai-ai-details-strip-main {
+  min-width: 0;
+  flex: 1;
+}
+
 .altai-ai-topbar-brand {
   font-size: 0.68rem;
   font-weight: 700;
@@ -1951,7 +1967,7 @@ button.altai-ops-metric-tile:focus-visible {
   }
 }
 
-/* Settings hub — Desktop SettingsContent layout (IDE surface) */
+/* Settings hub — plugin-only single sidebar rail */
 .altai-settings-hub {
   display: flex;
   flex-direction: column;
@@ -1961,12 +1977,37 @@ button.altai-ops-metric-tile:focus-visible {
   overflow: hidden;
 }
 
+.altai-settings-hub-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.altai-settings-hub-title {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+}
+
+.altai-settings-hub-subtitle {
+  margin: 0.15rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: var(--muted-foreground);
+}
+
 .altai-settings-hub-search {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.7rem 0.35rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  gap: 0.4rem;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--card, var(--background)) 55%, transparent);
 }
 
 .altai-settings-hub-search-icon {
@@ -1984,7 +2025,7 @@ button.altai-ops-metric-tile:focus-visible {
   color: var(--foreground);
   font: inherit;
   font-size: 0.78rem;
-  padding: 0.2rem 0;
+  padding: 0.15rem 0;
 }
 
 .altai-settings-hub-search-input::placeholder {
@@ -2017,54 +2058,48 @@ button.altai-ops-metric-tile:focus-visible {
   border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
 }
 
-.altai-settings-hub-quick {
+.altai-settings-hub-body {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  padding: 0.4rem 0.65rem 0.15rem;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
-.altai-settings-hub-chip {
-  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
-  background: color-mix(in srgb, var(--card, var(--background)) 50%, transparent);
+.altai-settings-hub-rail {
+  width: 9.75rem;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 0.45rem 0.35rem 0.85rem;
+  border-right: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  background: color-mix(in srgb, var(--card, var(--background)) 35%, transparent);
+  scrollbar-width: thin;
+}
+
+.altai-settings-hub-group + .altai-settings-hub-group {
+  margin-top: 0.55rem;
+}
+
+.altai-settings-hub-group-label {
+  padding: 0.2rem 0.45rem 0.25rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--muted-foreground);
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 0.2rem 0.5rem;
-  border-radius: 999px;
-  cursor: pointer;
-  line-height: 1.2;
 }
 
-.altai-settings-hub-chip:hover {
-  color: var(--foreground);
-  background: var(--muted);
-}
-
-.altai-settings-hub-chip.is-active {
-  color: var(--foreground);
-  border-color: color-mix(in srgb, var(--foreground) 28%, var(--border));
-  background: color-mix(in srgb, var(--muted) 80%, transparent);
-}
-
-.altai-settings-hub-tabbar {
+.altai-settings-hub-rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  flex-wrap: nowrap;
-  gap: 0.2rem;
-  align-items: center;
-  padding: 0.45rem 0.55rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  background: color-mix(in srgb, var(--card, var(--background)) 40%, transparent);
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-direction: column;
+  gap: 0.1rem;
 }
 
-.altai-settings-hub-tabbar::-webkit-scrollbar {
-  display: none;
-}
-
-.altai-settings-hub-nav-item {
-  display: inline-flex;
+.altai-settings-hub-rail-item {
+  display: flex;
+  width: 100%;
   align-items: center;
   gap: 0.35rem;
   border: 1px solid transparent;
@@ -2072,19 +2107,18 @@ button.altai-ops-metric-tile:focus-visible {
   color: var(--muted-foreground);
   font-size: 0.7rem;
   font-weight: 600;
-  padding: 0.28rem 0.55rem;
+  padding: 0.32rem 0.45rem;
   border-radius: 0.4rem;
   cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
+  text-align: left;
 }
 
-.altai-settings-hub-nav-item:hover {
+.altai-settings-hub-rail-item:hover {
   background: var(--muted);
   color: var(--foreground);
 }
 
-.altai-settings-hub-nav-item.is-active {
+.altai-settings-hub-rail-item.is-active {
   background: color-mix(in srgb, var(--muted) 85%, transparent);
   color: var(--foreground);
   border-color: color-mix(in srgb, var(--border) 80%, transparent);
@@ -2094,8 +2128,21 @@ button.altai-ops-metric-tile:focus-visible {
   min-height: 0;
   flex: 1;
   overflow-y: auto;
-  padding: 0.85rem 0.85rem 1.25rem;
+  padding: 0.75rem 0.85rem 1.25rem;
   scrollbar-width: thin;
+}
+
+@media (max-width: 360px) {
+  .altai-settings-hub-body {
+    flex-direction: column;
+  }
+
+  .altai-settings-hub-rail {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+    max-height: 9.5rem;
+  }
 }
 
 .altai-settings-section {

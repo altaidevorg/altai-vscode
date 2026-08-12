@@ -1,7 +1,5 @@
 /**
- * Run-inspector collapsible sections under Run details (approvals, todos,
- * changes, activity). Presentational only; approvals still flow through ports
- * in the respond callback.
+ * Flat Details sections (approvals, todos, changes, activity).
  */
 
 import {
@@ -50,10 +48,7 @@ export function ChatRunInspectorSections({
   }
 
   return (
-    <div
-      className="altai-run-inspector-sections space-y-2 px-2.5 pb-2"
-      aria-label="Run inspector sections"
-    >
+    <div aria-label="Details sections">
       {model.approvals.length > 0 ? (
         <InspectorSection
           title="Approvals"
@@ -92,9 +87,10 @@ export function ChatRunInspectorSections({
       ) : null}
       {model.todos && model.todos.total > 0 ? (
         <InspectorSection
-          title="Todos"
+          title="Plan"
           summary={`${model.todos.done}/${model.todos.total} done`}
           count={model.todos.total}
+          defaultOpen
         >
           <TodosInspector
             done={model.todos.done}
@@ -108,6 +104,7 @@ export function ChatRunInspectorSections({
           title="Changes"
           summary={`${model.changes.length} proposed`}
           count={model.changes.length}
+          defaultOpen
         >
           <ChangesInspector
             queue={model.changes}
@@ -120,6 +117,7 @@ export function ChatRunInspectorSections({
           title="Activity"
           summary={`${model.activity.length} tool events`}
           count={model.activity.length}
+          defaultOpen
         >
           <ActivityInspector
             events={model.activity}

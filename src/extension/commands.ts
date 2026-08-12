@@ -18,6 +18,10 @@ export function registerCommands(
     vscode.commands.registerCommand("altai.openSidePanel", async () => {
       await vscode.commands.executeCommand("altai.sidePanel.focus");
     }),
+    vscode.commands.registerCommand("altai.closeSidePanel", async () => {
+      // ALTAI lives in the primary activity-bar sidebar container.
+      await vscode.commands.executeCommand("workbench.action.closeSidebar");
+    }),
     vscode.commands.registerCommand("altai.openWalkthrough", async () => {
       await vscode.commands.executeCommand(
         "workbench.action.openWalkthrough",

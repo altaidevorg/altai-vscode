@@ -65,13 +65,6 @@ export function ChatSettingsGeneralPanel({
 }) {
   const { prefs, ready, error, busyKey, patch, reload } =
     useExtensionPreferences(requestWorkspace);
-  const [hostPathDraft, setHostPathDraft] = useState("");
-
-  useEffect(() => {
-    if (ready) {
-      setHostPathDraft(prefs.agentHostPath);
-    }
-  }, [ready, prefs.agentHostPath]);
 
   if (!ready) {
     return <p className="altai-shell-meta">{error ?? "Loading…"}</p>;
@@ -84,6 +77,12 @@ export function ChatSettingsGeneralPanel({
           {error}
         </p>
       ) : null}
+
+      <p className="altai-shell-meta">
+        Side-panel preferences for the ALTAI extension. Editor Vim/minimap and
+        Desktop app window prefs live in their own products — not here. Agent
+        host path is under Host.
+      </p>
 
       <SettingsSubsection label="Appearance" />
       <SettingsSettingRow
@@ -171,32 +170,6 @@ export function ChatSettingsGeneralPanel({
           disabled={busyKey === "rememberPermissionMode"}
           onChange={(v) => void patch("rememberPermissionMode", v)}
         />
-      </SettingsSettingRow>
-
-      <SettingsSubsection label="Local agent host" />
-      <SettingsSettingRow
-        title="Agent host path"
-        description="Absolute path to altai-cli for local development. Empty uses the packaged binary."
-        stacked
-      >
-        <div className="altai-settings-field-row">
-          <input
-            className="altai-settings-input"
-            value={hostPathDraft}
-            placeholder="/path/to/altai-cli"
-            onChange={(e) => setHostPathDraft(e.target.value)}
-          />
-          <SurfaceSecondaryAction
-            type="button"
-            disabled={
-              busyKey === "agentHostPath" ||
-              hostPathDraft === prefs.agentHostPath
-            }
-            onClick={() => void patch("agentHostPath", hostPathDraft.trim())}
-          >
-            Save
-          </SurfaceSecondaryAction>
-        </div>
       </SettingsSettingRow>
 
       <div className="altai-settings-field-actions">

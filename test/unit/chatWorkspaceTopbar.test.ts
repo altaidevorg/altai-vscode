@@ -7,7 +7,7 @@ import {
 } from "../../src/webview/chatWorkspaceTopbar.js";
 
 describe("canMountWorkOsTopbar", () => {
-  it("mounts the canonical cluster only as a pair or keeps the inspector alone", () => {
+  it("treats the inspector as independently mountable", () => {
     expect(
       canMountWorkOsTopbar({
         work: false,
