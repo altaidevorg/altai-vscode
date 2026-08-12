@@ -324,10 +324,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const [fileAttach, setFileAttach] = useState<
     OpenChatWithFilePayload | undefined
   >(undefined);
-  const [attentionCount, setAttentionCount] = useState(0);
-  const [runInspectorAvailable, setRunInspectorAvailable] = useState(false);
-  const [runInspectorOpen, setRunInspectorOpen] = useState(false);
-  const [runInspectorOpenRequest, setRunInspectorOpenRequest] = useState(0);
   const [settingsSection, setSettingsSection] = useState(
     () => persisted.settingsSection ?? "",
   );
@@ -443,7 +439,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
   const reportAttentionCount = useCallback(
     (count: number) => {
       const next = Number.isFinite(count) ? Math.max(0, Math.floor(count)) : 0;
-      setAttentionCount(next);
       void client
         .request("operations.reportAttention", {
           params: { count: next },
@@ -755,9 +750,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
                 onFileAttachConsumed={() => {
                   setFileAttach(undefined);
                 }}
-                inspectorOpenRequest={runInspectorOpenRequest}
-                onInspectorAvailabilityChange={setRunInspectorAvailable}
-                onInspectorOpenChange={setRunInspectorOpen}
                 onFocusChat={openChatFromOperations}
                 onOpenOperations={openOperationsSurface}
                 onOpenSettings={() => {
@@ -793,9 +785,6 @@ export function AltaiApp({ client, extensionVersion }: AltaiAppProps) {
             onFileAttachConsumed={() => {
               setFileAttach(undefined);
             }}
-            inspectorOpenRequest={runInspectorOpenRequest}
-            onInspectorAvailabilityChange={setRunInspectorAvailable}
-            onInspectorOpenChange={setRunInspectorOpen}
             onFocusChat={openChatFromOperations}
             onOpenOperations={openOperationsSurface}
             onOpenSettings={() => {
